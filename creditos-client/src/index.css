@@ -1,0 +1,16 @@
+/* Tailwind v4: importa todo (preflight + utilities) */
+@import "tailwindcss";
+
+/* Activa el plugin de Flowbite (necesario para varios componentes) */
+@plugin "flowbite/plugin";
+
+/* Dile a Tailwind dónde escanear clases (tu código + librerías Flowbite) */
+@source "./";
+@source "../node_modules/flowbite";
+@source "../node_modules/flowbite-react";
+
+/* opcional: tus globales */
+html,
+body {
+  overflow-x: hidden;
+}
