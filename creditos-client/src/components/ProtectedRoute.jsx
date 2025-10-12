@@ -1,9 +1,11 @@
-import React from "react";
-import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 export default function ProtectedRoute({ children }) {
-  const token = useSelector((s) => s.auth.token);
-  if (!token) return <Navigate to="/login" replace />;
+  const isAuth = !!localStorage.getItem("token");
+  const loading = false;
+
+  const location = useLocation();
+  if (loading) return null;
+  if (!isAuth) return <Navigate to="/login" replace state={{ from: location }} />;
   return children;
 }

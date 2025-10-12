@@ -1,4 +1,4 @@
-import { Label, TextInput, Select, Checkbox, Button } from "flowbite-react";
+import { Label, TextInput, Select, Checkbox, Button, HelperText } from "flowbite-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -16,25 +16,26 @@ export default function AgregarCliente() {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setCliente({ ...cliente, [name]: type === "checkbox" ? checked : value });
+        setCliente((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log("Cliente agregado:", cliente);
-        // Aquí harías el POST al backend con axios o fetch
+        // TODO: POST al backend
         navigate("/clientes");
     };
 
     return (
-        <div className="p-8 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">Agregar Cliente</h1>
+        <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 lg:px-8">
+            <h1 className="mb-4 text-xl font-bold sm:text-2xl">Agregar Cliente</h1>
 
             <form
                 onSubmit={handleSubmit}
-                className="flex flex-col gap-4 bg-gray-800 p-6 rounded-xl shadow-lg"
+                className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6"
             >
-                <div>
+                {/* Nombre */}
+                <div className="space-y-1.5">
                     <Label htmlFor="nombre" value="Nombre completo" />
                     <TextInput
                         id="nombre"
@@ -43,23 +44,32 @@ export default function AgregarCliente() {
                         required
                         value={cliente.nombre}
                         onChange={handleChange}
+                        autoComplete="name"
                     />
                 </div>
 
-                <div>
+                {/* Teléfono */}
+                <div className="space-y-1.5">
                     <Label htmlFor="telefono" value="Teléfono" />
                     <TextInput
                         id="telefono"
                         name="telefono"
+                        type="tel"
+                        inputMode="tel"
                         placeholder="+54 9 ..."
                         required
                         value={cliente.telefono}
                         onChange={handleChange}
+                        autoComplete="tel"
                     />
+                    <HelperText className="text-xs">
+                        Ingresá solo números y símbolos. Ej: <span className="font-medium">+54 9 266 123 4567</span>
+                    </HelperText>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
+                {/* Ciudad / Provincia */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="ciudad" value="Ciudad" />
                         <TextInput
                             id="ciudad"
@@ -67,9 +77,10 @@ export default function AgregarCliente() {
                             placeholder="San Luis"
                             value={cliente.ciudad}
                             onChange={handleChange}
+                            autoComplete="address-level2"
                         />
                     </div>
-                    <div>
+                    <div className="space-y-1.5">
                         <Label htmlFor="provincia" value="Provincia" />
                         <TextInput
                             id="provincia"
@@ -77,11 +88,13 @@ export default function AgregarCliente() {
                             placeholder="San Luis"
                             value={cliente.provincia}
                             onChange={handleChange}
+                            autoComplete="address-level1"
                         />
                     </div>
                 </div>
 
-                <div>
+                {/* Dirección */}
+                <div className="space-y-1.5">
                     <Label htmlFor="direccion" value="Dirección" />
                     <TextInput
                         id="direccion"
@@ -89,10 +102,12 @@ export default function AgregarCliente() {
                         placeholder="Calle Falsa 123"
                         value={cliente.direccion}
                         onChange={handleChange}
+                        autoComplete="street-address"
                     />
                 </div>
 
-                <div>
+                {/* Confianza */}
+                <div className="space-y-1.5">
                     <Label htmlFor="confianza" value="Nivel de confianza" />
                     <Select
                         id="confianza"
@@ -100,13 +115,14 @@ export default function AgregarCliente() {
                         value={cliente.confianza}
                         onChange={handleChange}
                     >
-                        <option>Alta</option>
-                        <option>Media</option>
-                        <option>Baja</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Media">Media</option>
+                        <option value="Baja">Baja</option>
                     </Select>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Activo */}
+                <div className="flex items-center gap-2 pt-1">
                     <Checkbox
                         id="activo"
                         name="activo"
@@ -116,11 +132,17 @@ export default function AgregarCliente() {
                     <Label htmlFor="activo">Cliente activo</Label>
                 </div>
 
-                <div className="flex justify-end gap-4 mt-6">
-                    <Button color="gray" onClick={() => navigate("/clientes")} type="button">
+                {/* Acciones */}
+                <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                        color="gray"
+                        type="button"
+                        onClick={() => navigate("/clientes")}
+                        className="w-full sm:w-auto"
+                    >
                         Cancelar
                     </Button>
-                    <Button color="blue" type="submit">
+                    <Button color="blue" type="submit" className="w-full sm:w-auto">
                         Guardar
                     </Button>
                 </div>

@@ -21,77 +21,118 @@ export default function ClienteDetalle() {
 
     if (!cliente) {
         return (
-            <div className="p-6">
-                <p className="text-red-300 mb-4">Cliente no encontrado.</p>
-                <button onClick={() => navigate("/clientes")} className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600">Volver</button>
+            <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+                <p className="mb-4 text-red-400">Cliente no encontrado.</p>
+                <button
+                    onClick={() => navigate("/clientes")}
+                    className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600"
+                >
+                    Volver
+                </button>
             </div>
         );
     }
 
-    const badge = (estado) =>
-    ({
-        PENDING: "bg-yellow-900/40 text-yellow-200 border-yellow-700",
-        PAID: "bg-green-900/40 text-green-200 border-green-700",
-        OVERDUE: "bg-red-900/40 text-red-200 border-red-700",
-    }[estado]);
-
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-start justify-between flex-wrap gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">{cliente.nombre}</h1>
-                    <p className="text-gray-300">{cliente.telefono} • DNI: {cliente.documento}</p>
-                    <p className="text-gray-400">{cliente.direccion} — {cliente.ciudad}, {cliente.provincia}</p>
-                    <p className="text-gray-400">Confianza: <b>{cliente.confianza}</b></p>
-                    {cliente.notas && <p className="text-gray-400 italic mt-1">Notas: {cliente.notas}</p>}
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                    <h1 className="truncate text-xl font-bold sm:text-2xl">{cliente.nombre}</h1>
+                    <p className="text-sm text-gray-300">
+                        {cliente.telefono} • DNI: {cliente.documento}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                        {cliente.direccion} — {cliente.ciudad}, {cliente.provincia}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                        Confianza: <span className="font-semibold">{cliente.confianza}</span>
+                    </p>
+                    {cliente.notas && (
+                        <p className="mt-1 text-sm italic text-gray-400">Notas: {cliente.notas}</p>
+                    )}
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={() => navigate(`/clientes/${cliente.id}/editar`)} className="px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600">Editar</button>
-                    <button onClick={() => navigate("/clientes")} className="px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600">Volver</button>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                    <button
+                        onClick={() => navigate(`/clientes/${cliente.id}/editar`)}
+                        className="w-full rounded-lg bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 sm:w-auto"
+                    >
+                        Editar
+                    </button>
+                    <button
+                        onClick={() => navigate("/clientes")}
+                        className="w-full rounded-lg bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 sm:w-auto"
+                    >
+                        Volver
+                    </button>
                 </div>
             </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
+            {/* Créditos */}
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-lg font-semibold">Créditos del cliente</h2>
-                    <button onClick={() => navigate("/creditos/nuevo")} className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white">
+                    <button
+                        onClick={() => navigate("/creditos/nuevo")}
+                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-auto"
+                    >
                         + Nuevo crédito
                     </button>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border border-gray-700">
-                    <table className="min-w-full text-sm text-left text-gray-300">
-                        <thead className="text-xs uppercase bg-gray-700 text-gray-200">
+                {/* Lista MOBILE: cards */}
+                <div className="grid gap-3 sm:hidden">
+                    {creditos.length === 0 ? (
+                        <CardEmpty />
+                    ) : (
+                        creditos.map((cr) => <CreditoCard key={cr.id} cr={cr} onView={() => navigate(`/creditos/${cr.id}`)} />)
+                    )}
+                </div>
+
+                {/* Tabla DESKTOP */}
+                <div className="hidden overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 sm:block">
+                    <table className="w-full text-left text-sm">
+                        <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
                             <tr>
-                                <th className="px-4 py-3">Crédito</th>
-                                <th className="px-4 py-3">Monto</th>
-                                <th className="px-4 py-3">Cuotas</th>
-                                <th className="px-4 py-3">Pagadas</th>
-                                <th className="px-4 py-3">Estado</th>
-                                <th className="px-4 py-3 text-center">Acciones</th>
+                                <th className="min-w-[140px] px-4 py-3 font-medium">Crédito</th>
+                                <th className="min-w-[140px] px-4 py-3 font-medium">Monto</th>
+                                <th className="min-w-[100px] px-4 py-3 font-medium">Cuotas</th>
+                                <th className="min-w-[120px] px-4 py-3 font-medium">Pagadas</th>
+                                <th className="min-w-[120px] px-4 py-3 font-medium">Estado</th>
+                                <th className="min-w-[140px] px-4 py-3 text-center font-medium">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {creditos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-400">Sin créditos para este cliente.</td>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                        Sin créditos para este cliente.
+                                    </td>
                                 </tr>
                             ) : (
                                 creditos.map((cr) => (
-                                    <tr key={cr.id} className="border-t border-gray-700 bg-gray-800">
-                                        <td className="px-4 py-3">{cr.id}</td>
-                                        <td className="px-4 py-3">${cr.monto.toLocaleString("es-AR")}</td>
-                                        <td className="px-4 py-3">{cr.cuotas}</td>
-                                        <td className="px-4 py-3">{cr.pagadas}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs border ${badge(cr.estado)}`}>
-                                                {cr.estado === "PENDING" ? "Pendiente" : cr.estado === "PAID" ? "Pagado" : "Vencido"}
-                                            </span>
+                                    <tr key={cr.id} className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70">
+                                        <td className="px-4 py-3 align-middle">{cr.id}</td>
+                                        <td className="px-4 py-3 align-middle">
+                                            ${cr.monto.toLocaleString("es-AR")}
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-4 py-3 align-middle">{cr.cuotas}</td>
+                                        <td className="px-4 py-3 align-middle">
+                                            <div className="flex items-center gap-2">
+                                                <span>
+                                                    {cr.pagadas}/{cr.cuotas}
+                                                </span>
+                                                <Progress value={(cr.pagadas / cr.cuotas) * 100} />
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 align-middle">
+                                            <EstadoPill estado={cr.estado} />
+                                        </td>
+                                        <td className="px-4 py-3 text-center align-middle">
                                             <button
                                                 onClick={() => navigate(`/creditos/${cr.id}`)}
-                                                className="px-3 py-2 rounded-md bg-sky-700 hover:bg-sky-600 text-white"
+                                                className="rounded-md bg-sky-600 px-3 py-2 text-white hover:bg-sky-500"
                                             >
                                                 Ver crédito
                                             </button>
@@ -102,7 +143,83 @@ export default function ClienteDetalle() {
                         </tbody>
                     </table>
                 </div>
+            </section>
+        </div>
+    );
+}
+
+/* ===== Subcomponentes UI (JS puro) ===== */
+
+function estadoClasses(estado) {
+    return {
+        PENDING:
+            "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800",
+        PAID:
+            "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
+        OVERDUE:
+            "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+    }[estado];
+}
+
+function EstadoPill({ estado }) {
+    const label = estado === "PENDING" ? "Pendiente" : estado === "PAID" ? "Pagado" : "Vencido";
+    return (
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${estadoClasses(estado)}`}>
+            {label}
+        </span>
+    );
+}
+
+function Progress({ value }) {
+    return (
+        <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+            <div
+                className="h-full bg-blue-600 transition-[width] duration-300 ease-out"
+                style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+            />
+        </div>
+    );
+}
+
+function CreditoCard({ cr, onView }) {
+    return (
+        <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-2 flex items-start justify-between gap-2">
+                <div>
+                    <div className="text-sm font-semibold">Crédito {cr.id}</div>
+                    <div className="text-xs text-gray-500">Inicio: {cr.inicio}</div>
+                </div>
+                <EstadoPill estado={cr.estado} />
             </div>
+
+            <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-gray-500">Monto</div>
+                <div>${cr.monto.toLocaleString("es-AR")}</div>
+                <div className="text-gray-500">Cuotas</div>
+                <div>{cr.cuotas}</div>
+                <div className="text-gray-500">Pagadas</div>
+                <div className="flex items-center gap-2">
+                    {cr.pagadas}/{cr.cuotas}
+                    <Progress value={(cr.pagadas / cr.cuotas) * 100} />
+                </div>
+            </div>
+
+            <div className="mt-3">
+                <button
+                    onClick={onView}
+                    className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500"
+                >
+                    Ver crédito
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function CardEmpty() {
+    return (
+        <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+            Sin créditos para este cliente.
         </div>
     );
 }

@@ -30,7 +30,7 @@ export default function ClienteEditar() {
         setForm((s) => ({ ...s, [name]: value }));
     };
 
-    const submit = async (e) => {
+    const submit = (e) => {
         e.preventDefault();
         // TODO: PUT /api/clientes/:id con { ...form }
         console.log("Editar cliente", id, form);
@@ -39,64 +39,144 @@ export default function ClienteEditar() {
 
     if (!current) {
         return (
-            <div className="p-6">
-                <p className="text-red-300 mb-4">Cliente no encontrado.</p>
-                <button onClick={() => navigate("/clientes")} className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600">Volver</button>
+            <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+                <p className="mb-4 text-red-400">Cliente no encontrado.</p>
+                <button
+                    onClick={() => navigate("/clientes")}
+                    className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600"
+                >
+                    Volver
+                </button>
             </div>
         );
     }
 
     return (
-        <div className="p-6 space-y-6">
-            <h1 className="text-2xl font-bold">Editar cliente</h1>
+        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+            <h1 className="text-xl font-bold sm:text-2xl">Editar cliente</h1>
 
-            <form onSubmit={submit} className="max-w-2xl bg-gray-800 rounded-xl p-6 space-y-4 border border-gray-700">
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block mb-1 text-sm">Nombre completo</label>
-                        <input name="nombre" value={form.nombre} onChange={handle} required className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+            <form
+                onSubmit={submit}
+                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6"
+            >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Nombre completo</label>
+                        <input
+                            name="nombre"
+                            value={form.nombre}
+                            onChange={handle}
+                            required
+                            placeholder="Ej: Juan Pérez"
+                            autoComplete="name"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        />
                     </div>
-                    <div>
-                        <label className="block mb-1 text-sm">Teléfono</label>
-                        <input name="telefono" value={form.telefono} onChange={handle} required className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+
+                    <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Teléfono</label>
+                        <input
+                            name="telefono"
+                            value={form.telefono}
+                            onChange={handle}
+                            required
+                            type="tel"
+                            inputMode="tel"
+                            placeholder="+54 9 ..."
+                            autoComplete="tel"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        />
                     </div>
-                    <div>
-                        <label className="block mb-1 text-sm">Documento</label>
-                        <input name="documento" value={form.documento} onChange={handle} required className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+
+                    <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Documento</label>
+                        <input
+                            name="documento"
+                            value={form.documento}
+                            onChange={handle}
+                            required
+                            placeholder="DNI / CUIT"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        />
                     </div>
-                    <div>
-                        <label className="block mb-1 text-sm">Confianza</label>
-                        <select name="confianza" value={form.confianza} onChange={handle} className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2">
+
+                    <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Confianza</label>
+                        <select
+                            name="confianza"
+                            value={form.confianza}
+                            onChange={handle}
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        >
                             <option>Alta</option>
                             <option>Media</option>
                             <option>Baja</option>
                             <option>Moroso</option>
                         </select>
                     </div>
-                    <div className="md:col-span-2">
-                        <label className="block mb-1 text-sm">Dirección</label>
-                        <input name="direccion" value={form.direccion} onChange={handle} className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+
+                    <div className="grid gap-1.5 sm:col-span-2">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Dirección</label>
+                        <input
+                            name="direccion"
+                            value={form.direccion}
+                            onChange={handle}
+                            placeholder="Calle y número"
+                            autoComplete="street-address"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        />
                     </div>
-                    <div>
-                        <label className="block mb-1 text-sm">Ciudad</label>
-                        <input name="ciudad" value={form.ciudad} onChange={handle} className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+
+                    <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Ciudad</label>
+                        <input
+                            name="ciudad"
+                            value={form.ciudad}
+                            onChange={handle}
+                            placeholder="Ej: San Luis"
+                            autoComplete="address-level2"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        />
                     </div>
-                    <div>
-                        <label className="block mb-1 text-sm">Provincia</label>
-                        <input name="provincia" value={form.provincia} onChange={handle} className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+
+                    <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Provincia</label>
+                        <input
+                            name="provincia"
+                            value={form.provincia}
+                            onChange={handle}
+                            placeholder="Ej: San Luis"
+                            autoComplete="address-level1"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        />
                     </div>
                 </div>
 
-                <div>
-                    <label className="block mb-1 text-sm">Notas</label>
-                    <textarea name="notas" value={form.notas} onChange={handle} rows={3} className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2" />
+                <div className="grid gap-1.5">
+                    <label className="text-sm text-gray-600 dark:text-gray-300">Notas</label>
+                    <textarea
+                        name="notas"
+                        value={form.notas}
+                        onChange={handle}
+                        rows={3}
+                        placeholder="Observaciones del cliente…"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    />
                 </div>
 
-                <div className="flex justify-end gap-3">
-                    <button type="button" onClick={() => navigate(`/clientes/${id}`)} className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600">
+                {/* Acciones */}
+                <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button
+                        type="button"
+                        onClick={() => navigate(`/clientes/${id}`)}
+                        className="w-full rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:w-auto"
+                    >
                         Cancelar
                     </button>
-                    <button type="submit" className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white">
+                    <button
+                        type="submit"
+                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-auto"
+                    >
                         Guardar cambios
                     </button>
                 </div>

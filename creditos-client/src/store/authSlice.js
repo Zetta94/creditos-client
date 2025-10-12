@@ -1,16 +1,14 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const MOCK_EMAIL = "example@falso.com";
-const MOCK_PASS = "12345678";
+const MOCK_EMAIL = "demo@imperio.test";
+const MOCK_PASS = "DemoPassword123";
 
 export const login = createAsyncThunk(
   "auth/login",
   async ({ email, password }, thunkAPI) => {
-    // Simular tardanza:
     await new Promise(r => setTimeout(r, 500));
     if (email === MOCK_EMAIL && password === MOCK_PASS) {
       const token = "tok_falso_123456";
-      // guardamos en localStorage (mock)
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({ email }));
       return { token, user: { email } };
