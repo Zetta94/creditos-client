@@ -1,20 +1,35 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiPlus, HiEye, HiSearch, HiFilter } from "react-icons/hi";
-
-const creditosMock = [
-    { id: "cr1", cliente: "Juan Pérez", monto: 100000, cuotas: 10, pagadas: 6, estado: "PENDING", fechaInicio: "2025-06-10" },
-    { id: "cr2", cliente: "Laura Gómez", monto: 150000, cuotas: 12, pagadas: 12, estado: "PAID", fechaInicio: "2025-02-15" },
-    { id: "cr3", cliente: "Carlos Díaz", monto: 80000, cuotas: 8, pagadas: 4, estado: "OVERDUE", fechaInicio: "2025-03-01" },
-];
+import { mockCredits, mockClients } from "../mocks/mockData.js";
 
 export default function Creditos() {
     const navigate = useNavigate();
 
+    // === Construcción de datos mock combinados ===
+    const creditosMock = useMemo(
+        () =>
+            mockCredits.map((cr) => {
+                const cliente = mockClients.find((c) => c.id === cr.clientId);
+                return {
+                    id: cr.id,
+                    cliente: cliente?.name || "Cliente desconocido",
+                    monto: cr.amount,
+                    cuotas: cr.totalInstallments,
+                    pagadas: cr.paidInstallments,
+                    estado: cr.status,
+                    fechaInicio: cr.startDate,
+                };
+            }),
+        []
+    );
+
+    // === Estados ===
     const [q, setQ] = useState("");
-    const [estado, setEstado] = useState("todos"); // todos | PENDING | PAID | OVERDUE
+    const [estado, setEstado] = useState("todos");
     const [showFilters, setShowFilters] = useState(false);
 
+    // === Filtrado ===
     const rows = useMemo(() => {
         const qn = q.trim().toLowerCase();
         return creditosMock.filter((c) => {
@@ -22,11 +37,11 @@ export default function Creditos() {
             const okEstado = estado === "todos" || c.estado === estado;
             return okText && okEstado;
         });
-    }, [q, estado]);
+    }, [q, estado, creditosMock]);
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-            {/* Header */}
+            {/* === Header === */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h1 className="text-xl font-bold sm:text-2xl">Créditos</h1>
 
@@ -41,6 +56,7 @@ export default function Creditos() {
                         Filtros
                     </button>
 
+                    {/* Nuevo crédito */}
                     <button
                         onClick={() => navigate("/creditos/nuevo")}
                         className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-[0.98]"
@@ -51,10 +67,13 @@ export default function Creditos() {
                 </div>
             </div>
 
-            {/* Filtros */}
+            {/* === Filtros === */}
             <div className="grid gap-3">
                 {/* Panel móvil plegable */}
-                <div className={`grid gap-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:hidden ${showFilters ? "grid" : "hidden"}`}>
+                <div
+                    className={`grid gap-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:hidden ${showFilters ? "grid" : "hidden"
+                        }`}
+                >
                     <SearchInput q={q} setQ={setQ} />
                     <EstadoSelect estado={estado} setEstado={setEstado} />
                 </div>
@@ -71,7 +90,13 @@ export default function Creditos() {
                 {rows.length === 0 ? (
                     <EmptyState onCreate={() => navigate("/creditos/nuevo")} />
                 ) : (
-                    rows.map((c) => <CreditoCard key={c.id} data={c} onView={() => navigate(`/creditos/${c.id}`)} />)
+                    rows.map((c) => (
+                        <CreditoCard
+                            key={c.id}
+                            data={c}
+                            onView={() => navigate(`/creditos/${c.id}`)}
+                        />
+                    ))
                 )}
             </div>
 
@@ -80,25 +105,45 @@ export default function Creditos() {
                 <table className="w-full text-left text-sm">
                     <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
                         <tr>
-                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[200px]">Cliente</th>
-                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[140px]">Monto total</th>
-                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[100px]">Cuotas</th>
-                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[160px]">Pagadas</th>
-                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[120px]">Estado</th>
-                            <th className="px-4 py-3 text-center font-medium whitespace-nowrap min-w-[140px]">Acciones</th>
+                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[200px]">
+                                Cliente
+                            </th>
+                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[140px]">
+                                Monto total
+                            </th>
+                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[100px]">
+                                Cuotas
+                            </th>
+                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[160px]">
+                                Pagadas
+                            </th>
+                            <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[120px]">
+                                Estado
+                            </th>
+                            <th className="px-4 py-3 text-center font-medium whitespace-nowrap min-w-[140px]">
+                                Acciones
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {rows.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <td
+                                    colSpan={6}
+                                    className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
+                                >
                                     No se encontraron créditos.
                                 </td>
                             </tr>
                         ) : (
                             rows.map((c) => (
-                                <tr key={c.id} className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70">
-                                    <td className="px-4 py-3 align-middle text-gray-900 dark:text-gray-100">{c.cliente}</td>
+                                <tr
+                                    key={c.id}
+                                    className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
+                                >
+                                    <td className="px-4 py-3 align-middle text-gray-900 dark:text-gray-100">
+                                        {c.cliente}
+                                    </td>
                                     <td className="px-4 py-3 align-middle text-gray-900 dark:text-gray-100">
                                         ${c.monto.toLocaleString("es-AR")}
                                     </td>
@@ -132,7 +177,7 @@ export default function Creditos() {
     );
 }
 
-/* ===== Subcomponentes (JS puro) ===== */
+/* ===== Subcomponentes ===== */
 
 function SearchInput({ q, setQ }) {
     return (
@@ -189,9 +234,18 @@ function estadoClasses(estado) {
 }
 
 function EstadoPill({ estado }) {
-    const label = estado === "PENDING" ? "Pendiente" : estado === "PAID" ? "Pagado" : "Vencido";
+    const label =
+        estado === "PENDING"
+            ? "Pendiente"
+            : estado === "PAID"
+                ? "Pagado"
+                : "Vencido";
     return (
-        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${estadoClasses(estado)}`}>
+        <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${estadoClasses(
+                estado
+            )}`}
+        >
             {label}
         </span>
     );
@@ -204,7 +258,9 @@ function CreditoCard({ data, onView }) {
             <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{data.cliente}</div>
-                    <div className="text-xs text-gray-500">Inicio: {data.fechaInicio}</div>
+                    <div className="text-xs text-gray-500">
+                        Inicio: {data.fechaInicio}
+                    </div>
                 </div>
                 <EstadoPill estado={data.estado} />
             </div>
@@ -238,7 +294,10 @@ function EmptyState({ onCreate }) {
     return (
         <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
             No se encontraron créditos.{" "}
-            <button onClick={onCreate} className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+            <button
+                onClick={onCreate}
+                className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+            >
                 Crear nuevo
             </button>
         </div>
