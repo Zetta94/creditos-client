@@ -5,59 +5,40 @@ import { mockClients, mockCredits } from "../mocks/mockData";
 import { HiArrowLeft, HiTrash, HiPlus } from "react-icons/hi";
 
 export default function RegistrarPago() {
-    const { clienteId } = useParams();
+    const { creditoId } = useParams(); // 👈 cambio acá
     const navigate = useNavigate();
 
-    const cliente = mockClients.find((c) => c.id === clienteId);
-    const credito = mockCredits.find((cr) => cr.clientId === clienteId);
+    const credito = mockCredits.find((cr) => cr.id === creditoId);
+    const cliente = mockClients.find((c) => c.id === credito?.clientId); // 👈 busca el cliente asociado
 
-    const [pagos, setPagos] = useState([
-        { metodo: "efectivo", monto: "", id: Date.now() },
-    ]);
+    const [pagos, setPagos] = useState([{ metodo: "efectivo", monto: "", id: Date.now() }]);
     const [nota, setNota] = useState("");
 
-    if (!cliente) {
+    if (!credito || !cliente) {
         return (
             <div className="p-6 text-center text-red-500">
-                Cliente no encontrado.
+                Crédito o cliente no encontrado.
             </div>
         );
     }
 
-    // === Agregar nuevo medio de pago ===
+    const total = pagos.reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+
     function agregarPago() {
-        setPagos((prev) => [
-            ...prev,
-            { metodo: "efectivo", monto: "", id: Date.now() },
-        ]);
+        setPagos((prev) => [...prev, { metodo: "efectivo", monto: "", id: Date.now() }]);
     }
 
-    // === Eliminar fila de pago ===
     function eliminarPago(id) {
         setPagos((prev) => prev.filter((p) => p.id !== id));
     }
 
-    // === Actualizar campo ===
     function actualizarPago(id, campo, valor) {
-        setPagos((prev) =>
-            prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p))
-        );
+        setPagos((prev) => prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)));
     }
 
-    // === Calcular total dinámico ===
-    const total = pagos.reduce(
-        (sum, p) => sum + (parseFloat(p.monto) || 0),
-        0
-    );
-
-    // === Guardar ===
     function handleSubmit(e) {
         e.preventDefault();
-
-        const pagosValidos = pagos.filter(
-            (p) => p.metodo && Number(p.monto) > 0
-        );
-
+        const pagosValidos = pagos.filter((p) => p.metodo && Number(p.monto) > 0);
         if (pagosValidos.length === 0) {
             toast.error("Debes ingresar al menos un pago válido 🧾");
             return;
@@ -90,18 +71,12 @@ export default function RegistrarPago() {
                 <p className="text-gray-900 dark:text-gray-100 font-medium text-lg">
                     {cliente.name}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {cliente.address}
+                <p className="text-sm text-gray-500 dark:text-gray-400">{cliente.address}</p>
+                <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
+                    Crédito activo:{" "}
+                    <strong>${credito.amount.toLocaleString("es-AR")}</strong> — Cuota:{" "}
+                    <strong>${credito.installmentAmount.toLocaleString("es-AR")}</strong>
                 </p>
-                {credito && (
-                    <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
-                        Crédito activo:{" "}
-                        <strong>${credito.amount.toLocaleString("es-AR")}</strong> — Cuota:{" "}
-                        <strong>
-                            ${credito.installmentAmount.toLocaleString("es-AR")}
-                        </strong>
-                    </p>
-                )}
             </div>
 
             {/* Formulario */}
@@ -113,11 +88,8 @@ export default function RegistrarPago() {
                     Detalle de pagos
                 </h2>
 
-                {pagos.map((p, i) => (
-                    <div
-                        key={p.id}
-                        className="flex flex-col sm:flex-row sm:items-end gap-3 border-b pb-4 last:border-none"
-                    >
+                {pagos.map((p) => (
+                    <div key={p.id} className="flex flex-col sm:flex-row sm:items-end gap-3 border-b pb-4 last:border-none">
                         {/* Método */}
                         <div className="flex-1">
                             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -125,9 +97,7 @@ export default function RegistrarPago() {
                             </label>
                             <select
                                 value={p.metodo}
-                                onChange={(e) =>
-                                    actualizarPago(p.id, "metodo", e.target.value)
-                                }
+                                onChange={(e) => actualizarPago(p.id, "metodo", e.target.value)}
                                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                             >
                                 <option value="efectivo">Efectivo</option>
@@ -144,9 +114,7 @@ export default function RegistrarPago() {
                             <input
                                 type="number"
                                 value={p.monto}
-                                onChange={(e) =>
-                                    actualizarPago(p.id, "monto", e.target.value)
-                                }
+                                onChange={(e) => actualizarPago(p.id, "monto", e.target.value)}
                                 min="0"
                                 step="100"
                                 placeholder="0"
@@ -167,7 +135,6 @@ export default function RegistrarPago() {
                     </div>
                 ))}
 
-                {/* Agregar pago */}
                 <div className="flex justify-end">
                     <button
                         type="button"
@@ -178,7 +145,6 @@ export default function RegistrarPago() {
                     </button>
                 </div>
 
-                {/* Total dinámico */}
                 <div className="text-right text-sm font-medium text-gray-800 dark:text-gray-200 border-t pt-3">
                     Total a registrar:{" "}
                     <span className="text-lg font-bold text-blue-600">
@@ -186,7 +152,6 @@ export default function RegistrarPago() {
                     </span>
                 </div>
 
-                {/* Nota */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Nota (opcional)
@@ -200,7 +165,6 @@ export default function RegistrarPago() {
                     />
                 </div>
 
-                {/* Botón principal */}
                 <button
                     type="submit"
                     className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-500 focus:ring-2 focus:ring-blue-300"

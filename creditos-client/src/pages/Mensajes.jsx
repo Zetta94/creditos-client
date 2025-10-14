@@ -1,13 +1,6 @@
 import { useState, useMemo } from "react";
 import { HiExclamation, HiCheckCircle, HiClock, HiFilter, HiX } from "react-icons/hi";
-
-const mensajesMock = [
-    { id: 1, fecha: "2025-10-10", tipo: "PAGO", cliente: "Juan Pérez", monto: 12500, importante: false },
-    { id: 2, fecha: "2025-10-09", tipo: "PAGO", cliente: "Laura Gómez", monto: 8700, importante: false },
-    { id: 3, fecha: "2025-10-08", tipo: "PAGO", cliente: "Carlos Díaz", monto: 6200, importante: false },
-    { id: 4, fecha: "2025-10-11", tipo: "VENCIMIENTO", cliente: "Pedro Ruiz", monto: null, importante: true },
-    { id: 5, fecha: "2025-10-07", tipo: "IMPAGO", cliente: "Ana Torres", monto: null, importante: true },
-];
+import { mockMessages, mockClients } from "../mocks/mockData"; // ajustá la ruta según tu estructura
 
 export default function Mensajes() {
     const [filtros, setFiltros] = useState({
@@ -18,8 +11,18 @@ export default function Mensajes() {
     });
     const [openFilters, setOpenFilters] = useState(false);
 
+    // === Armamos los mensajes con nombre de cliente ===
+    const mensajes = mockMessages.map((m) => {
+        const cliente = mockClients.find((c) => c.id === m.clientId);
+        return {
+            ...m,
+            cliente: cliente ? cliente.name : "Cliente desconocido",
+        };
+    });
+
+    // === Aplicar filtros ===
     const mensajesFiltrados = useMemo(() => {
-        return mensajesMock
+        return mensajes
             .filter((m) => {
                 if (filtros.desde && m.fecha < filtros.desde) return false;
                 if (filtros.hasta && m.fecha > filtros.hasta) return false;
@@ -59,15 +62,14 @@ export default function Mensajes() {
                 </div>
             </div>
 
-            {/* Filtros — móvil plegable */}
+            {/* Filtros móvil */}
             <div
-                className={`grid gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:hidden ${openFilters ? "grid" : "hidden"
-                    }`}
+                className={`grid gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:hidden ${openFilters ? "grid" : "hidden"}`}
             >
                 <Filters filtros={filtros} setFiltros={setFiltros} />
             </div>
 
-            {/* Filtros — desktop */}
+            {/* Filtros desktop */}
             <div className="hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:block">
                 <Filters filtros={filtros} setFiltros={setFiltros} />
             </div>
@@ -165,10 +167,8 @@ function MensajeItem({ m }) {
                 <div className="min-w-0">
                     {m.tipo === "PAGO" && (
                         <p className="text-sm">
-                            Se recibió un pago de <span className="font-semibold">{m.cliente}</span> por{" "}
-                            <span className="font-semibold text-green-600 dark:text-green-400">
-                                ${m.monto?.toLocaleString("es-AR")}
-                            </span>
+                            Se registró un pago de{" "}
+                            <span className="font-semibold">{m.cliente}</span>.
                         </p>
                     )}
                     {m.tipo === "VENCIMIENTO" && (
@@ -181,7 +181,9 @@ function MensajeItem({ m }) {
                             <span className="font-semibold">{m.cliente}</span> no realizó su pago a tiempo.
                         </p>
                     )}
-                    <p className="mt-0.5 text-xs opacity-70">{m.fecha}</p>
+                    <p className="mt-0.5 text-xs opacity-70">
+                        {new Date(m.fecha).toLocaleDateString("es-AR")}
+                    </p>
                 </div>
             </div>
 
@@ -194,7 +196,7 @@ function MensajeItem({ m }) {
     );
 }
 
-/* Paleta consistente con el dashboard */
+/* === Paleta === */
 const styles = {
     neutral: {
         bg: "bg-white dark:bg-gray-800",

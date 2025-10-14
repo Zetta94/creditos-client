@@ -1,23 +1,12 @@
-// pages/ClienteDetalle.jsx
 import { useNavigate, useParams } from "react-router-dom";
-
-const clientesMock = [
-    { id: "c1", nombre: "Juan Pérez", telefono: "+54 9 2664 000000", documento: "30123456", direccion: "Calle Falsa 123", ciudad: "San Luis", provincia: "San Luis", confianza: "Alta", notas: "" },
-    { id: "c2", nombre: "Laura Gómez", telefono: "+54 9 2664 123456", documento: "28999888", direccion: "Av. Siempreviva 742", ciudad: "San Luis", provincia: "San Luis", confianza: "Baja", notas: "Llamar antes" },
-];
-
-const creditosMock = [
-    { id: "cr1", clientId: "c1", monto: 100000, cuotas: 10, pagadas: 6, estado: "PENDING", inicio: "2025-06-10" },
-    { id: "cr3", clientId: "c1", monto: 80000, cuotas: 8, pagadas: 4, estado: "OVERDUE", inicio: "2025-03-01" },
-    { id: "cr2", clientId: "c2", monto: 150000, cuotas: 12, pagadas: 12, estado: "PAID", inicio: "2025-02-15" },
-];
+import { mockClients, mockCredits } from "../mocks/mockData";
 
 export default function ClienteDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const cliente = clientesMock.find((c) => c.id === id);
-    const creditos = creditosMock.filter((cr) => cr.clientId === id);
+    const cliente = mockClients.find((c) => c.id === id);
+    const creditos = mockCredits.filter((cr) => cr.clientId === id);
 
     if (!cliente) {
         return (
@@ -25,7 +14,7 @@ export default function ClienteDetalle() {
                 <p className="mb-4 text-red-400">Cliente no encontrado.</p>
                 <button
                     onClick={() => navigate("/clientes")}
-                    className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600"
+                    className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600 text-white"
                 >
                     Volver
                 </button>
@@ -38,19 +27,19 @@ export default function ClienteDetalle() {
             {/* Header */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                    <h1 className="truncate text-xl font-bold sm:text-2xl">{cliente.nombre}</h1>
+                    <h1 className="truncate text-xl font-bold sm:text-2xl">{cliente.name}</h1>
                     <p className="text-sm text-gray-300">
-                        {cliente.telefono} • DNI: {cliente.documento}
+                        {cliente.phone} • DNI: {cliente.document}
                     </p>
                     <p className="text-sm text-gray-400">
-                        {cliente.direccion} — {cliente.ciudad}, {cliente.provincia}
+                        {cliente.address} — {cliente.city}, {cliente.province}
                     </p>
                     <p className="text-sm text-gray-400">
-                        Confianza: <span className="font-semibold">{cliente.confianza}</span>
+                        Confianza:{" "}
+                        <span className="font-semibold">
+                            {cliente.reliability}
+                        </span>
                     </p>
-                    {cliente.notas && (
-                        <p className="mt-1 text-sm italic text-gray-400">Notas: {cliente.notas}</p>
-                    )}
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
@@ -81,12 +70,18 @@ export default function ClienteDetalle() {
                     </button>
                 </div>
 
-                {/* Lista MOBILE: cards */}
+                {/* Lista MOBILE */}
                 <div className="grid gap-3 sm:hidden">
                     {creditos.length === 0 ? (
                         <CardEmpty />
                     ) : (
-                        creditos.map((cr) => <CreditoCard key={cr.id} cr={cr} onView={() => navigate(`/creditos/${cr.id}`)} />)
+                        creditos.map((cr) => (
+                            <CreditoCard
+                                key={cr.id}
+                                cr={cr}
+                                onView={() => navigate(`/creditos/${cr.id}`)}
+                            />
+                        ))
                     )}
                 </div>
 
@@ -112,22 +107,29 @@ export default function ClienteDetalle() {
                                 </tr>
                             ) : (
                                 creditos.map((cr) => (
-                                    <tr key={cr.id} className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70">
+                                    <tr
+                                        key={cr.id}
+                                        className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
+                                    >
                                         <td className="px-4 py-3 align-middle">{cr.id}</td>
                                         <td className="px-4 py-3 align-middle">
-                                            ${cr.monto.toLocaleString("es-AR")}
+                                            ${cr.amount.toLocaleString("es-AR")}
                                         </td>
-                                        <td className="px-4 py-3 align-middle">{cr.cuotas}</td>
+                                        <td className="px-4 py-3 align-middle">
+                                            {cr.totalInstallments}
+                                        </td>
                                         <td className="px-4 py-3 align-middle">
                                             <div className="flex items-center gap-2">
                                                 <span>
-                                                    {cr.pagadas}/{cr.cuotas}
+                                                    {cr.paidInstallments}/{cr.totalInstallments}
                                                 </span>
-                                                <Progress value={(cr.pagadas / cr.cuotas) * 100} />
+                                                <Progress
+                                                    value={(cr.paidInstallments / cr.totalInstallments) * 100}
+                                                />
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 align-middle">
-                                            <EstadoPill estado={cr.estado} />
+                                            <EstadoPill estado={cr.status} />
                                         </td>
                                         <td className="px-4 py-3 text-center align-middle">
                                             <button
@@ -148,7 +150,7 @@ export default function ClienteDetalle() {
     );
 }
 
-/* ===== Subcomponentes UI (JS puro) ===== */
+/* ===== Subcomponentes UI ===== */
 
 function estadoClasses(estado) {
     return {
@@ -162,9 +164,18 @@ function estadoClasses(estado) {
 }
 
 function EstadoPill({ estado }) {
-    const label = estado === "PENDING" ? "Pendiente" : estado === "PAID" ? "Pagado" : "Vencido";
+    const label =
+        estado === "PENDING"
+            ? "Pendiente"
+            : estado === "PAID"
+                ? "Pagado"
+                : "Vencido";
     return (
-        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${estadoClasses(estado)}`}>
+        <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${estadoClasses(
+                estado
+            )}`}
+        >
             {label}
         </span>
     );
@@ -187,20 +198,24 @@ function CreditoCard({ cr, onView }) {
             <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
                     <div className="text-sm font-semibold">Crédito {cr.id}</div>
-                    <div className="text-xs text-gray-500">Inicio: {cr.inicio}</div>
+                    <div className="text-xs text-gray-500">
+                        Inicio: {new Date(cr.startDate).toLocaleDateString("es-AR")}
+                    </div>
                 </div>
-                <EstadoPill estado={cr.estado} />
+                <EstadoPill estado={cr.status} />
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-gray-500">Monto</div>
-                <div>${cr.monto.toLocaleString("es-AR")}</div>
+                <div>${cr.amount.toLocaleString("es-AR")}</div>
                 <div className="text-gray-500">Cuotas</div>
-                <div>{cr.cuotas}</div>
+                <div>{cr.totalInstallments}</div>
                 <div className="text-gray-500">Pagadas</div>
                 <div className="flex items-center gap-2">
-                    {cr.pagadas}/{cr.cuotas}
-                    <Progress value={(cr.pagadas / cr.cuotas) * 100} />
+                    {cr.paidInstallments}/{cr.totalInstallments}
+                    <Progress
+                        value={(cr.paidInstallments / cr.totalInstallments) * 100}
+                    />
                 </div>
             </div>
 

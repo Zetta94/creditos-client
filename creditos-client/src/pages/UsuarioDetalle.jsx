@@ -78,7 +78,7 @@ export default function UsuarioDetalle() {
                                     : "border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
                                     }`}
                             >
-                                {usuario.role === "COBRADOR" ? "Cobrador" : usuario.role}
+                                {usuario.role === "cobrador" ? "Cobrador" : usuario.role}
                             </span>
 
                             <div className="mt-4 grid grid-cols-2 gap-y-1 text-sm text-gray-700 dark:text-gray-300">
@@ -139,7 +139,7 @@ export default function UsuarioDetalle() {
             </div>
 
             {/* === ORDENAR CLIENTES === */}
-            {usuario.role === "COBRADOR" && (
+            {usuario.role === "cobrador" && (
                 <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     <OrdenarClientes cobradorId={usuario.id} />
                 </div>

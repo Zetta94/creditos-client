@@ -1,49 +1,51 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { HiChevronLeft, HiChevronRight, HiArrowsUpDown } from "react-icons/hi2";
-import { mockClients, mockCobradorClientes } from "../mocks/mockData.js";
+import { mockClients, mockCobradorClientes } from "../mocks/mockData";
 import { toast } from "react-hot-toast";
 
 export default function OrdenClientes({ cobradorId }) {
     const [clientes, setClientes] = useState([]);
     const [pagina, setPagina] = useState(1);
-    const [totalPaginas, setTotalPaginas] = useState(1);
     const [guardando, setGuardando] = useState(false);
     const [editando, setEditando] = useState(false);
     const porPagina = 10;
 
-    useEffect(() => {
-        cargarClientes(pagina);
-    }, [pagina]);
-
-    function cargarClientes(page) {
-        const asignaciones = mockCobradorClientes
+    // 🔹 Obtener todos los clientes asociados al cobrador
+    const todosAsignados = useMemo(() => {
+        return mockCobradorClientes
             .filter((a) => a.cobradorId === cobradorId)
-            .sort((a, b) => a.orden - b.orden);
+            .sort((a, b) => a.orden - b.orden)
+            .map((a) => {
+                const cliente = mockClients.find((c) => c.id === a.clienteId);
+                if (!cliente) return null;
+                return {
+                    id: cliente.id,
+                    nombre: cliente.name,
+                    tipoPago: a.tipoPago,
+                    orden: a.orden,
+                };
+            })
+            .filter(Boolean);
+    }, [cobradorId]);
 
-        const enriched = asignaciones.map((a) => {
-            const cliente = mockClients.find((c) => c.id === a.clienteId);
-            return {
-                id: cliente.id,
-                nombre: cliente.name,
-                tipoPago: a.tipoPago,
-                orden: a.orden,
-            };
-        });
+    const totalPaginas = Math.max(1, Math.ceil(todosAsignados.length / porPagina));
 
-        const total = Math.ceil(enriched.length / porPagina);
-        const start = (page - 1) * porPagina;
+    // 🔹 Cada vez que cambia la página o los datos, recortamos la vista
+    useEffect(() => {
+        const start = (pagina - 1) * porPagina;
         const end = start + porPagina;
-        setClientes(enriched.slice(start, end));
-        setTotalPaginas(total);
-    }
+        setClientes(todosAsignados.slice(start, end));
+    }, [pagina, todosAsignados]);
 
+    // 🔹 Cambiar orden local (Drag & Drop)
     function handleDragEnd(result) {
         if (!result.destination) return;
         const reordered = Array.from(clientes);
         const [moved] = reordered.splice(result.source.index, 1);
         reordered.splice(result.destination.index, 0, moved);
 
+        // Reasignamos orden global correcto (según página)
         const actualizados = reordered.map((c, i) => ({
             ...c,
             orden: (pagina - 1) * porPagina + (i + 1),
@@ -51,9 +53,11 @@ export default function OrdenClientes({ cobradorId }) {
         setClientes(actualizados);
     }
 
+    // 🔹 Guardar cambios
     async function guardarOrden() {
         try {
             setGuardando(true);
+            // En un backend real enviarías los nuevos órdenes aquí
             console.log(
                 "Orden guardado localmente:",
                 clientes.map((c) => ({ clienteId: c.id, orden: c.orden }))
@@ -74,7 +78,7 @@ export default function OrdenClientes({ cobradorId }) {
                 </h2>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    {/* 🔹 Botón de modo edición */}
+                    {/* 🔹 Modo edición */}
                     <button
                         onClick={() => setEditando((e) => !e)}
                         className={`rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 transition ${editando
@@ -86,7 +90,6 @@ export default function OrdenClientes({ cobradorId }) {
                         {editando ? "Cancelar edición" : "Editar orden"}
                     </button>
 
-                    {/* 🔹 Guardar (solo si está editando) */}
                     {editando && (
                         <button
                             onClick={guardarOrden}
@@ -99,78 +102,89 @@ export default function OrdenClientes({ cobradorId }) {
                 </div>
             </div>
 
-            {/* === Lista Drag & Drop / Vista normal === */}
-            <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="clientes">
-                    {(provided) => (
-                        <ul
-                            {...provided.droppableProps}
-                            ref={provided.innerRef}
-                            className="space-y-3"
-                        >
-                            {clientes.map((c, index) => (
-                                <Draggable
-                                    key={c.id}
-                                    draggableId={String(c.id)}
-                                    index={index}
-                                    isDragDisabled={!editando}
-                                >
-                                    {(provided, snapshot) => (
-                                        <li
-                                            ref={provided.innerRef}
-                                            {...provided.draggableProps}
-                                            {...(editando ? provided.dragHandleProps : {})}
-                                            className={`rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 shadow-sm p-3 sm:p-4 transition
-                        ${snapshot.isDragging ? "bg-blue-50 dark:bg-gray-700" : ""}`}
-                                        >
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="space-y-1 sm:space-y-0">
-                                                    <p className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base break-words">
-                                                        {index + 1 + (pagina - 1) * porPagina}. {c.nombre}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {c.tipoPago.toUpperCase()} — ID: {c.id}
-                                                    </p>
-                                                </div>
+            {/* === Lista Drag & Drop === */}
+            {clientes.length === 0 ? (
+                <p className="text-center text-gray-500 dark:text-gray-400">
+                    No hay clientes asignados a este cobrador.
+                </p>
+            ) : (
+                <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="clientes">
+                        {(provided) => (
+                            <ul
+                                {...provided.droppableProps}
+                                ref={provided.innerRef}
+                                className="space-y-3"
+                            >
+                                {clientes.map((c, index) => (
+                                    <Draggable
+                                        key={c.id}
+                                        draggableId={String(c.id)}
+                                        index={index}
+                                        isDragDisabled={!editando}
+                                    >
+                                        {(provided, snapshot) => (
+                                            <li
+                                                ref={provided.innerRef}
+                                                {...provided.draggableProps}
+                                                {...(editando ? provided.dragHandleProps : {})}
+                                                className={`rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 shadow-sm p-3 sm:p-4 transition ${snapshot.isDragging
+                                                    ? "bg-blue-50 dark:bg-gray-700"
+                                                    : ""
+                                                    }`}
+                                            >
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                                    <div className="space-y-1 sm:space-y-0">
+                                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base break-words">
+                                                            {index + 1 + (pagina - 1) * porPagina}.{" "}
+                                                            {c.nombre}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {c.tipoPago?.toUpperCase()} — ID: {c.id}
+                                                        </p>
+                                                    </div>
 
-                                                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 sm:mt-0">
-                                                    Orden: {c.orden}
-                                                </span>
-                                            </div>
-                                        </li>
-                                    )}
-                                </Draggable>
-                            ))}
-                            {provided.placeholder}
-                        </ul>
-                    )}
-                </Droppable>
-            </DragDropContext>
+                                                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 sm:mt-0">
+                                                        Orden: {c.orden}
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        )}
+                                    </Draggable>
+                                ))}
+                                {provided.placeholder}
+                            </ul>
+                        )}
+                    </Droppable>
+                </DragDropContext>
+            )}
 
             {/* === Paginación === */}
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setPagina((p) => Math.max(1, p - 1))}
-                        disabled={pagina === 1}
-                        className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-                    >
-                        <HiChevronLeft /> Anterior
-                    </button>
+            {totalPaginas > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                            disabled={pagina === 1}
+                            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                        >
+                            <HiChevronLeft /> Anterior
+                        </button>
 
-                    <button
-                        onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-                        disabled={pagina === totalPaginas}
-                        className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-                    >
-                        Siguiente <HiChevronRight />
-                    </button>
+                        <button
+                            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                            disabled={pagina === totalPaginas}
+                            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                        >
+                            Siguiente <HiChevronRight />
+                        </button>
+                    </div>
+
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                        Página {pagina} de {totalPaginas}
+                    </span>
                 </div>
-
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                    Página {pagina} de {totalPaginas}
-                </span>
-            </div>
+            )}
         </div>
     );
 }

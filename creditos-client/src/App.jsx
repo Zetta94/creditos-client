@@ -84,7 +84,7 @@ export default function App() {
             <Route path="cobrador/pagos" element={<PagosCobrador cobradorId={userId} />} />
             <Route path="cobrador/sueldo" element={<SueldoCobrador />} />
             <Route path="cobrador/comisiones" element={<ComisionesCobrador />} />
-            <Route path="cobrador/pagos/:clienteId" element={<RegistrarPago />} />
+            <Route path="cobrador/pagos/:creditoId" element={<RegistrarPago />} />
             <Route path="cobrador/reportes" element={<CobradorReportes cobradorId={userId} />} />
 
           </Route>

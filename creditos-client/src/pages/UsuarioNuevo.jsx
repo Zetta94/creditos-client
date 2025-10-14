@@ -13,7 +13,7 @@ export default function UsuarioNuevo() {
         name: "",
         email: "",
         password: "",
-        role: "COBRADOR",
+        role: "cobrador",
         phone: "",
         address: "",
         document: "",
