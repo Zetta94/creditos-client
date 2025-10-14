@@ -192,7 +192,7 @@ function RolPill({ rol }) {
             : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800";
     return (
         <span className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium min-w-[90px] text-center ${cls}`}>
-            {rol === "EMPLOYEE" ? "COBRADOR" : rol}
+            {rol === "EMPLOYEE" ? "cobrador" : rol}
         </span>
     );
 }

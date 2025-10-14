@@ -11,7 +11,7 @@ const clientesMock = [
 export default function CreditoNuevo() {
     const navigate = useNavigate();
 
-    const cobradores = mockUsers.filter((u) => u.role === "COBRADOR");
+    const cobradores = mockUsers.filter((u) => u.role === "cobrador");
 
     const [form, setForm] = useState({
         clienteId: "",

@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
-    if (role === "COBRADOR") return <Navigate to="cobrador/dashboard" replace />;
+    if (role === "cobrador") return <Navigate to="cobrador/dashboard" replace />;
     return <Navigate to="/" replace />;
   }
 
