@@ -6,7 +6,7 @@ export default function ComisionesCobrador() {
     const userId = localStorage.getItem("userId");
     const cobrador = mockUsers.find((u) => u.id === userId);
 
-    if (!cobrador || cobrador.role !== "COBRADOR") {
+    if (!cobrador || cobrador.role !== "cobrador") {
         return (
             <div className="p-6 text-center text-red-400">
                 No tienes permiso para acceder a esta vista.
