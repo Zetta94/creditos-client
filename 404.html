@@ -1,46 +1,39 @@
-<!doctype html>
-<html lang="es" class="dark">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>El Imperio - Dashboard</title>
+  <link rel="icon" type="image/png" href="/creditos-client/LogoMinimalista-BqWOkGZT.png" />
 
-  <!-- Favicon desde el build final -->
-  <link rel="icon" type="image/png" href="/creditos-client/LogoMinimalista.png" />
+  <!-- 🔥 Script para forzar modo oscuro antes de cargar CSS -->
+  <script>
+    (function () {
+      const html = document.documentElement;
+      html.classList.add('dark');
+      html.style.backgroundColor = '#0f172a';
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.style.backgroundColor = '#0f172a';
+        document.body.style.color = '#f1f5f9';
+      });
+    })();
+  </script>
 
-  <!-- 🔥 Evita pantalla blanca inicial -->
+  <!-- 🔧 Estilo base oscuro -->
   <style>
     html,
     body {
       margin: 0;
       padding: 0;
-      height: 100%;
       background-color: #0f172a;
-      /* fondo dark base */
       color: #f1f5f9;
-      /* texto claro */
+      height: 100%;
     }
 
-    /* Prevenir flash blanco en iOS Safari */
     @media (prefers-color-scheme: dark) {
-      html {
-        background-color: #0f172a;
-      }
 
+      html,
       body {
-        background-color: #0f172a;
+        background-color: #0f172a !important;
       }
     }
   </style>
-  <script type="module" crossorigin src="/creditos-client/assets/index-rPRUVNOF.js"></script>
-  <link rel="stylesheet" crossorigin href="/creditos-client/assets/index-D6E11WCU.css">
 </head>
-
-<body>
-  <div id="root"></div>
-
-  <!-- ✅ No modificar esta ruta -->
-</body>
-
-</html>
