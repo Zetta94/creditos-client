@@ -1,26 +1,14 @@
+<!doctype html>
+<html lang="es" class="dark">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>El Imperio - Dashboard</title>
-
-  <!-- ✅ favicon desde public -->
+  <meta name="theme-color" content="#0f172a" />
   <link rel="icon" type="image/png" href="/creditos-client/LogoMinimalista.png" />
 
-  <!-- 🌙 Forzar modo oscuro ANTES de cargar CSS -->
-  <script>
-    (function () {
-      const html = document.documentElement;
-      html.classList.add("dark");
-      html.style.backgroundColor = "#0f172a";
-      html.style.color = "#f1f5f9";
-      document.addEventListener("DOMContentLoaded", () => {
-        document.body.style.backgroundColor = "#0f172a";
-        document.body.style.color = "#f1f5f9";
-      });
-    })();
-  </script>
-
-  <!-- 🔧 Estilo base oscuro inmediato -->
+  <!-- 💡 Estilo base oscuro (seguro, sin romper dev) -->
   <style>
     html,
     body {
@@ -28,14 +16,15 @@
       padding: 0;
       background-color: #0f172a;
       color: #f1f5f9;
-      height: 100%;
-      overscroll-behavior: none;
-    }
-
-    #root {
-      background-color: #0f172a;
-      color: #f1f5f9;
       min-height: 100vh;
     }
   </style>
+  <script type="module" crossorigin src="/creditos-client/assets/index-Bzh7BNW4.js"></script>
+  <link rel="stylesheet" crossorigin href="/creditos-client/assets/index-BWmEmn8p.css">
 </head>
+
+<body class="dark:bg-slate-900 dark:text-gray-100">
+  <div id="root"></div>
+</body>
+
+</html>
