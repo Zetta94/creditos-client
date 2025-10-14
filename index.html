@@ -3,15 +3,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>El Imperio - Dashboard</title>
 
-  <!-- ✅ favicon desde /public (no pasa por el build) -->
+  <!-- ✅ favicon desde public -->
   <link rel="icon" type="image/png" href="/creditos-client/LogoMinimalista.png" />
 
+  <!-- 🌙 Forzar modo oscuro ANTES de cargar CSS -->
   <script>
-    // 🌙 Fuerza modo oscuro sin parpadeo blanco
     (function () {
       const html = document.documentElement;
       html.classList.add("dark");
       html.style.backgroundColor = "#0f172a";
+      html.style.color = "#f1f5f9";
       document.addEventListener("DOMContentLoaded", () => {
         document.body.style.backgroundColor = "#0f172a";
         document.body.style.color = "#f1f5f9";
@@ -19,6 +20,7 @@
     })();
   </script>
 
+  <!-- 🔧 Estilo base oscuro inmediato -->
   <style>
     html,
     body {
@@ -27,6 +29,13 @@
       background-color: #0f172a;
       color: #f1f5f9;
       height: 100%;
+      overscroll-behavior: none;
+    }
+
+    #root {
+      background-color: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
     }
   </style>
 </head>
