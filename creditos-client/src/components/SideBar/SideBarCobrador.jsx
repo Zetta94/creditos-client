@@ -8,8 +8,6 @@ export default function SidebarCobrador() {
             <SidebarItem to="/cobrador/sueldo" label="Sueldo" icon="grid" />
             <SidebarItem to="/cobrador/comisiones" label="Comisiones" icon="comisiones" />
             <SidebarItem to="/cobrador/reportes" label="Reportes" icon="stats" />
-
-
         </ul>
     );
 }
