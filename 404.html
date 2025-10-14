@@ -5,12 +5,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>El Imperio - Dashboard</title>
-  <link rel="icon" type="image/png" href="/creditos-client/LogoMinimalista-BqWOkGZT.png" />
+
+  <!-- Favicon desde el build final -->
+  <link rel="icon" type="image/png" href="/creditos-client/LogoMinimalista.png" />
+
+  <!-- 🔥 Evita pantalla blanca inicial -->
   <style>
+    html,
     body {
-      background-color: #0f172a;
-      color: #f1f5f9;
       margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0f172a;
+      /* fondo dark base */
+      color: #f1f5f9;
+      /* texto claro */
+    }
+
+    /* Prevenir flash blanco en iOS Safari */
+    @media (prefers-color-scheme: dark) {
+      html {
+        background-color: #0f172a;
+      }
+
+      body {
+        background-color: #0f172a;
+      }
     }
   </style>
   <script type="module" crossorigin src="/creditos-client/assets/index-rPRUVNOF.js"></script>
@@ -19,7 +39,8 @@
 
 <body>
   <div id="root"></div>
-  <!-- ✅ Ruta original -->
+
+  <!-- ✅ No modificar esta ruta -->
 </body>
 
 </html>
