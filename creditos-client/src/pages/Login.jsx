@@ -21,7 +21,7 @@ export default function Login() {
       setError("Completá email y contraseña.");
       return;
     }
-
+    //Asi deberia funcionar esto
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
