@@ -1,7 +1,7 @@
 import React from "react";
 import { Provider } from "react-redux";
 import { store } from "./store";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // 🔹 Layout principal con Sidebar y Topbar
 import Dashboard from "./pages/Dashboard.jsx";
@@ -38,15 +38,54 @@ import ComisionesCobrador from "./pages/CobradorComisiones.jsx";
 import RegistrarPago from "./pages/RegistrarPago.jsx";
 import CobradorReportes from "./pages/CobradorReportes.jsx";
 
+// 🧩 Verificador de rutas (solo en producción)
+if (import.meta.env.PROD) {
+  console.log("🔍 Verificando rutas en producción...");
+
+  const base = window.location.pathname;
+
+  // Listado de rutas esperadas en tu app
+  const rutas = [
+    "/", // dashboard
+    "/login",
+    "/clientes",
+    "/usuarios",
+    "/usuarios/nuevo",
+    "/usuarios/u2",
+    "/creditos",
+    "/cobrador/dashboard",
+    "/cobrador/pagos",
+  ];
+
+  // Prueba asincrónica de existencia de 404.html
+  fetch(`${window.location.origin}/creditos-client/404.html`, { cache: "no-store" })
+    .then((res) => {
+      if (res.ok) {
+        console.log("✅ 404.html detectado correctamente en el deploy.");
+      } else {
+        console.warn("⚠️ No se encontró el archivo 404.html — las rutas directas pueden fallar.");
+      }
+    })
+    .catch(() => console.warn("⚠️ Error al verificar 404.html"));
+
+  // Log informativo de rutas
+  console.table(
+    rutas.map((r) => ({
+      ruta: r,
+      url: `https://zetta94.github.io/creditos-client${r}`,
+    }))
+  );
+}
+
+
 export default function App() {
   React.useEffect(() => {
-    // Forzar modo oscuro al cargar
     document.documentElement.classList.add("dark");
   }, []);
 
   return (
     <Provider store={store}>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           {/* === LOGIN === */}
           <Route path="/login" element={<Login />} />
@@ -86,14 +125,13 @@ export default function App() {
             <Route path="cobrador/comisiones" element={<ComisionesCobrador />} />
             <Route path="cobrador/pagos/:creditoId" element={<RegistrarPago />} />
             <Route path="cobrador/reportes" element={<CobradorReportes cobradorId={userId} />} />
-
           </Route>
 
           {/* === REDIRECCIÓN POR DEFECTO === */}
           <Route path="*" element={<Navigate to="/" replace />} />
-
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </Provider>
   );
+
 }

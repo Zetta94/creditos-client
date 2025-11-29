@@ -7,17 +7,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "node -e \"require('fs').copyFileSync('dist/index.html','dist/404.html')\"",
-    "lint": "eslint .",
     "preview": "vite preview",
+    "lint": "eslint .",
     "tailwind:init": "tailwindcss init -p",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "postbuild": "node -e \"require('fs').copyFileSync('dist/index.html','dist/404.html')\""
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
     "@reduxjs/toolkit": "^2.9.0",
-    "@tailwindcss/postcss": "^4.1.14",
     "axios": "^1.12.2",
     "dotenv": "^17.2.3",
     "flowbite": "^3.1.2",
