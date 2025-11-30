@@ -1,9 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { mockClients } from "../mocks/mockData.js";
+import { useDispatch, useSelector } from "react-redux";
+import { addClient } from "../store/clientsSlice";
 
 export default function AgregarCliente() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { loading } = useSelector(state => state.clients);
+
     const [cliente, setCliente] = useState({
         name: "",
         phone: "",
@@ -23,17 +27,14 @@ export default function AgregarCliente() {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-
-        const nuevoCliente = {
-            id: "c" + (mockClients.length + 1),
+        const payload = {
             ...cliente,
             reliability: cliente.reliability.toUpperCase(),
         };
 
-        console.log("✅ Cliente agregado:", nuevoCliente);
-        // TODO: POST /api/clientes
+        await dispatch(addClient(payload));
         navigate("/clientes");
     };
 
@@ -44,7 +45,7 @@ export default function AgregarCliente() {
                     Nuevo Cliente
                 </h1>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Completá la información para registrar un nuevo cliente.
+                    Completǭ la informaci��n para registrar un nuevo cliente.
                 </p>
             </div>
 
@@ -52,10 +53,10 @@ export default function AgregarCliente() {
                 onSubmit={handleSubmit}
                 className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800"
             >
-                {/* Información personal */}
+                {/* Informaci��n personal */}
                 <div>
                     <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-100">
-                        Información personal
+                        Informaci��n personal
                     </h2>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <Input
@@ -63,7 +64,7 @@ export default function AgregarCliente() {
                             name="name"
                             value={cliente.name}
                             onChange={handleChange}
-                            placeholder="Ej: Laura Gómez"
+                            placeholder="Ej: Laura G��mez"
                             required
                         />
                         <Input
@@ -76,7 +77,7 @@ export default function AgregarCliente() {
                         />
                     </div>
                     <Input
-                        label="Teléfono"
+                        label="TelǸfono"
                         name="phone"
                         value={cliente.phone}
                         onChange={handleChange}
@@ -85,13 +86,13 @@ export default function AgregarCliente() {
                     />
                 </div>
 
-                {/* Dirección */}
+                {/* Direcci��n */}
                 <div>
                     <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-100">
-                        Dirección
+                        Direcci��n
                     </h2>
                     <Input
-                        label="Calle y número"
+                        label="Calle y nǧmero"
                         name="address"
                         value={cliente.address}
                         onChange={handleChange}
@@ -103,14 +104,14 @@ export default function AgregarCliente() {
                             name="city"
                             value={cliente.city}
                             onChange={handleChange}
-                            placeholder="Tucumán"
+                            placeholder="Tucumǭn"
                         />
                         <Input
                             label="Provincia"
                             name="province"
                             value={cliente.province}
                             onChange={handleChange}
-                            placeholder="Tucumán"
+                            placeholder="Tucumǭn"
                         />
                     </div>
                 </div>
@@ -162,9 +163,10 @@ export default function AgregarCliente() {
                     </button>
                     <button
                         type="submit"
-                        className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-blue-500 hover:to-blue-400 sm:w-auto"
+                        disabled={loading}
+                        className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-blue-500 hover:to-blue-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                     >
-                        Guardar cliente
+                        {loading ? "Guardando..." : "Guardar cliente"}
                     </button>
                 </div>
             </form>

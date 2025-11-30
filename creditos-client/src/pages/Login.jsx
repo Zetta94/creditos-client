@@ -1,60 +1,37 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { HiMail, HiLockClosed, HiEye, HiEyeOff } from "react-icons/hi";
 import logoMinimal from "../assets/LogoMinimalista.png";
-import { mockUsers } from "../mocks/mockData.js";
+import { login } from "../store/authSlice";
 
 export default function Login() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector(state => state.auth);
+
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [remember, setRemember] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
   const [showPass, setShowPass] = React.useState(false);
+  const [localError, setLocalError] = React.useState("");
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
+    setLocalError("");
 
     if (!email || !password) {
-      setError("Completá email y contraseña.");
+      setLocalError("Completá email y contraseña.");
       return;
     }
-    //Asi deberia funcionar esto
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
 
-      // 🔹 Buscar usuario mockeado
-      const foundUser = mockUsers.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase()
-      );
-
-      // 🔹 Usamos contraseñas genéricas solo para demo
-      const validPassword =
-        (foundUser?.role === "admin" && password === "Admin123") ||
-        (foundUser?.role === "cobrador" && password === "Cobrador123");
-
-
-      if (foundUser && validPassword) {
-        // Guardar datos
-        localStorage.setItem("token", "fake-token-" + foundUser.role);
-        localStorage.setItem("email", foundUser.email);
-        localStorage.setItem("role", foundUser.role);
-        localStorage.setItem("userId", foundUser.id);
-        localStorage.setItem("userName", foundUser.name);
-
-
-        if (foundUser.role === "cobrador") {
-          navigate("/cobrador/dashboard", { replace: true });
-        } else {
-          navigate("/", { replace: true });
-        }
-      } else {
-        setError("Email o contraseña incorrectos.");
-      }
-    }, 400);
+    try {
+      const result = await dispatch(login({ email, password })).unwrap();
+      const role = result.user?.role;
+      const isCobrador = role === "cobrador" || role === "employee";
+      navigate(isCobrador ? "/cobrador/dashboard" : "/", { replace: true });
+    } catch (errMsg) {
+      setLocalError(typeof errMsg === "string" ? errMsg : "Email o contraseña incorrectos.");
+    }
   }
 
   return (
@@ -133,38 +110,14 @@ export default function Login() {
           </div>
 
           {/* Error */}
-          {error && (
+          {(localError || error) && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
-              {error}
+              {localError || error}
             </div>
           )}
 
           {/* Botones */}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("admin@imperio.test");
-                  setPassword("Admin123");
-                  setError("");
-                }}
-                className="hover:underline"
-              >
-                Usar Admin (admin@imperio.test / Admin123)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("cobrador1@imperio.test");
-                  setPassword("Cobrador123");
-                  setError("");
-                }}
-                className="hover:underline mt-1"
-              >
-                Usar Cobrador (cobrador1@imperio.test / Cobrador123)
-              </button>
-            </div>
 
             <button
               type="submit"

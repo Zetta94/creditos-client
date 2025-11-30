@@ -1,17 +1,21 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { loadClients } from "../store/clientsSlice";
+import { addCredit } from "../store/creditsSlice";
 import { mockUsers } from "../mocks/mockData.js";
-
-const clientesMock = [
-    { id: "c1", nombre: "Juan Pérez" },
-    { id: "c2", nombre: "Laura Gómez" },
-    { id: "c3", nombre: "Carlos Díaz" },
-];
 
 export default function CreditoNuevo() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { list: clients } = useSelector(state => state.clients);
+    const { loading } = useSelector(state => state.credits);
 
     const cobradores = mockUsers.filter((u) => u.role === "cobrador");
+
+    useEffect(() => {
+        if (!clients.length) dispatch(loadClients());
+    }, [clients.length, dispatch]);
 
     const [form, setForm] = useState({
         clienteId: "",
@@ -29,9 +33,20 @@ export default function CreditoNuevo() {
         setForm((f) => ({ ...f, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Nuevo crédito creado:", form); // TODO: POST /api/creditos
+
+        const payload = {
+            clientId: form.clienteId,
+            type: form.plan === "Diario" ? "DAILY" : form.plan === "Semanal" ? "WEEKLY" : "MONTHLY",
+            amount: Number(form.monto),
+            totalInstallments: Number(form.cuotas) || undefined,
+            installmentAmount: cuotaEstim || undefined,
+            startDate: new Date().toISOString(),
+            status: "PENDING",
+        };
+
+        await dispatch(addCredit(payload));
         navigate("/creditos");
     };
 
@@ -85,9 +100,9 @@ export default function CreditoNuevo() {
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         >
                             <option value="">Seleccionar cliente…</option>
-                            {clientesMock.map((c) => (
+                            {clients.map((c) => (
                                 <option key={c.id} value={c.id}>
-                                    {c.nombre}
+                                    {c.name}
                                 </option>
                             ))}
                         </select>
@@ -343,9 +358,10 @@ export default function CreditoNuevo() {
                     </button>
                     <button
                         type="submit"
-                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-auto"
+                        disabled={loading}
+                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                     >
-                        Guardar crédito
+                        {loading ? "Guardando..." : "Guardar crédito"}
                     </button>
                 </div>
             </form>
