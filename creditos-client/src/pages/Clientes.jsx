@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
     HiPencilAlt,
@@ -10,70 +11,38 @@ import {
     HiX,
     HiSearch,
 } from "react-icons/hi";
-import { mockClients, mockCredits } from "../mocks/mockData";
-
-// === Transformación: unimos clientes con su estado de pago y confianza ===
-const clientsData = mockClients.map((c) => {
-    // buscamos créditos activos del cliente
-    const credits = mockCredits.filter((cr) => cr.clientId === c.id);
-    const pending = credits.filter((cr) => cr.status === "PENDING").length;
-    const overdue = credits.filter((cr) => cr.status === "OVERDUE").length;
-    const paid = credits.filter((cr) => cr.status === "PAID").length;
-
-    // definimos estado de pago en base a créditos
-    let pago = "Regular";
-    if (overdue > 0) pago = "Atrasado";
-    else if (pending > 0 && overdue === 0) pago = "Al día";
-    else if (paid === credits.length && credits.length > 0) pago = "Al día";
-
-    // estado de confianza (ya viene en mock)
-    const confianza =
-        c.reliability === "ALTA"
-            ? "Alta"
-            : c.reliability === "MEDIA"
-                ? "Media"
-                : "Baja";
-
-    // algunos clientes estarán “inactivos” aleatoriamente
-    const activo = !["MOROSO", "Baja"].includes(confianza);
-
-    return {
-        id: c.id,
-        nombre: c.name,
-        telefono: c.phone,
-        activo,
-        confianza,
-        pago,
-    };
-});
+import { loadClients, removeClient } from "../store/clientsSlice";
 
 export default function Clientes() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { list, loading } = useSelector(state => state.clients);
 
     const [q, setQ] = useState("");
     const [activo, setActivo] = useState("todos");
-    const [pago, setPago] = useState("todos");
     const [confianza, setConfianza] = useState("todas");
     const [showFilters, setShowFilters] = useState(false);
 
-    const toggleActivo = (id) => {
-        const cliente = clientsData.find((c) => c.id === id);
-        if (cliente) {
-            cliente.activo = !cliente.activo;
-            console.log("Cliente actualizado:", cliente);
-        }
-    };
+    useEffect(() => {
+        dispatch(loadClients());
+    }, [dispatch]);
 
     const rows = useMemo(() => {
         const qn = q.trim().toLowerCase();
-        return clientsData.filter((c) => {
-            const matchesText = !qn || c.nombre.toLowerCase().includes(qn) || c.telefono.toLowerCase().includes(qn);
-            const matchesActivo = activo === "todos" || (activo === "si" ? c.activo : !c.activo);
-            const matchesPago = pago === "todos" || c.pago === pago;
-            const matchesConf = confianza === "todas" || c.confianza === confianza;
-            return matchesText && matchesActivo && matchesPago && matchesConf;
+        return list.filter((c) => {
+            const matchesText =
+                !qn ||
+                c.name?.toLowerCase().includes(qn) ||
+                c.phone?.toLowerCase().includes(qn) ||
+                c.document?.toLowerCase().includes(qn);
+            const isActive = c.activo ?? true;
+            const matchesActivo = activo === "todos" || (activo === "si" ? isActive : !isActive);
+            const reliability = (c.reliability || "").toUpperCase();
+            const confianzaLabel = reliability === "ALTA" ? "Alta" : reliability === "MOROSO" ? "Baja" : "Media";
+            const matchesConf = confianza === "todas" || confianza === confianzaLabel;
+            return matchesText && matchesActivo && matchesConf;
         });
-    }, [q, activo, pago, confianza]);
+    }, [list, q, activo, confianza]);
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -114,8 +83,6 @@ export default function Clientes() {
                     <FiltersRow
                         activo={activo}
                         setActivo={setActivo}
-                        pago={pago}
-                        setPago={setPago}
                         confianza={confianza}
                         setConfianza={setConfianza}
                     />
@@ -126,8 +93,6 @@ export default function Clientes() {
                     <FiltersRow
                         activo={activo}
                         setActivo={setActivo}
-                        pago={pago}
-                        setPago={setPago}
                         confianza={confianza}
                         setConfianza={setConfianza}
                     />
@@ -142,55 +107,66 @@ export default function Clientes() {
                             <th className="px-4 py-3 font-medium">Nombre</th>
                             <th className="px-4 py-3 font-medium">Teléfono</th>
                             <th className="px-4 py-3 font-medium">Activo</th>
-                            <th className="px-4 py-3 font-medium">Pago</th>
                             <th className="px-4 py-3 font-medium">Confianza</th>
                             <th className="px-4 py-3 font-medium">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {rows.map((c) => (
-                            <tr key={c.id} className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/70">
-                                <td className="px-4 py-3">{c.nombre}</td>
-                                <td className="px-4 py-3">{c.telefono}</td>
-                                <td className="px-4 py-3">
-                                    <StatusPill ok={c.activo} okText="Activo" badText="Inactivo" />
-                                </td>
-                                <td className="px-4 py-3">
-                                    <PagoPill estado={c.pago} />
-                                </td>
-                                <td className="px-4 py-3">{c.confianza}</td>
-                                <td className="px-4 py-3">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <button
-                                            className="rounded-md bg-gray-100 p-2 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
-                                            onClick={() => navigate(`/clientes/${c.id}/editar`)}
-                                        >
-                                            <HiPencilAlt className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            className={`rounded-md p-2 ${c.activo
-                                                ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-700 dark:text-white dark:hover:bg-red-600"
-                                                : "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-700 dark:text-white dark:hover:bg-green-600"
-                                                }`}
-                                            onClick={() => toggleActivo(c.id)}
-                                        >
-                                            {c.activo ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
-                                        </button>
-                                        <button
-                                            className="rounded-md bg-sky-100 p-2 text-sky-700 hover:bg-sky-200 dark:bg-sky-700 dark:text-white dark:hover:bg-sky-600"
-                                            onClick={() => navigate(`/clientes/${c.id}`)}
-                                        >
-                                            <HiEye className="h-4 w-4" />
-                                        </button>
-                                    </div>
+                        {rows.map((c) => {
+                            const isActive = c.activo ?? true;
+                            const reliability = (c.reliability || "").toUpperCase();
+                            const confianzaLabel = reliability === "ALTA" ? "Alta" : reliability === "MOROSO" ? "Baja" : "Media";
+                            return (
+                                <tr key={c.id} className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/70">
+                                    <td className="px-4 py-3">{c.name}</td>
+                                    <td className="px-4 py-3">{c.phone}</td>
+                                    <td className="px-4 py-3">
+                                        <StatusPill ok={isActive} okText="Activo" badText="Inactivo" />
+                                    </td>
+                                    <td className="px-4 py-3">{confianzaLabel}</td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <button
+                                                className="rounded-md bg-gray-100 p-2 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+                                                onClick={() => navigate(`/clientes/${c.id}/editar`)}
+                                            >
+                                                <HiPencilAlt className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                className={`rounded-md p-2 ${isActive
+                                                    ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-700 dark:text-white dark:hover:bg-red-600"
+                                                    : "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-700 dark:text-white dark:hover:bg-green-600"
+                                                    }`}
+                                                onClick={() => {
+                                                    const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
+                                                    if (ok) dispatch(removeClient(c.id));
+                                                }}
+                                            >
+                                                {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
+                                            </button>
+                                            <button
+                                                className="rounded-md bg-sky-100 p-2 text-sky-700 hover:bg-sky-200 dark:bg-sky-700 dark:text-white dark:hover:bg-sky-600"
+                                                onClick={() => navigate(`/clientes/${c.id}`)}
+                                            >
+                                                <HiEye className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+
+                        {!loading && rows.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    No hay clientes con esos filtros.
                                 </td>
                             </tr>
-                        ))}
-
-                        {rows.length === 0 && (
+                        )}
+                        {loading && (
                             <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    No hay clientes con esos filtros.
+                                <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    Cargando...
                                 </td>
                             </tr>
                         )}
@@ -201,7 +177,6 @@ export default function Clientes() {
     );
 }
 
-
 /* === Subcomponentes (JS puro) === */
 
 function SearchInput({ q, setQ }) {
@@ -211,14 +186,14 @@ function SearchInput({ q, setQ }) {
             <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por nombre o teléfono..."
+                placeholder="Buscar por nombre, teléfono o documento..."
                 className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
         </div>
     );
 }
 
-function FiltersRow({ activo, setActivo, pago, setPago, confianza, setConfianza }) {
+function FiltersRow({ activo, setActivo, confianza, setConfianza }) {
     return (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:grid-cols-4">
             <div className="grid gap-1">
@@ -231,20 +206,6 @@ function FiltersRow({ activo, setActivo, pago, setPago, confianza, setConfianza 
                     <option value="todos">Todos</option>
                     <option value="si">Activos</option>
                     <option value="no">Inactivos</option>
-                </select>
-            </div>
-
-            <div className="grid gap-1">
-                <label className="text-xs text-gray-500 dark:text-gray-400">Estatus de pago</label>
-                <select
-                    value={pago}
-                    onChange={(e) => setPago(e.target.value)}
-                    className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                >
-                    <option value="todos">Todos</option>
-                    <option value="Al día">Al día</option>
-                    <option value="Atrasado">Atrasado</option>
-                    <option value="Regular">Regular</option>
                 </select>
             </div>
 
@@ -280,27 +241,5 @@ function StatusPill({ ok, okText, badText }) {
             <span className={`h-2 w-2 rounded-full ${ok ? "bg-green-500" : "bg-red-500"}`} />
             {ok ? okText : badText}
         </span>
-    );
-}
-
-function PagoPill({ estado }) {
-    const cls =
-        estado === "Al día"
-            ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
-            : estado === "Atrasado"
-                ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
-                : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800";
-
-    return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs border ${cls}`}>{estado}</span>;
-}
-
-function EmptyState({ onCreate }) {
-    return (
-        <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            No hay clientes con esos filtros.{" "}
-            <button onClick={onCreate} className="font-medium text-blue-600 hover:underline dark:text-blue-400">
-                Crear nuevo
-            </button>
-        </div>
     );
 }

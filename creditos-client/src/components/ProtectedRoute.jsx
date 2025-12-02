@@ -10,8 +10,14 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    if (role === "cobrador") return <Navigate to="cobrador/dashboard" replace />;
+  const roleNormalized = role?.toLowerCase();
+  const allowedNormalized = allowedRoles?.map(r => r.toLowerCase());
+
+  const isEmployeeAsCobrador = roleNormalized === "employee" && allowedNormalized?.includes("cobrador");
+  if (allowedNormalized && !allowedNormalized.includes(roleNormalized) && !isEmployeeAsCobrador) {
+    if (roleNormalized === "cobrador" || roleNormalized === "employee") {
+      return <Navigate to="/cobrador/dashboard" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 

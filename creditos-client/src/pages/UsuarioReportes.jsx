@@ -1,17 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-    mockUsers,
-    mockClients,
-    mockCredits,
-    mockPayments,
-} from "../mocks/mockData.js";
+import { fetchUser } from "../services/usersService";
+import { fetchClients } from "../services/clientsService";
+import { fetchCredits } from "../services/creditsService";
+import { fetchPayments } from "../services/paymentsService";
 import { HiOutlineArrowLeft } from "react-icons/hi2";
 
 export default function UsuarioReportes() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const usuario = mockUsers.find((u) => String(u.id) === String(id));
+    const [usuario, setUsuario] = useState(null);
+    const [clientes, setClientes] = useState([]);
+    const [creditos, setCreditos] = useState([]);
+    const [pagos, setPagos] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const [semana, setSemana] = useState(() => {
         const today = new Date();
@@ -22,9 +24,30 @@ export default function UsuarioReportes() {
     const [pagina, setPagina] = useState(1);
     const porPagina = 5;
 
+    useEffect(() => {
+        const load = async () => {
+            setLoading(true);
+            try {
+                const [u, cl, cr, pa] = await Promise.all([
+                    fetchUser(id).then(r => r.data),
+                    fetchClients().then(r => r.data),
+                    fetchCredits().then(r => r.data),
+                    fetchPayments().then(r => r.data),
+                ]);
+                setUsuario(u);
+                setClientes(cl);
+                setCreditos(cr);
+                setPagos(pa);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [id]);
+
     const pagosUsuario = useMemo(
-        () => mockPayments.filter((p) => p.employeeId === id),
-        [id]
+        () => pagos.filter((p) => p.employeeId === id),
+        [pagos, id]
     );
 
     const pagosSemana = useMemo(() => {
@@ -50,7 +73,7 @@ export default function UsuarioReportes() {
 
     const resumen = pagosFiltrados.reduce(
         (acc, p) => {
-            const credito = mockCredits.find((cr) => cr.id === p.creditId);
+            const credito = creditos.find((cr) => cr.id === p.creditId);
             if (credito?.type === "DAILY" || credito?.type === "WEEKLY") {
                 acc.efectivo += p.amount;
             } else {
@@ -60,6 +83,14 @@ export default function UsuarioReportes() {
         },
         { efectivo: 0, mercadopago: 0 }
     );
+
+    if (loading) {
+        return (
+            <div className="mx-auto max-w-6xl px-4 py-6">
+                <p className="text-center text-gray-500 dark:text-gray-400">Cargando reportes...</p>
+            </div>
+        );
+    }
 
     if (!usuario)
         return (
@@ -174,8 +205,8 @@ export default function UsuarioReportes() {
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {pagosPaginados.length > 0 ? (
                             pagosPaginados.map((p) => {
-                                const credito = mockCredits.find((cr) => cr.id === p.creditId);
-                                const cliente = mockClients.find(
+                                const credito = creditos.find((cr) => cr.id === p.creditId);
+                                const cliente = clientes.find(
                                     (c) => c.id === credito?.clientId
                                 );
 

@@ -1,41 +1,101 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { mockUsers } from "../mocks/mockData.js";
 import { HiCheck, HiXMark } from "react-icons/hi2";
+import { fetchUser, updateUser } from "../services/usersService";
 
 export default function UsuarioEditar() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const usuarioBase = mockUsers.find((u) => String(u.id) === String(id));
-    const [usuario, setUsuario] = useState(usuarioBase || {});
+    const [usuario, setUsuario] = useState(null);
     const [totalConComision, setTotalConComision] = useState(0);
+    const [loading, setLoading] = useState(true);
 
-    if (!usuarioBase)
-        return (
-            <div className="text-center text-red-400 mt-10">
-                Usuario no encontrado.
-            </div>
-        );
-
-    // 🔹 Calcula el total con comisión (porcentaje o monto)
     useEffect(() => {
-        const sueldo = parseFloat(usuario.salary) || 0;
-        const comision = parseFloat(usuario.comisions) || 0;
-        const esPorcentaje = comision <= 100; // si es <=100 se interpreta como %
+        const load = async () => {
+            setLoading(true);
+            try {
+                const { data } = await fetchUser(id);
+                setUsuario({
+                    ...data,
+                    phone: data.phone || "",
+                    address: data.address || "",
+                    document: data.document || "",
+                    responsability: data.responsability || "",
+                    salary: data.salary ?? "",
+                    salaryType: data.salaryType || "",
+                    comisions: data.comisions ?? "",
+                    role: data.role || "",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [id]);
+
+    useEffect(() => {
+        const sueldo = parseFloat(usuario?.salary) || 0;
+        const comision = parseFloat(usuario?.comisions) || 0;
+        const esPorcentaje = comision <= 100;
         const total = esPorcentaje
             ? sueldo + sueldo * (comision / 100)
             : sueldo + comision;
         setTotalConComision(total);
-    }, [usuario.salary, usuario.comisions]);
+    }, [usuario?.salary, usuario?.comisions]);
 
     function handleChange(field, value) {
         setUsuario((prev) => ({ ...prev, [field]: value }));
     }
 
-    function handleSave() {
-        console.log("Guardado (mock):", usuario);
-        navigate(`/usuarios/${id}`);
+    async function handleSave() {
+        const basePayload = {
+            name: usuario.name,
+            email: usuario.email,
+            phone: usuario.phone,
+            address: usuario.address,
+            document: usuario.document,
+            responsability: usuario.responsability ? usuario.responsability.toUpperCase() : undefined,
+            salary: usuario.salary === "" ? undefined : Number(usuario.salary),
+            salaryType: usuario.salaryType ? usuario.salaryType.toUpperCase() : undefined,
+            comisions: usuario.comisions === "" ? undefined : Number(usuario.comisions),
+            role: usuario.role ? usuario.role.toUpperCase() : undefined,
+            ...(usuario.password ? { password: usuario.password } : {}),
+        };
+        const payload = Object.fromEntries(
+            Object.entries(basePayload).filter(([, v]) => {
+                if (v === undefined || v === "" || v === null) return false;
+                if (typeof v === "number" && Number.isNaN(v)) return false;
+                return true;
+            })
+        );
+        try {
+            console.log("Payload update user", payload);
+            await updateUser(id, payload);
+            navigate(`/usuarios/${id}`);
+        } catch (err) {
+            console.error("Error al guardar usuario", err);
+            const detail = err.response?.data?.details
+                ? JSON.stringify(err.response.data.details, null, 2)
+                : err.response?.data?.error;
+            const msg = detail || "No se pudo guardar el usuario. Revisa los datos y permisos.";
+            alert(msg);
+        }
     }
+
+    if (loading) {
+        return (
+            <div className="text-center text-gray-500 dark:text-gray-400 mt-10">
+                Cargando usuario...
+            </div>
+        );
+    }
+
+    if (!usuario)
+        return (
+            <div className="text-center text-red-400 mt-10">
+                Usuario no encontrado.
+            </div>
+        );
 
     return (
         <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
@@ -94,10 +154,9 @@ export default function UsuarioEditar() {
                         <option value="">Seleccionar...</option>
                         <option value="EXCELENTE">Excelente</option>
                         <option value="ALTA">Alta</option>
+                        <option value="BUENA">Buena</option>
                         <option value="MEDIA">Media</option>
-                        <option value="BAJA">Baja</option>
                         <option value="MALA">Mala</option>
-                        <option value="MOROSO">Moroso</option>
                     </select>
                 </div>
 
@@ -122,9 +181,10 @@ export default function UsuarioEditar() {
                         className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
                         <option value="">Seleccionar...</option>
-                        <option value="mensual">Mensual</option>
-                        <option value="quincenal">Quincenal</option>
-                        <option value="semanal">Semanal</option>
+                        <option value="N_A">N/A</option>
+                        <option value="MENSUAL">Mensual</option>
+                        <option value="SEMANAL">Semanal</option>
+                        <option value="DIARIO">Diario</option>
                     </select>
                 </div>
 

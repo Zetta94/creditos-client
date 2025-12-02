@@ -2,8 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { HiCheck, HiXMark, HiOutlineArrowLeft } from "react-icons/hi2";
 import { HiEye, HiEyeOff } from "react-icons/hi";
-
-
+import { createUser } from "../services/usersService";
 
 export default function UsuarioNuevo() {
     const navigate = useNavigate();
@@ -13,13 +12,13 @@ export default function UsuarioNuevo() {
         name: "",
         email: "",
         password: "",
-        role: "cobrador",
+        role: "COBRADOR",
         phone: "",
         address: "",
         document: "",
         responsability: "MEDIA",
         salary: "",
-        salaryType: "mensual",
+        salaryType: "MENSUAL",
         comisions: "",
     });
 
@@ -40,14 +39,12 @@ export default function UsuarioNuevo() {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        const nuevoUsuario = {
+        const payload = {
             ...form,
-            id: "u" + Math.floor(Math.random() * 10000),
-            creado: new Date().toISOString().split("T")[0],
-            creditosAsignados: [],
-            reports: [],
+            salary: form.salary === "" ? undefined : Number(form.salary),
+            comisions: form.comisions === "" ? undefined : Number(form.comisions),
         };
-        console.log("Nuevo usuario creado (mock):", nuevoUsuario);
+        await createUser(payload);
         navigate("/usuarios");
     }
 
@@ -165,6 +162,7 @@ export default function UsuarioNuevo() {
                                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                             >
                                 <option value="COBRADOR">COBRADOR</option>
+                                <option value="EMPLOYEE">EMPLOYEE</option>
                                 <option value="ADMIN">ADMIN</option>
                             </select>
                         </div>
@@ -189,10 +187,9 @@ export default function UsuarioNuevo() {
                             >
                                 <option value="EXCELENTE">Excelente</option>
                                 <option value="ALTA">Alta</option>
+                                <option value="BUENA">Buena</option>
                                 <option value="MEDIA">Media</option>
-                                <option value="BAJA">Baja</option>
                                 <option value="MALA">Mala</option>
-                                <option value="MOROSO">Moroso</option>
                             </select>
                         </div>
 
@@ -215,9 +212,10 @@ export default function UsuarioNuevo() {
                                 onChange={handleChange}
                                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                             >
-                                <option value="mensual">Mensual</option>
-                                <option value="quincenal">Quincenal</option>
-                                <option value="semanal">Semanal</option>
+                                <option value="N_A">N/A</option>
+                                <option value="MENSUAL">Mensual</option>
+                                <option value="SEMANAL">Semanal</option>
+                                <option value="DIARIO">Diario</option>
                             </select>
                         </div>
 

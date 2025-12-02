@@ -1,41 +1,77 @@
-// pages/ClienteEditar.jsx
 import { useNavigate, useParams } from "react-router-dom";
-import { useState } from "react";
-
-const clientesMock = [
-    { id: "c1", nombre: "Juan Pérez", telefono: "+54 9 2664 000000", documento: "30123456", direccion: "Calle Falsa 123", ciudad: "San Luis", provincia: "San Luis", confianza: "Alta", notas: "" },
-    { id: "c2", nombre: "Laura Gómez", telefono: "+54 9 2664 123456", documento: "28999888", direccion: "Av. Siempreviva 742", ciudad: "San Luis", provincia: "San Luis", confianza: "Baja", notas: "Llamar antes" },
-];
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { loadClient, saveClient } from "../store/clientsSlice";
 
 export default function ClienteEditar() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const current = clientesMock.find((c) => c.id === id);
+    const dispatch = useDispatch();
+    const { current, loading } = useSelector(state => state.clients);
 
-    const [form, setForm] = useState(
-        current ?? {
-            nombre: "",
-            telefono: "",
-            documento: "",
-            direccion: "",
-            ciudad: "",
-            provincia: "",
-            confianza: "Media",
-            notas: "",
+    const [form, setForm] = useState({
+        name: "",
+        phone: "",
+        document: "",
+        address: "",
+        city: "",
+        province: "",
+        reliability: "MEDIA",
+        notes: "",
+    });
+
+    useEffect(() => {
+        dispatch(loadClient(id));
+    }, [dispatch, id]);
+
+    useEffect(() => {
+        if (current?.id === id) {
+            setForm({
+                name: current.name || "",
+                phone: current.phone || "",
+                document: current.document || "",
+                address: current.address || "",
+                city: current.city || "",
+                province: current.province || "",
+                reliability: (current.reliability || "MEDIA").toUpperCase(),
+                notes: current.notes || "",
+            });
         }
-    );
+    }, [current, id]);
 
     const handle = (e) => {
         const { name, value } = e.target;
         setForm((s) => ({ ...s, [name]: value }));
     };
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
-        // TODO: PUT /api/clientes/:id con { ...form }
-        console.log("Editar cliente", id, form);
-        navigate(`/clientes/${id}`);
+        const payload = {
+            name: form.name,
+            phone: form.phone,
+            document: form.document,
+            address: form.address,
+            city: form.city,
+            province: form.province,
+            reliability: form.reliability?.toUpperCase(),
+            notes: form.notes,
+        };
+        try {
+            await dispatch(saveClient({ id, payload })).unwrap();
+            navigate("/clientes");
+        } catch (err) {
+            console.error("Error al guardar cliente", err);
+            alert("No se pudo guardar el cliente. Revisa los datos e inténtalo nuevamente.");
+        }
     };
+
+    if (loading || (!current && loading !== false)) {
+        return (
+            <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+                <p className="text-center text-gray-500 dark:text-gray-400">Cargando cliente...</p>
+            </div>
+        );
+    }
 
     if (!current) {
         return (
@@ -63,8 +99,8 @@ export default function ClienteEditar() {
                     <div className="grid gap-1.5">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Nombre completo</label>
                         <input
-                            name="nombre"
-                            value={form.nombre}
+                            name="name"
+                            value={form.name}
                             onChange={handle}
                             required
                             placeholder="Ej: Juan Pérez"
@@ -76,8 +112,8 @@ export default function ClienteEditar() {
                     <div className="grid gap-1.5">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Teléfono</label>
                         <input
-                            name="telefono"
-                            value={form.telefono}
+                            name="phone"
+                            value={form.phone}
                             onChange={handle}
                             required
                             type="tel"
@@ -91,8 +127,8 @@ export default function ClienteEditar() {
                     <div className="grid gap-1.5">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Documento</label>
                         <input
-                            name="documento"
-                            value={form.documento}
+                            name="document"
+                            value={form.document}
                             onChange={handle}
                             required
                             placeholder="DNI / CUIT"
@@ -103,23 +139,23 @@ export default function ClienteEditar() {
                     <div className="grid gap-1.5">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Confianza</label>
                         <select
-                            name="confianza"
-                            value={form.confianza}
+                            name="reliability"
+                            value={form.reliability}
                             onChange={handle}
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         >
-                            <option>Alta</option>
-                            <option>Media</option>
-                            <option>Baja</option>
-                            <option>Moroso</option>
+                            <option value="ALTA">Alta</option>
+                            <option value="MEDIA">Media</option>
+                            <option value="BAJA">Baja</option>
+                            <option value="MOROSO">Moroso</option>
                         </select>
                     </div>
 
                     <div className="grid gap-1.5 sm:col-span-2">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Dirección</label>
                         <input
-                            name="direccion"
-                            value={form.direccion}
+                            name="address"
+                            value={form.address}
                             onChange={handle}
                             placeholder="Calle y número"
                             autoComplete="street-address"
@@ -130,8 +166,8 @@ export default function ClienteEditar() {
                     <div className="grid gap-1.5">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Ciudad</label>
                         <input
-                            name="ciudad"
-                            value={form.ciudad}
+                            name="city"
+                            value={form.city}
                             onChange={handle}
                             placeholder="Ej: San Luis"
                             autoComplete="address-level2"
@@ -142,8 +178,8 @@ export default function ClienteEditar() {
                     <div className="grid gap-1.5">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Provincia</label>
                         <input
-                            name="provincia"
-                            value={form.provincia}
+                            name="province"
+                            value={form.province}
                             onChange={handle}
                             placeholder="Ej: San Luis"
                             autoComplete="address-level1"
@@ -155,8 +191,8 @@ export default function ClienteEditar() {
                 <div className="grid gap-1.5">
                     <label className="text-sm text-gray-600 dark:text-gray-300">Notas</label>
                     <textarea
-                        name="notas"
-                        value={form.notas}
+                        name="notes"
+                        value={form.notes}
                         onChange={handle}
                         rows={3}
                         placeholder="Observaciones del cliente…"
@@ -175,9 +211,10 @@ export default function ClienteEditar() {
                     </button>
                     <button
                         type="submit"
-                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-auto"
+                        disabled={loading}
+                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                     >
-                        Guardar cambios
+                        {loading ? "Guardando..." : "Guardar cambios"}
                     </button>
                 </div>
             </form>

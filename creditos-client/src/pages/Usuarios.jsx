@@ -1,38 +1,57 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { HiPlus, HiEye, HiSearch } from "react-icons/hi";
-import { mockUsers, mockCredits } from "../mocks/mockData.js";
+import { fetchUsers as fetchUsersService } from "../services/usersService";
+import { fetchCredits as fetchCreditsService } from "../services/creditsService";
 
 export default function Usuarios() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [q, setQ] = useState("");
-    const [rol, setRol] = useState("TODOS");
+    const [rol, setRol] = useState("todos");
+    const [usuarios, setUsuarios] = useState([]);
+    const [creditos, setCreditos] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    // 🔹 Combina datos mockeados
+    useEffect(() => {
+        const loadData = async () => {
+            setLoading(true);
+            try {
+                const [usersRes, creditsRes] = await Promise.all([
+                    fetchUsersService(),
+                    fetchCreditsService()
+                ]);
+                setUsuarios(usersRes.data);
+                setCreditos(creditsRes.data);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, [dispatch]);
+
     const usuariosConDatos = useMemo(() => {
-        return mockUsers.map((u) => {
-            const creditosUsuario = mockCredits.filter((c) => c.userId === u.id);
+        return usuarios.map((u) => {
+            const creditosUsuario = creditos.filter((c) => c.userId === u.id);
             const totalCreditos = creditosUsuario.length;
-
-            // Simulación de estado de trabajo
-            const trabajando = u.id === "u2"; // Juan Pérez activo
 
             return {
                 id: u.id,
                 nombre: u.name,
-                rol: u.role,
+                rol: (u.role || "").toUpperCase(),
+                status: (u.status || "ACTIVE").toUpperCase(),
                 creditos: totalCreditos,
                 nivel: u.responsability?.toUpperCase() || "MEDIA",
-                trabajando,
             };
         });
-    }, []);
+    }, [usuarios, creditos]);
 
     const rows = useMemo(() => {
         const qn = q.trim().toLowerCase();
         return usuariosConDatos.filter((u) => {
             const textOk = !qn || u.nombre.toLowerCase().includes(qn);
-            const rolOk = rol === "TODOS" || u.rol === rol;
+            const rolOk = rol === "todos" || u.rol === rol;
             return textOk && rolOk;
         });
     }, [q, rol, usuariosConDatos]);
@@ -61,16 +80,21 @@ export default function Usuarios() {
                         onChange={(e) => setRol(e.target.value)}
                         className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                     >
-                        <option value="TODOS">Todos</option>
+                        <option value="todos">Todos</option>
                         <option value="ADMIN">Admin</option>
                         <option value="COBRADOR">Cobrador</option>
+                        <option value="EMPLOYEE">Employee</option>
                     </select>
                 </div>
             </div>
 
-            {/* === Mobile: Cards (mejorado) === */}
+            {/* === Mobile: Cards === */}
             <div className="grid gap-4 sm:hidden">
-                {rows.length === 0 ? (
+                {loading ? (
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                        Cargando usuarios...
+                    </div>
+                ) : rows.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                         No se encontraron usuarios.
                     </div>
@@ -99,7 +123,7 @@ export default function Usuarios() {
                             <div className="flex flex-wrap gap-2 mb-3">
                                 <RolPill rol={u.rol} />
                                 <NivelPill nivel={u.nivel} />
-                                <EstadoPill rol={u.rol} trabajando={u.trabajando} />
+                                <EstadoPill status={u.status} />
                             </div>
 
                             {/* INFO */}
@@ -111,7 +135,6 @@ export default function Usuarios() {
                     ))
                 )}
             </div>
-
 
             {/* === Desktop: Tabla === */}
             <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:block">
@@ -127,7 +150,13 @@ export default function Usuarios() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {rows.length === 0 ? (
+                        {loading ? (
+                            <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    Cargando usuarios...
+                                </td>
+                            </tr>
+                        ) : rows.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                                     No se encontraron usuarios.
@@ -148,7 +177,7 @@ export default function Usuarios() {
                                         <RolPill rol={u.rol} />
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <EstadoPill rol={u.rol} trabajando={u.trabajando} />
+                                        <EstadoPill status={u.status} />
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <button
@@ -211,19 +240,12 @@ function NivelPill({ nivel }) {
     );
 }
 
-function EstadoPill({ rol, trabajando }) {
-    let cls = "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300";
-    let label = "Inactivo";
-
-    if (rol === "EMPLOYEE") {
-        if (trabajando) {
-            cls = "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300";
-            label = "Trabajando";
-        } else {
-            cls = "bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300";
-            label = "Pendiente";
-        }
-    }
+function EstadoPill({ status }) {
+    const isActive = status === "ACTIVE";
+    const cls = isActive
+        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
+        : "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300";
+    const label = isActive ? "Activo" : "Inactivo";
 
     return (
         <span className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium min-w-[90px] text-center ${cls}`}>
