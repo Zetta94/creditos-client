@@ -1,11 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
 import { HiCheck, HiXMark, HiOutlineArrowLeft } from "react-icons/hi2";
 import { HiEye, HiEyeOff } from "react-icons/hi";
-import { createUser } from "../services/usersService";
+import { addUser } from "../store/employeeSlice";
 
 export default function UsuarioNuevo() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { loading } = useSelector(state => state.employees ?? { loading: false });
     const [showPass, setShowPass] = useState(false);
 
     const [form, setForm] = useState({
@@ -39,13 +43,27 @@ export default function UsuarioNuevo() {
 
     async function handleSubmit(e) {
         e.preventDefault();
+
+        if (!form.name.trim() || !form.email.trim() || !form.password) {
+            toast.error("Nombre, email y contraseña son requeridos");
+            return;
+        }
+
         const payload = {
             ...form,
-            salary: form.salary === "" ? undefined : Number(form.salary),
-            comisions: form.comisions === "" ? undefined : Number(form.comisions),
+            salary: form.salary === "" ? 0 : Number(form.salary),
+            comisions: form.comisions === "" ? 0 : Number(form.comisions),
+            status: "ACTIVE"
         };
-        await createUser(payload);
-        navigate("/usuarios");
+
+        try {
+            await dispatch(addUser(payload)).unwrap();
+            navigate("/usuarios");
+        } catch (error) {
+            console.error("Error al crear usuario:", error);
+            const msg = typeof error === 'string' ? error : error?.message || 'Error al crear usuario';
+            toast.error(msg);
+        }
     }
 
     return (

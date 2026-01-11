@@ -1,33 +1,39 @@
 import { useEffect, useState, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { HiChevronLeft, HiChevronRight, HiArrowsUpDown } from "react-icons/hi2";
-import { mockClients, mockCobradorClientes } from "../mocks/mockData";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
+import { loadAssignments } from "../store/assignmentsSlice";
+import { reorderAssignments as reorderAssignmentsService } from "../services/assignmentsService";
 
 export default function OrdenClientes({ cobradorId }) {
+    const dispatch = useDispatch();
+    const { list: allAssignments, loading } = useSelector(state => state.assignments || { list: [], loading: false });
     const [clientes, setClientes] = useState([]);
     const [pagina, setPagina] = useState(1);
     const [guardando, setGuardando] = useState(false);
     const [editando, setEditando] = useState(false);
     const porPagina = 10;
 
+    // 🔹 Cargar asignaciones del backend
+    useEffect(() => {
+        dispatch(loadAssignments());
+    }, [dispatch]);
+
     // 🔹 Obtener todos los clientes asociados al cobrador
     const todosAsignados = useMemo(() => {
-        return mockCobradorClientes
-            .filter((a) => a.cobradorId === cobradorId)
+        return allAssignments
+            .filter((a) => a.user?.id === cobradorId)
             .sort((a, b) => a.orden - b.orden)
-            .map((a) => {
-                const cliente = mockClients.find((c) => c.id === a.clienteId);
-                if (!cliente) return null;
-                return {
-                    id: cliente.id,
-                    nombre: cliente.name,
-                    tipoPago: a.tipoPago,
-                    orden: a.orden,
-                };
-            })
-            .filter(Boolean);
-    }, [cobradorId]);
+            .map((a) => ({
+                assignmentId: a.id,
+                id: a.client?.id,
+                nombre: a.client?.name,
+                tipoPago: a.tipoPago,
+                orden: a.orden,
+            }))
+            .filter(a => a.id);
+    }, [allAssignments, cobradorId]);
 
     const totalPaginas = Math.max(1, Math.ceil(todosAsignados.length / porPagina));
 
@@ -53,19 +59,29 @@ export default function OrdenClientes({ cobradorId }) {
         setClientes(actualizados);
     }
 
-    // 🔹 Guardar cambios
+    // 🔹 Guardar cambios en el backend
     async function guardarOrden() {
         try {
             setGuardando(true);
-            // En un backend real enviarías los nuevos órdenes aquí
-            console.log(
-                "Orden guardado localmente:",
-                clientes.map((c) => ({ clienteId: c.id, orden: c.orden }))
-            );
+
+            // Preparar datos para enviar al backend
+            const assignmentsToUpdate = clientes.map((c) => ({
+                id: c.assignmentId,
+                orden: c.orden
+            }));
+
+            await reorderAssignmentsService(assignmentsToUpdate);
+
+            // Recargar asignaciones
+            dispatch(loadAssignments());
+
             toast.success("Orden guardada correctamente!");
+            setEditando(false);
+        } catch (error) {
+            console.error("Error guardando orden:", error);
+            toast.error(error.response?.data?.message || "Error al guardar el orden");
         } finally {
             setGuardando(false);
-            setEditando(false);
         }
     }
 

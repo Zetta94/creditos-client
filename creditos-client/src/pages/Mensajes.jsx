@@ -1,6 +1,90 @@
-import { useState, useMemo } from "react";
-import { HiExclamation, HiCheckCircle, HiClock, HiFilter, HiX } from "react-icons/hi";
-import { mockMessages, mockClients } from "../mocks/mockData"; // ajustá la ruta según tu estructura
+import { useEffect, useMemo, useState } from "react";
+import {
+    HiExclamation,
+    HiCheckCircle,
+    HiClock,
+    HiFilter,
+    HiFlag,
+    HiLocationMarker,
+    HiX,
+} from "react-icons/hi";
+import { fetchMessages } from "../services/messagesService";
+import Pagination from "../components/Pagination";
+
+const TYPE_OPTIONS = [
+    { value: "TODOS", label: "Todos" },
+    { value: "PAGO", label: "Pagos recibidos" },
+    { value: "VENCIMIENTO", label: "Próximos vencimientos" },
+    { value: "IMPAGO", label: "Clientes en mora" },
+    { value: "TRAYECTO_INICIADO", label: "Trayectos iniciados" },
+    { value: "TRAYECTO_FINALIZADO", label: "Trayectos finalizados" },
+];
+
+const PALETTE = {
+    neutral: {
+        bg: "bg-white dark:bg-gray-800",
+        border: "border-gray-200 dark:border-gray-700",
+        text: "text-gray-800 dark:text-gray-100",
+        chip: "bg-blue-600",
+        icon: "text-gray-500 dark:text-gray-300",
+    },
+    warning: {
+        bg: "bg-amber-50 dark:bg-amber-900/30",
+        border: "border-amber-200 dark:border-amber-800",
+        text: "text-amber-800 dark:text-amber-200",
+        chip: "bg-amber-600",
+        icon: "text-amber-500 dark:text-amber-300",
+    },
+    danger: {
+        bg: "bg-red-50 dark:bg-red-900/30",
+        border: "border-red-200 dark:border-red-800",
+        text: "text-red-800 dark:text-red-200",
+        chip: "bg-red-600",
+        icon: "text-red-500 dark:text-red-300",
+    },
+    info: {
+        bg: "bg-blue-50 dark:bg-blue-900/30",
+        border: "border-blue-200 dark:border-blue-800",
+        text: "text-blue-800 dark:text-blue-200",
+        chip: "bg-blue-600",
+        icon: "text-blue-500 dark:text-blue-300",
+    },
+    success: {
+        bg: "bg-emerald-50 dark:bg-emerald-900/30",
+        border: "border-emerald-200 dark:border-emerald-800",
+        text: "text-emerald-800 dark:text-emerald-200",
+        chip: "bg-emerald-600",
+        icon: "text-emerald-500 dark:text-emerald-300",
+    },
+};
+
+const MESSAGE_META = {
+    PAGO: { palette: "success", icon: HiCheckCircle },
+    VENCIMIENTO: { palette: "warning", icon: HiClock },
+    IMPAGO: { palette: "danger", icon: HiExclamation },
+    TRAYECTO_INICIADO: { palette: "info", icon: HiLocationMarker },
+    TRAYECTO_FINALIZADO: { palette: "success", icon: HiFlag },
+    DEFAULT: { palette: "neutral", icon: HiExclamation },
+};
+
+function normalizarMensajes(items) {
+    return (Array.isArray(items) ? items : []).map((item) => {
+        const fechaDate = item.fecha ? new Date(item.fecha) : null;
+        return {
+            ...item,
+            clienteNombre: item.client?.name ?? null,
+            fechaDate: fechaDate instanceof Date && !Number.isNaN(fechaDate.getTime()) ? fechaDate : null,
+        };
+    });
+}
+
+function formatDateTime(value) {
+    if (!value) return "";
+    return `${value.toLocaleDateString("es-AR")} ${value.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+    })}`;
+}
 
 export default function Mensajes() {
     const [filtros, setFiltros] = useState({
@@ -10,28 +94,69 @@ export default function Mensajes() {
         soloImportantes: false,
     });
     const [openFilters, setOpenFilters] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [meta, setMeta] = useState({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1 });
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
-    // === Armamos los mensajes con nombre de cliente ===
-    const mensajes = mockMessages.map((m) => {
-        const cliente = mockClients.find((c) => c.id === m.clientId);
-        return {
-            ...m,
-            cliente: cliente ? cliente.name : "Cliente desconocido",
+    useEffect(() => {
+        let active = true;
+        setLoading(true);
+        fetchMessages({ page, pageSize })
+            .then((res) => {
+                if (!active) return;
+                setMessages(normalizarMensajes(res.data?.data));
+                setMeta(res.data?.meta || { page: 1, pageSize, totalItems: 0, totalPages: 1 });
+                setError(null);
+            })
+            .catch(() => {
+                if (!active) return;
+                setError("No se pudieron cargar los mensajes.");
+            })
+            .finally(() => {
+                if (!active) return;
+                setLoading(false);
+            });
+
+        return () => {
+            active = false;
         };
-    });
+    }, [page, pageSize]);
 
-    // === Aplicar filtros ===
+    useEffect(() => {
+        setPage(meta.page ?? 1);
+        setPageSize(meta.pageSize ?? 10);
+    }, [meta.page, meta.pageSize]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filtros.desde, filtros.hasta, filtros.tipo, filtros.soloImportantes]);
+
     const mensajesFiltrados = useMemo(() => {
-        return mensajes
+        if (loading || error) return [];
+
+        const desdeDate = filtros.desde ? new Date(filtros.desde) : null;
+        const hastaDate = filtros.hasta ? new Date(filtros.hasta) : null;
+        if (hastaDate) {
+            hastaDate.setHours(23, 59, 59, 999);
+        }
+
+        return messages
             .filter((m) => {
-                if (filtros.desde && m.fecha < filtros.desde) return false;
-                if (filtros.hasta && m.fecha > filtros.hasta) return false;
+                if (desdeDate && m.fechaDate && m.fechaDate < desdeDate) return false;
+                if (hastaDate && m.fechaDate && m.fechaDate > hastaDate) return false;
                 if (filtros.tipo !== "TODOS" && m.tipo !== filtros.tipo) return false;
                 if (filtros.soloImportantes && !m.importante) return false;
                 return true;
             })
-            .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
-    }, [filtros]);
+            .sort((a, b) => {
+                const aTime = a.fechaDate ? a.fechaDate.getTime() : 0;
+                const bTime = b.fechaDate ? b.fechaDate.getTime() : 0;
+                return bTime - aTime;
+            });
+    }, [messages, filtros, loading, error]);
 
     const reset = () =>
         setFiltros({ desde: "", hasta: "", tipo: "TODOS", soloImportantes: false });
@@ -76,13 +201,35 @@ export default function Mensajes() {
 
             {/* Lista */}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {mensajesFiltrados.length === 0 ? (
+                {loading ? (
+                    <div className="col-span-full rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                        Cargando mensajes...
+                    </div>
+                ) : error ? (
+                    <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-600 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
+                        {error}
+                    </div>
+                ) : mensajesFiltrados.length === 0 ? (
                     <div className="col-span-full rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                         No hay mensajes con los filtros seleccionados.
                     </div>
                 ) : (
                     mensajesFiltrados.map((m) => <MensajeItem key={m.id} m={m} />)
                 )}
+            </div>
+
+            <div className="mt-6">
+                <Pagination
+                    page={meta.page ?? page}
+                    pageSize={meta.pageSize ?? pageSize}
+                    totalItems={meta.totalItems ?? mensajesFiltrados.length}
+                    totalPages={meta.totalPages ?? 1}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }}
+                />
             </div>
         </div>
     );
@@ -120,10 +267,11 @@ function Filters({ filtros, setFiltros }) {
                     onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value }))}
                     className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 >
-                    <option value="TODOS">Todos</option>
-                    <option value="PAGO">Pagos recibidos</option>
-                    <option value="VENCIMIENTO">Próximo vencimiento</option>
-                    <option value="IMPAGO">Cliente en mora</option>
+                    {TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
                 </select>
             </div>
 
@@ -146,74 +294,35 @@ function Filters({ filtros, setFiltros }) {
 }
 
 function MensajeItem({ m }) {
-    const { bg, border, text, chipBg } =
-        m.importante
-            ? m.tipo === "IMPAGO"
-                ? styles.red
-                : styles.yellow
-            : styles.neutral;
+    const meta = MESSAGE_META[m.tipo] || MESSAGE_META.DEFAULT;
+    const palette = PALETTE[meta.palette] || PALETTE.neutral;
+    const Icon = meta.icon;
 
     return (
         <div
-            className={`flex items-start justify-between gap-3 rounded-xl border p-4 ${bg} ${border} ${text}`}
+            className={`flex items-start justify-between gap-3 rounded-xl border p-4 ${palette.bg} ${palette.border} ${palette.text}`}
         >
             <div className="flex min-w-0 items-start gap-3">
-                <div className="mt-0.5">
-                    {m.tipo === "PAGO" && <HiCheckCircle className="h-6 w-6 text-green-500" />}
-                    {m.tipo === "VENCIMIENTO" && <HiClock className="h-6 w-6 text-yellow-500" />}
-                    {m.tipo === "IMPAGO" && <HiExclamation className="h-6 w-6 text-red-500" />}
+                <div className={`mt-0.5 ${palette.icon}`}>
+                    <Icon className="h-6 w-6" />
                 </div>
 
                 <div className="min-w-0">
-                    {m.tipo === "PAGO" && (
-                        <p className="text-sm">
-                            Se registró un pago de{" "}
-                            <span className="font-semibold">{m.cliente}</span>.
-                        </p>
-                    )}
-                    {m.tipo === "VENCIMIENTO" && (
-                        <p className="text-sm">
-                            <span className="font-semibold">{m.cliente}</span> tiene un pago próximo a vencer.
-                        </p>
-                    )}
-                    {m.tipo === "IMPAGO" && (
-                        <p className="text-sm">
-                            <span className="font-semibold">{m.cliente}</span> no realizó su pago a tiempo.
-                        </p>
-                    )}
-                    <p className="mt-0.5 text-xs opacity-70">
-                        {new Date(m.fecha).toLocaleDateString("es-AR")}
+                    <p className="text-sm">
+                        {m.contenido}
                     </p>
+                    {m.clienteNombre && (
+                        <p className="mt-1 text-xs opacity-75">Cliente: {m.clienteNombre}</p>
+                    )}
+                    <p className="mt-0.5 text-xs opacity-70">{formatDateTime(m.fechaDate)}</p>
                 </div>
             </div>
 
             {m.importante && (
-                <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold uppercase text-white ${chipBg}`}>
+                <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold uppercase text-white ${palette.chip}`}>
                     Importante
                 </span>
             )}
         </div>
     );
 }
-
-/* === Paleta === */
-const styles = {
-    neutral: {
-        bg: "bg-white dark:bg-gray-800",
-        border: "border-gray-200 dark:border-gray-700",
-        text: "text-gray-800 dark:text-gray-100",
-        chipBg: "bg-blue-600",
-    },
-    yellow: {
-        bg: "bg-yellow-50 dark:bg-yellow-900/30",
-        border: "border-yellow-200 dark:border-yellow-800",
-        text: "text-yellow-800 dark:text-yellow-200",
-        chipBg: "bg-yellow-600",
-    },
-    red: {
-        bg: "bg-red-50 dark:bg-red-900/30",
-        border: "border-red-200 dark:border-red-800",
-        text: "text-red-800 dark:text-red-200",
-        chipBg: "bg-red-600",
-    },
-};

@@ -18,14 +18,16 @@ export default function UsuarioDetalle() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!id) return; // Salir si no hay id
+
         const load = async () => {
             setLoading(true);
             try {
                 const [u, cr, pa, cl] = await Promise.all([
                     fetchUser(id).then(r => r.data),
-                    fetchCredits().then(r => r.data),
-                    fetchPayments().then(r => r.data),
-                    fetchClients().then(r => r.data),
+                    fetchCredits({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+                    fetchPayments({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+                    fetchClients({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
                 ]);
                 setUsuario({
                     ...u,

@@ -1,14 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
-import { mockCredits, mockClients } from "../mocks/mockData.js";
+import { useState, useMemo, useEffect } from "react";
+import { fetchCredit, updateCredit } from "../services/creditsService";
+
 
 export default function CancelarCredito() {
     const { id } = useParams();
     const navigate = useNavigate();
-
-    const credito = mockCredits.find((c) => c.id === id);
-    const cliente = mockClients.find((c) => c.id === credito?.clientId);
-
+    const [credito, setCredito] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [form, setForm] = useState({
         metodo: "",
         efectivo: "",
@@ -18,20 +18,20 @@ export default function CancelarCredito() {
         observaciones: "",
     });
 
-    if (!credito)
-        return (
-            <div className="text-center text-red-500 py-10">
-                Crédito no encontrado
-            </div>
-        );
+    useEffect(() => {
+        setLoading(true);
+        fetchCredit(id)
+            .then(res => {
+                setCredito(res.data);
+                setError(null);
+            })
+            .catch(() => setError("Crédito no encontrado"))
+            .finally(() => setLoading(false));
+    }, [id]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm((f) => ({ ...f, [name]: value }));
-    };
-
-    // === Calcular totales y descuentos ===
-    const montoOriginal = credito.amount || 0;
+    // Definir hooks y variables derivadas SIEMPRE antes de cualquier return condicional
+    const cliente = credito?.client;
+    const montoOriginal = credito?.amount || 0;
     const totalRecibido = useMemo(() => {
         if (form.metodo === "mixto") {
             const e = Number(form.efectivo) || 0;
@@ -40,27 +40,32 @@ export default function CancelarCredito() {
         }
         return Number(form.montoRecibido) || 0;
     }, [form.metodo, form.efectivo, form.mercadopago, form.montoRecibido]);
-
     const descuento = Math.max(0, montoOriginal - totalRecibido);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    if (loading) return <div className="text-center text-gray-500 py-10">Cargando crédito...</div>;
+    if (error || !credito) return <div className="text-center text-red-500 py-10">{error || "Crédito no encontrado"}</div>;
 
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm((f) => ({ ...f, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
         const data = {
             ...form,
             totalRecibido,
             descuento,
         };
-
-        console.log("💰 Cancelación registrada:", data);
-        credito.status = "PAID"; // simular cierre del crédito
-
-        alert(
-            `Crédito cancelado correctamente ✅\nTotal recibido: $${totalRecibido.toLocaleString(
-                "es-AR"
-            )}`
-        );
-        navigate(`/creditos/${id}`);
+        try {
+            await updateCredit(id, { status: "PAID", ...data });
+            alert(
+                `Crédito cancelado correctamente ✅\nTotal recibido: $${totalRecibido.toLocaleString("es-AR")}`
+            );
+            navigate("/creditos");
+        } catch {
+            alert("Error al cancelar el crédito");
+        }
     };
 
     return (

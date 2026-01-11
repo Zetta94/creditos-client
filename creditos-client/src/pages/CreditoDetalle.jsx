@@ -1,4 +1,6 @@
+
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
     LineChart,
     Line,
@@ -8,24 +10,35 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from "recharts";
-
-import {
-    mockCredits,
-    mockClients,
-    mockPayments,
-    mockUsers,
-} from "../mocks/mockData.js";
+import { fetchCredit } from "../services/creditsService";
 
 export default function CreditoDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [credito, setCredito] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // === Buscar crédito ===
-    const credito = mockCredits.find((c) => c.id === id);
-    if (!credito) {
+    useEffect(() => {
+        setLoading(true);
+        fetchCredit(id)
+            .then(res => {
+                setCredito(res.data);
+                setError(null);
+            })
+            .catch(() => {
+                setError("No se pudo cargar el crédito");
+            })
+            .finally(() => setLoading(false));
+    }, [id]);
+
+    if (loading) {
+        return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando crédito...</div>;
+    }
+    if (error || !credito) {
         return (
             <div className="mx-auto max-w-5xl px-4 py-6 text-red-400">
-                Crédito no encontrado.
+                {error || "Crédito no encontrado."}
                 <button
                     onClick={() => navigate("/creditos")}
                     className="ml-4 rounded-md bg-gray-700 px-3 py-2 hover:bg-gray-600 text-white"
@@ -36,26 +49,19 @@ export default function CreditoDetalle() {
         );
     }
 
-    // === Datos derivados ===
-    const cliente = mockClients.find((c) => c.id === credito.clientId);
-    const cobrador = mockUsers.find((u) => u.id === credito.userId);
-    const pagosCredito = mockPayments.filter((p) => p.creditId === credito.id);
-
-    const progreso = Math.round(
-        (credito.paidInstallments / credito.totalInstallments) * 100
-    );
-
-    // === Datos para el gráfico ===
-    const chartData =
-        pagosCredito.length > 0
-            ? pagosCredito.map((p) => ({
-                fecha: new Date(p.date).toLocaleDateString("es-AR", {
-                    day: "2-digit",
-                    month: "short",
-                }),
-                monto: p.amount,
-            }))
-            : [{ fecha: "Sin pagos", monto: 0 }];
+    const cliente = credito.client;
+    const cobrador = credito.user;
+    const pagosCredito = credito.payments || [];
+    const progreso = credito.totalInstallments ? Math.round((credito.paidInstallments / credito.totalInstallments) * 100) : 0;
+    const chartData = pagosCredito.length > 0
+        ? pagosCredito.map((p) => ({
+            fecha: new Date(p.date).toLocaleDateString("es-AR", {
+                day: "2-digit",
+                month: "short",
+            }),
+            monto: p.amount,
+        }))
+        : [{ fecha: "Sin pagos", monto: 0 }];
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">

@@ -1,13 +1,14 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
 import { loadClient, saveClient } from "../store/clientsSlice";
 
 export default function ClienteEditar() {
     const { id } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { current, loading } = useSelector(state => state.clients);
+    const { current, loading } = useSelector(state => state.clients) || { current: null, loading: false };
 
     const [form, setForm] = useState({
         name: "",
@@ -16,6 +17,7 @@ export default function ClienteEditar() {
         address: "",
         city: "",
         province: "",
+        email: "",
         reliability: "MEDIA",
         notes: "",
     });
@@ -33,6 +35,7 @@ export default function ClienteEditar() {
                 address: current.address || "",
                 city: current.city || "",
                 province: current.province || "",
+                email: current.email || "",
                 reliability: (current.reliability || "MEDIA").toUpperCase(),
                 notes: current.notes || "",
             });
@@ -46,6 +49,12 @@ export default function ClienteEditar() {
 
     const submit = async (e) => {
         e.preventDefault();
+
+        if (!form.name.trim()) {
+            toast.error("El nombre del cliente es requerido");
+            return;
+        }
+
         const payload = {
             name: form.name,
             phone: form.phone,
@@ -53,6 +62,7 @@ export default function ClienteEditar() {
             address: form.address,
             city: form.city,
             province: form.province,
+            email: form.email,
             reliability: form.reliability?.toUpperCase(),
             notes: form.notes,
         };
@@ -61,7 +71,6 @@ export default function ClienteEditar() {
             navigate("/clientes");
         } catch (err) {
             console.error("Error al guardar cliente", err);
-            alert("No se pudo guardar el cliente. Revisa los datos e inténtalo nuevamente.");
         }
     };
 

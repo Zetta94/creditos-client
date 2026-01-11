@@ -1,34 +1,40 @@
-import { useEffect, useMemo, useState } from "react";
-import { HiCalendar, HiCash, HiCheckCircle, HiXCircle } from "react-icons/hi";
-import { mockUsers } from "../mocks/mockData";
 
-export default function ReportesCobrador({ cobradorId }) {
-    const [cobrador, setCobrador] = useState(null);
+import { useEffect, useMemo, useState } from "react";
+import { HiCalendar, HiCash, HiCheckCircle, HiSwitchHorizontal, HiTrendingUp, HiUserGroup } from "react-icons/hi";
+import { fetchMyReports } from "../services/reportsService";
+
+export default function ReportesCobrador() {
+    const [reportes, setReportes] = useState([]);
     const [filtroMes, setFiltroMes] = useState("todos");
     const [filtroDia, setFiltroDia] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [reportesFiltrados, setReportesFiltrados] = useState([]);
 
-    // 🔹 Buscar el cobrador según ID
     useEffect(() => {
-        const user = mockUsers.find((u) => u.id === cobradorId);
-        setCobrador(user || null);
-    }, [cobradorId]);
+        setLoading(true);
+        fetchMyReports()
+            .then(res => {
+                setReportes(res.data || []);
+                setError(null);
+            })
+            .catch(err => {
+                setError("No se pudieron cargar los reportes");
+            })
+            .finally(() => setLoading(false));
+    }, []);
 
-    // 🔹 Calcular meses disponibles en los reportes
     const mesesDisponibles = useMemo(() => {
-        if (!cobrador?.reports) return [];
-        const meses = cobrador.reports.map((r) =>
+        if (!reportes.length) return [];
+        const meses = reportes.map((r) =>
             new Date(r.fechaDeReporte).toLocaleString("es-AR", { month: "long" })
         );
         return [...new Set(meses)];
-    }, [cobrador]);
+    }, [reportes]);
 
-    // 🔹 Filtrar reportes
     useEffect(() => {
-        if (!cobrador?.reports) return;
-
-        let filtrados = cobrador.reports;
-
+        if (!reportes.length) return setReportesFiltrados([]);
+        let filtrados = reportes;
         if (filtroMes !== "todos") {
             filtrados = filtrados.filter(
                 (r) =>
@@ -36,34 +42,32 @@ export default function ReportesCobrador({ cobradorId }) {
                     filtroMes
             );
         }
-
         if (filtroDia) {
             filtrados = filtrados.filter(
-                (r) => r.fechaDeReporte === filtroDia
+                (r) => r.fechaDeReporte.slice(0, 10) === filtroDia
             );
         }
-
-        // Ordenar por fecha descendente
         filtrados = filtrados.sort(
             (a, b) => new Date(b.fechaDeReporte) - new Date(a.fechaDeReporte)
         );
-
         setReportesFiltrados(filtrados);
-    }, [filtroMes, filtroDia, cobrador]);
+    }, [filtroMes, filtroDia, reportes]);
 
-    if (!cobrador) {
-        return (
-            <div className="p-6 text-center text-gray-500">
-                Cobrador no encontrado.
-            </div>
-        );
+    if (loading) {
+        return <div className="p-6 text-center text-gray-500">Cargando reportes...</div>;
+    }
+    if (error) {
+        return <div className="p-6 text-center text-red-500">{error}</div>;
+    }
+    if (!reportes.length) {
+        return <div className="p-6 text-center text-gray-500">No hay reportes registrados.</div>;
     }
 
     return (
         <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    Reportes de {cobrador.name}
+                    Mis reportes
                 </h1>
 
                 {/* Filtros */}
@@ -118,6 +122,9 @@ export default function ReportesCobrador({ cobradorId }) {
                                 Cobrado por MP
                             </th>
                             <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                                Cobrado por transferencia
+                            </th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
                                 Total recaudado
                             </th>
                         </tr>
@@ -126,7 +133,7 @@ export default function ReportesCobrador({ cobradorId }) {
                         {reportesFiltrados.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan="5"
+                                    colSpan="6"
                                     className="text-center py-6 text-gray-500 dark:text-gray-400"
                                 >
                                     No hay reportes para los filtros seleccionados.
@@ -150,13 +157,16 @@ export default function ReportesCobrador({ cobradorId }) {
                                         {r.clientsVisited}
                                     </td>
                                     <td className="px-4 py-3 text-green-600 dark:text-green-400 font-medium">
-                                        ${r.efectivo.toLocaleString("es-AR")}
+                                        ${Number(r.efectivo || 0).toLocaleString("es-AR")}
                                     </td>
                                     <td className="px-4 py-3 text-blue-600 dark:text-blue-400 font-medium">
-                                        ${r.mercadopago.toLocaleString("es-AR")}
+                                        ${Number(r.mercadopago || 0).toLocaleString("es-AR")}
+                                    </td>
+                                    <td className="px-4 py-3 text-purple-600 dark:text-purple-400 font-medium">
+                                        ${Number(r.transferencia || 0).toLocaleString("es-AR")}
                                     </td>
                                     <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
-                                        ${r.total.toLocaleString("es-AR")}
+                                        ${Number(r.total || 0).toLocaleString("es-AR")}
                                     </td>
                                 </tr>
                             ))
@@ -167,28 +177,41 @@ export default function ReportesCobrador({ cobradorId }) {
 
             {/* Resumen general */}
             {reportesFiltrados.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mt-6">
                     <Card
                         icon={<HiCash className="h-6 w-6 text-green-500" />}
                         label="Total efectivo"
                         value={`$${reportesFiltrados
-                            .reduce((sum, r) => sum + r.efectivo, 0)
+                            .reduce((sum, r) => sum + Number(r.efectivo || 0), 0)
                             .toLocaleString("es-AR")}`}
                     />
                     <Card
                         icon={<HiCheckCircle className="h-6 w-6 text-blue-500" />}
                         label="Total MP"
                         value={`$${reportesFiltrados
-                            .reduce((sum, r) => sum + r.mercadopago, 0)
+                            .reduce((sum, r) => sum + Number(r.mercadopago || 0), 0)
                             .toLocaleString("es-AR")}`}
                     />
                     <Card
-                        icon={<HiCalendar className="h-6 w-6 text-purple-500" />}
-                        label="Cobros totales"
-                        value={reportesFiltrados.reduce(
-                            (sum, r) => sum + r.clientsVisited,
-                            0
-                        )}
+                        icon={<HiSwitchHorizontal className="h-6 w-6 text-purple-500" />}
+                        label="Total transferencia"
+                        value={`$${reportesFiltrados
+                            .reduce((sum, r) => sum + Number(r.transferencia || 0), 0)
+                            .toLocaleString("es-AR")}`}
+                    />
+                    <Card
+                        icon={<HiTrendingUp className="h-6 w-6 text-amber-500" />}
+                        label="Total recaudado"
+                        value={`$${reportesFiltrados
+                            .reduce((sum, r) => sum + Number(r.total || 0), 0)
+                            .toLocaleString("es-AR")}`}
+                    />
+                    <Card
+                        icon={<HiUserGroup className="h-6 w-6 text-sky-500" />}
+                        label="Clientes visitados"
+                        value={reportesFiltrados
+                            .reduce((sum, r) => sum + Number(r.clientsVisited || 0), 0)
+                            .toLocaleString("es-AR")}
                     />
                 </div>
             )}

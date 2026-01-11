@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
 import { addClient } from "../store/clientsSlice";
 
 export default function AgregarCliente() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { loading } = useSelector(state => state.clients);
+    const { loading } = useSelector(state => state.clients) || { loading: false };
 
     const [cliente, setCliente] = useState({
         name: "",
@@ -15,6 +16,7 @@ export default function AgregarCliente() {
         address: "",
         city: "",
         province: "",
+        email: "",
         reliability: "MEDIA",
         activo: true,
     });
@@ -29,13 +31,23 @@ export default function AgregarCliente() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!cliente.name.trim()) {
+            toast.error("El nombre del cliente es requerido");
+            return;
+        }
+
         const payload = {
             ...cliente,
             reliability: cliente.reliability.toUpperCase(),
         };
 
-        await dispatch(addClient(payload));
-        navigate("/clientes");
+        try {
+            await dispatch(addClient(payload)).unwrap();
+            navigate("/clientes");
+        } catch (error) {
+            console.error("Error al agregar cliente:", error);
+        }
     };
 
     return (

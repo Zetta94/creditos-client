@@ -1,10 +1,89 @@
-import React from "react";
-import { mockUsers, mockPayments } from "../mocks/mockData.js";
-import { HiTrendingUp, HiCalendar } from "react-icons/hi";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
+import { HiCalendar } from "react-icons/hi";
+import { fetchMyPayments } from "../services/paymentsService";
+
+const agruparPagosPorPeriodo = (pagos, modo, porcentajeComision) => {
+    const grupos = new Map();
+
+    pagos.forEach((pago) => {
+        if (!pago?.date) return;
+        const fecha = new Date(pago.date);
+        if (Number.isNaN(fecha.getTime())) return;
+
+        let clave;
+        if (modo === "mensual") {
+            clave = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+        } else if (modo === "quincenal") {
+            const quincena = fecha.getDate() <= 15 ? "1Q" : "2Q";
+            clave = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${quincena}`;
+        } else {
+            const primerDia = new Date(fecha);
+            primerDia.setDate(fecha.getDate() - fecha.getDay());
+            clave = primerDia.toISOString().slice(0, 10);
+        }
+
+        if (!grupos.has(clave)) {
+            grupos.set(clave, {
+                periodo: clave,
+                cantidadPagos: 0,
+                totalCobrado: 0,
+            });
+        }
+
+        const grupo = grupos.get(clave);
+        grupo.cantidadPagos += 1;
+        grupo.totalCobrado += Number(pago.amount) || 0;
+    });
+
+    return Array.from(grupos.values())
+        .map((grupo) => ({
+            ...grupo,
+            comision: (grupo.totalCobrado * porcentajeComision) / 100,
+        }))
+        .sort((a, b) => (a.periodo < b.periodo ? 1 : -1));
+};
 
 export default function ComisionesCobrador() {
-    const userId = localStorage.getItem("userId");
-    const cobrador = mockUsers.find((u) => u.id === userId);
+    const authUser = useSelector((state) => state.auth.user);
+    const storedUser = useMemo(() => {
+        if (authUser) return null;
+        const raw = localStorage.getItem("user");
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }, [authUser]);
+
+    const cobrador = authUser || storedUser;
+
+    const [modo, setModo] = useState("semanal");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [pagos, setPagos] = useState([]);
+
+    useEffect(() => {
+        if (!cobrador?.id) return;
+
+        const load = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const { data } = await fetchMyPayments();
+                setPagos(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error(err);
+                setPagos([]);
+                setError("No se pudieron obtener los pagos para calcular comisiones.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        load();
+    }, [cobrador?.id]);
 
     if (!cobrador || cobrador.role !== "cobrador") {
         return (
@@ -14,63 +93,21 @@ export default function ComisionesCobrador() {
         );
     }
 
-    const pagosDelCobrador = mockPayments.filter((p) => p.employeeId === cobrador.id);
-
-    // === Agrupar pagos por periodo ===
-    const agruparPorPeriodo = (pagos, modo = "semanal") => {
-        const grupos = {};
-
-        pagos.forEach((pago) => {
-            const fecha = new Date(pago.date);
-            let clave = "";
-
-            if (modo === "mensual") {
-                clave = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-                    .toString()
-                    .padStart(2, "0")}`;
-            } else if (modo === "quincenal") {
-                const quincena = fecha.getDate() <= 15 ? "1Q" : "2Q";
-                clave = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-                    .toString()
-                    .padStart(2, "0")}-${quincena}`;
-            } else {
-                const primerDia = new Date(fecha);
-                primerDia.setDate(fecha.getDate() - fecha.getDay());
-                clave = primerDia.toISOString().slice(0, 10);
-            }
-
-            if (!grupos[clave]) grupos[clave] = [];
-            grupos[clave].push(pago);
-        });
-
-        return Object.entries(grupos)
-            .map(([periodo, pagos]) => {
-                const totalPagos = pagos.reduce((acc, p) => acc + p.amount, 0);
-                const comision = (totalPagos * cobrador.comisions) / 100;
-
-                return {
-                    periodo,
-                    cantidadPagos: pagos.length,
-                    totalCobrado: totalPagos,
-                    comision,
-                };
-            })
-            .sort((a, b) => (a.periodo < b.periodo ? 1 : -1));
-    };
-
-    const [modo, setModo] = React.useState("semanal");
-    const comisiones = agruparPorPeriodo(pagosDelCobrador, modo);
+    const porcentajeComision = Number(cobrador.comisions) || 0;
+    const comisiones = useMemo(
+        () => agruparPagosPorPeriodo(pagos, modo, porcentajeComision),
+        [pagos, modo, porcentajeComision]
+    );
 
     return (
         <div className="p-4 sm:p-6">
-            {/* === Header === */}
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                         Historial de comisiones
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Cobrador: {cobrador.name} — {cobrador.comisions}% de comisión
+                        Cobrador: {cobrador.name} — {porcentajeComision}% de comisión
                     </p>
                 </div>
 
@@ -87,10 +124,12 @@ export default function ComisionesCobrador() {
                 </div>
             </div>
 
-            {/* === Responsive view === */}
-            {comisiones.length > 0 ? (
+            {loading ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Cargando comisiones...</p>
+            ) : error ? (
+                <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+            ) : comisiones.length > 0 ? (
                 <>
-                    {/* 💻 Tabla (solo visible en pantallas grandes) */}
                     <div className="hidden sm:block overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-800">
@@ -133,7 +172,6 @@ export default function ComisionesCobrador() {
                         </table>
                     </div>
 
-                    {/* 📱 Vista móvil (cards individuales) */}
                     <div className="sm:hidden space-y-4">
                         {comisiones.map((c) => (
                             <div

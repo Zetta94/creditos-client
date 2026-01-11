@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import logo3 from "../../assets/logoListo.png";
 import { useLocation, useNavigate } from "react-router-dom";
 import { HiMenu, HiChevronDown } from "react-icons/hi";
 import SidebarAdmin from "./SideBarAdmin.jsx";
 import SidebarCobrador from "./SideBarCobrador";
+import { useSelector } from "react-redux";
 
 export default function SideBar() {
   const navigate = useNavigate();
@@ -11,9 +12,22 @@ export default function SideBar() {
   const [open, setOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef(null);
+  const authUser = useSelector((state) => state.auth.user);
 
-  const role = localStorage.getItem("role") || "admin"; // mock por defecto
-  const email = localStorage.getItem("email") || "demo@imperio.test";
+  const user = useMemo(() => {
+    if (authUser) return authUser;
+    const stored = localStorage.getItem("user");
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch (_) {
+      return null;
+    }
+  }, [authUser]);
+
+  const role = user?.role || localStorage.getItem("role") || "admin";
+  const email = user?.email || "";
+  const displayName = user?.name || (email ? email.split("@")[0] : "Usuario");
 
   // Cerrar drawer al navegar
   useEffect(() => {
@@ -77,11 +91,13 @@ export default function SideBar() {
               <div className="absolute right-0 top-12 z-50 my-2 w-56 rounded-md border border-gray-200 bg-white text-base shadow-md dark:border-gray-700 dark:bg-gray-700">
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-600">
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {role === "admin" ? "Administrador" : "Cobrador"}
+                    {displayName}
                   </p>
-                  <p className="text-sm font-medium text-gray-900 truncate dark:text-gray-300">
-                    {email}
-                  </p>
+                  {email && (
+                    <p className="text-sm font-medium text-gray-900 truncate dark:text-gray-300">
+                      {email}
+                    </p>
+                  )}
                 </div>
                 <ul className="py-1">
                   <li>

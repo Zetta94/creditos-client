@@ -8,6 +8,8 @@ import Dashboard from "./pages/Dashboard.jsx";
 
 // 🔹 Páginas comunes
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // 🔹 Páginas de ADMIN
@@ -30,13 +32,14 @@ import CancelarCredito from "./pages/CreditoCancelar.jsx";
 // 🔹 Páginas de COBRADOR
 import DashboardCobrador from "./pages/DashboardCobrador.jsx";
 import PagosCobrador from "./pages/PagosCobrador.jsx";
-const userId = localStorage.getItem("userId");
 import OrdenClientes from "./pages/OrdenarClientes.jsx";
 import AsignarClientes from "./pages/AsignarClientes.jsx";
 import SueldoCobrador from "./pages/CobradorSueldo.jsx";
 import ComisionesCobrador from "./pages/CobradorComisiones.jsx";
 import RegistrarPago from "./pages/RegistrarPago.jsx";
 import CobradorReportes from "./pages/CobradorReportes.jsx";
+import CobradorTrayectoGuard from "./components/CobradorTrayectoGuard.jsx";
+const userId = localStorage.getItem("userId");
 
 // 🧩 Verificador de rutas (solo en producción)
 if (import.meta.env.PROD) {
@@ -87,8 +90,10 @@ export default function App() {
     <Provider store={store}>
       <HashRouter>
         <Routes>
-          {/* === LOGIN === */}
+          {/* === LOGIN Y RECUPERACIÓN === */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* === LAYOUT PRINCIPAL (ADMIN + COBRADOR) === */}
           <Route
@@ -120,11 +125,46 @@ export default function App() {
 
             {/* --- COBRADOR --- */}
             <Route path="cobrador/dashboard" element={<DashboardCobrador />} />
-            <Route path="cobrador/pagos" element={<PagosCobrador cobradorId={userId} />} />
-            <Route path="cobrador/sueldo" element={<SueldoCobrador />} />
-            <Route path="cobrador/comisiones" element={<ComisionesCobrador />} />
-            <Route path="cobrador/pagos/:creditoId" element={<RegistrarPago />} />
-            <Route path="cobrador/reportes" element={<CobradorReportes cobradorId={userId} />} />
+            <Route
+              path="cobrador/pagos"
+              element={
+                <CobradorTrayectoGuard>
+                  <PagosCobrador cobradorId={userId} />
+                </CobradorTrayectoGuard>
+              }
+            />
+            <Route
+              path="cobrador/sueldo"
+              element={
+                <CobradorTrayectoGuard>
+                  <SueldoCobrador />
+                </CobradorTrayectoGuard>
+              }
+            />
+            <Route
+              path="cobrador/comisiones"
+              element={
+                <CobradorTrayectoGuard>
+                  <ComisionesCobrador />
+                </CobradorTrayectoGuard>
+              }
+            />
+            <Route
+              path="cobrador/pagos/:creditoId"
+              element={
+                <CobradorTrayectoGuard>
+                  <RegistrarPago />
+                </CobradorTrayectoGuard>
+              }
+            />
+            <Route
+              path="cobrador/reportes"
+              element={
+                <CobradorTrayectoGuard>
+                  <CobradorReportes cobradorId={userId} />
+                </CobradorTrayectoGuard>
+              }
+            />
           </Route>
 
           {/* === REDIRECCIÓN POR DEFECTO === */}

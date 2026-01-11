@@ -1,18 +1,41 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { mockClients, mockCredits } from "../mocks/mockData";
+import { loadCredit } from "../store/creditsSlice";
+import { loadClients } from "../store/clientsSlice";
+import { addPayment } from "../store/paymentsSlice";
 import { HiArrowLeft, HiTrash, HiPlus } from "react-icons/hi";
 
 export default function RegistrarPago() {
-    const { creditoId } = useParams(); // 👈 cambio acá
+    const { creditoId } = useParams();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
-    const credito = mockCredits.find((cr) => cr.id === creditoId);
-    const cliente = mockClients.find((c) => c.id === credito?.clientId); // 👈 busca el cliente asociado
+    const { current: credito, loading: loadingCredit } = useSelector(state => state.credits) || { current: null, loading: false };
+    const { list: clientes } = useSelector(state => state.clients) || { list: [] };
+    const { loading: savingPayment } = useSelector(state => state.payments) || { loading: false };
+
+    const cliente = clientes.find((c) => c.id === credito?.clientId);
 
     const [pagos, setPagos] = useState([{ metodo: "efectivo", monto: "", id: Date.now() }]);
     const [nota, setNota] = useState("");
+
+    useEffect(() => {
+        if (creditoId) {
+            dispatch(loadCredit(creditoId));
+            dispatch(loadClients());
+        }
+    }, [creditoId, dispatch]);
+
+    if (loadingCredit) {
+        return (
+            <div className="p-6 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-gray-600">Cargando...</p>
+            </div>
+        );
+    }
 
     if (!credito || !cliente) {
         return (
@@ -22,7 +45,7 @@ export default function RegistrarPago() {
         );
     }
 
-    const total = pagos.reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+    const total = pagos.reduce((sum, p) => sum + (Number(p.monto) || 0), 0);
 
     function agregarPago() {
         setPagos((prev) => [...prev, { metodo: "efectivo", monto: "", id: Date.now() }]);
@@ -36,19 +59,39 @@ export default function RegistrarPago() {
         setPagos((prev) => prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)));
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
-        const pagosValidos = pagos.filter((p) => p.metodo && Number(p.monto) > 0);
+        const pagosValidos = pagos
+            .map((p) => ({ ...p, monto: Number(p.monto) }))
+            .filter((p) => p.metodo && p.monto > 0);
         if (pagosValidos.length === 0) {
             toast.error("Debes ingresar al menos un pago válido 🧾");
             return;
         }
 
-        toast.success(`Pago total registrado: $${total.toLocaleString("es-AR")}`, {
-            icon: "💰",
-        });
+        try {
+            const breakdown = pagosValidos.map((p) => ({
+                method: p.metodo,
+                amount: p.monto,
+            }));
 
-        setTimeout(() => navigate(-1), 1500);
+            const totalRegistrado = breakdown.reduce((sum, b) => sum + b.amount, 0);
+
+            await dispatch(addPayment({
+                creditId: creditoId,
+                payments: breakdown,
+                date: new Date().toISOString(),
+                note: nota
+            })).unwrap();
+
+            toast.success(`Pago total registrado: $${totalRegistrado.toLocaleString("es-AR")}`, {
+                icon: "💰",
+            });
+
+            setTimeout(() => navigate(-1), 1500);
+        } catch (error) {
+            console.error("Error al registrar pago:", error);
+        }
     }
 
     return (

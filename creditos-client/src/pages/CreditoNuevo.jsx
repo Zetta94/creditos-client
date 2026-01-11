@@ -3,26 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loadClients } from "../store/clientsSlice";
 import { addCredit } from "../store/creditsSlice";
-import { mockUsers } from "../mocks/mockData.js";
+import { loadUsers } from "../store/employeeSlice";
 
 export default function CreditoNuevo() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { list: clients } = useSelector(state => state.clients);
-    const { loading } = useSelector(state => state.credits);
+    const { list: clients } = useSelector(state => state.clients) || { list: [] };
+    const { loading } = useSelector(state => state.credits) || { loading: false };
+    const { list: users } = useSelector(state => state.employees) || { list: [] };
 
-    const cobradores = mockUsers.filter((u) => u.role === "cobrador");
+    const cobradores = (users || []).filter((u) => u.role === "COBRADOR" || u.role === "EMPLOYEE");
 
     useEffect(() => {
         if (!clients.length) dispatch(loadClients());
-    }, [clients.length, dispatch]);
+        if (!users.length) dispatch(loadUsers());
+    }, [clients.length, users.length, dispatch]);
 
     const [form, setForm] = useState({
         clienteId: "",
         monto: "",
         interes: "",
         cuotas: "",
-        plan: "Mensual",
+        plan: "MONTHLY",
         cobradorId: "",
         comisionLibre: "",
         cobradorComisionId: "",
@@ -38,8 +40,9 @@ export default function CreditoNuevo() {
 
         const payload = {
             clientId: form.clienteId,
-            type: form.plan === "Diario" ? "DAILY" : form.plan === "Semanal" ? "WEEKLY" : "MONTHLY",
+            creditType: form.plan,
             amount: Number(form.monto),
+            interestRate: Number(form.interes) || 0,
             totalInstallments: Number(form.cuotas) || undefined,
             installmentAmount: cuotaEstim || undefined,
             startDate: new Date().toISOString(),

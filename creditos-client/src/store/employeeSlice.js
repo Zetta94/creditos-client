@@ -1,43 +1,173 @@
-// src/store/cobradorSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { mockCobradorClientes, mockClients } from "../mocks/mockData";
+import * as usersService from "../services/usersService";
 
-export const fetchClientesCobrador = createAsyncThunk(
-  "cobrador/fetchClientes",
-  async (tipoPago) => {
-    // simulamos fetch al backend
-    const clientesAsignados = mockCobradorClientes
-      .filter((c) => c.tipoPago === tipoPago)
-      .sort((a, b) => a.orden - b.orden)
-      .map((rel) => ({
-        ...rel,
-        ...mockClients.find((cl) => cl.id === rel.clienteId),
-      }));
+const emptyMeta = { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 };
 
-    return clientesAsignados;
+export const loadUsers = createAsyncThunk(
+  "employees/loadUsers",
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await usersService.listUsers(params);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Error cargando usuarios");
+    }
   }
 );
 
-const cobradorSlice = createSlice({
-  name: "cobrador",
+export const loadUser = createAsyncThunk(
+  "employees/loadUser",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await usersService.getUser(id);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Error cargando usuario");
+    }
+  }
+);
+
+export const addUser = createAsyncThunk(
+  "employees/addUser",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await usersService.createUser(payload);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Error creando usuario");
+    }
+  }
+);
+
+export const saveUser = createAsyncThunk(
+  "employees/saveUser",
+  async ({ id, ...payload }, { rejectWithValue }) => {
+    try {
+      const response = await usersService.updateUser(id, payload);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Error actualizando usuario");
+    }
+  }
+);
+
+export const removeUser = createAsyncThunk(
+  "employees/removeUser",
+  async (id, { rejectWithValue }) => {
+    try {
+      await usersService.deleteUser(id);
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Error eliminando usuario");
+    }
+  }
+);
+
+const employeeSlice = createSlice({
+  name: "employees",
   initialState: {
-    clientes: [],
+    list: [],
+    meta: emptyMeta,
+    current: null,
     loading: false,
+    error: null,
   },
-  reducers: {},
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchClientesCobrador.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(fetchClientesCobrador.fulfilled, (state, action) => {
-        state.loading = false;
-        state.clientes = action.payload;
-      })
-      .addCase(fetchClientesCobrador.rejected, (state) => {
-        state.loading = false;
-      });
+    // Load Users
+    builder.addCase(loadUsers.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(loadUsers.fulfilled, (state, action) => {
+      state.list = action.payload?.data ?? [];
+      state.meta = action.payload?.meta ?? emptyMeta;
+      state.loading = false;
+    });
+    builder.addCase(loadUsers.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Load Single User
+    builder.addCase(loadUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(loadUser.fulfilled, (state, action) => {
+      state.current = action.payload;
+      state.loading = false;
+    });
+    builder.addCase(loadUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Add User
+    builder.addCase(addUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(addUser.fulfilled, (state, action) => {
+      state.list.push(action.payload);
+      const totalItems = state.meta.totalItems + 1;
+      const pageSize = state.meta.pageSize || emptyMeta.pageSize;
+      state.meta = {
+        ...state.meta,
+        totalItems,
+        totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
+      };
+      state.loading = false;
+    });
+    builder.addCase(addUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Save User
+    builder.addCase(saveUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(saveUser.fulfilled, (state, action) => {
+      const index = state.list.findIndex(u => u.id === action.payload.id);
+      if (index !== -1) {
+        state.list[index] = action.payload;
+      }
+      state.current = action.payload;
+      state.loading = false;
+    });
+    builder.addCase(saveUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Remove User
+    builder.addCase(removeUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(removeUser.fulfilled, (state, action) => {
+      state.list = state.list.filter(u => u.id !== action.payload);
+      const totalItems = Math.max(0, state.meta.totalItems - 1);
+      const pageSize = state.meta.pageSize || emptyMeta.pageSize;
+      state.meta = {
+        ...state.meta,
+        totalItems,
+        totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
+      };
+      state.loading = false;
+    });
+    builder.addCase(removeUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
   },
 });
 
-export default cobradorSlice.reducer;
+export const { clearError } = employeeSlice.actions;
+export default employeeSlice.reducer;

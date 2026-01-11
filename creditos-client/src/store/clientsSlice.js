@@ -7,9 +7,11 @@ import {
   deleteClient as deleteClientService
 } from "../services/clientsService";
 
-export const loadClients = createAsyncThunk("clients/loadAll", async () => {
-  const { data } = await fetchClientsService();
-  return data;
+const emptyMeta = { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 };
+
+export const loadClients = createAsyncThunk("clients/loadAll", async (params = {}) => {
+  const response = await fetchClientsService(params);
+  return response.data;
 });
 
 export const loadClient = createAsyncThunk("clients/loadOne", async (id) => {
@@ -34,14 +36,15 @@ export const removeClient = createAsyncThunk("clients/remove", async (id) => {
 
 const slice = createSlice({
   name: "clients",
-  initialState: { list: [], current: null, loading: false, error: null },
+  initialState: { list: [], meta: emptyMeta, current: null, loading: false, error: null },
   reducers: {},
   extraReducers: builder => {
     builder
       .addCase(loadClients.pending, s => { s.loading = true; s.error = null; })
       .addCase(loadClients.fulfilled, (s, a) => {
         s.loading = false;
-        s.list = a.payload;
+        s.list = a.payload?.data ?? [];
+        s.meta = a.payload?.meta ?? emptyMeta;
       })
       .addCase(loadClients.rejected, (s, a) => {
         s.loading = false;
@@ -56,7 +59,16 @@ const slice = createSlice({
         s.loading = false;
         s.error = a.error.message;
       })
-      .addCase(addClient.fulfilled, (s, a) => { s.list.unshift(a.payload); })
+      .addCase(addClient.fulfilled, (s, a) => {
+        s.list.unshift(a.payload);
+        const totalItems = s.meta.totalItems + 1;
+        const pageSize = s.meta.pageSize || emptyMeta.pageSize;
+        s.meta = {
+          ...s.meta,
+          totalItems,
+          totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
+        };
+      })
       .addCase(saveClient.fulfilled, (s, a) => {
         const idx = s.list.findIndex(c => c.id === a.payload.id);
         if (idx !== -1) s.list[idx] = a.payload;
@@ -64,6 +76,13 @@ const slice = createSlice({
       })
       .addCase(removeClient.fulfilled, (s, a) => {
         s.list = s.list.filter(c => c.id !== a.payload);
+        const totalItems = Math.max(0, s.meta.totalItems - 1);
+        const pageSize = s.meta.pageSize || emptyMeta.pageSize;
+        s.meta = {
+          ...s.meta,
+          totalItems,
+          totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
+        };
       });
   }
 });

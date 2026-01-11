@@ -1,19 +1,46 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { HiPlus, HiEye, HiSearch, HiFilter } from "react-icons/hi";
-import { mockCredits, mockClients } from "../mocks/mockData.js";
+import { loadCredits } from "../store/creditsSlice";
+import Pagination from "../components/Pagination";
 
 export default function Creditos() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { list: creditos, loading, meta } = useSelector(state => state.credits) || { list: [], loading: false, meta: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 } };
 
-    // === Construcción de datos mock combinados ===
+    // === Estados ===
+    const [q, setQ] = useState("");
+    const [estado, setEstado] = useState("todos");
+    const [showFilters, setShowFilters] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+
+    useEffect(() => {
+        setPage(meta?.page ?? 1);
+        setPageSize(meta?.pageSize ?? 10);
+    }, [meta?.page, meta?.pageSize]);
+
+    // Cargar créditos al montar
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            dispatch(loadCredits({ page, pageSize, q: q.trim() ? q.trim() : undefined }));
+        }, 200);
+        return () => clearTimeout(timeout);
+    }, [dispatch, page, pageSize, q]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [q, estado]);
+
+    // === Construcción de datos combinados ===
     const creditosMock = useMemo(
         () =>
-            mockCredits.map((cr) => {
-                const cliente = mockClients.find((c) => c.id === cr.clientId);
+            creditos.map((cr) => {
                 return {
                     id: cr.id,
-                    cliente: cliente?.name || "Cliente desconocido",
+                    cliente: cr.client?.name || "Cliente desconocido",
                     monto: cr.amount,
                     cuotas: cr.totalInstallments,
                     pagadas: cr.paidInstallments,
@@ -21,13 +48,8 @@ export default function Creditos() {
                     fechaInicio: cr.startDate,
                 };
             }),
-        []
+        [creditos]
     );
-
-    // === Estados ===
-    const [q, setQ] = useState("");
-    const [estado, setEstado] = useState("todos");
-    const [showFilters, setShowFilters] = useState(false);
 
     // === Filtrado ===
     const rows = useMemo(() => {
@@ -172,6 +194,20 @@ export default function Creditos() {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            <div className="mt-6">
+                <Pagination
+                    page={meta?.page ?? page}
+                    pageSize={meta?.pageSize ?? pageSize}
+                    totalItems={meta?.totalItems ?? creditos.length}
+                    totalPages={meta?.totalPages ?? 1}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }}
+                />
             </div>
         </div>
     );

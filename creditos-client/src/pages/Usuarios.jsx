@@ -2,37 +2,43 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { HiPlus, HiEye, HiSearch } from "react-icons/hi";
-import { fetchUsers as fetchUsersService } from "../services/usersService";
-import { fetchCredits as fetchCreditsService } from "../services/creditsService";
+import { loadUsers } from "../store/employeeSlice";
+import { loadCredits } from "../store/creditsSlice";
+import Pagination from "../components/Pagination";
 
 export default function Usuarios() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const { list: usuarios, loading, meta } = useSelector(state => state.employees) || { list: [], loading: false, meta: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 } };
+    const { list: creditos } = useSelector(state => state.credits) || { list: [] };
+
     const [q, setQ] = useState("");
     const [rol, setRol] = useState("todos");
-    const [usuarios, setUsuarios] = useState([]);
-    const [creditos, setCreditos] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
-        const loadData = async () => {
-            setLoading(true);
-            try {
-                const [usersRes, creditsRes] = await Promise.all([
-                    fetchUsersService(),
-                    fetchCreditsService()
-                ]);
-                setUsuarios(usersRes.data);
-                setCreditos(creditsRes.data);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadData();
+        setPage(meta?.page ?? 1);
+        setPageSize(meta?.pageSize ?? 10);
+    }, [meta?.page, meta?.pageSize]);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            dispatch(loadUsers({ page, pageSize, q: q.trim() ? q.trim() : undefined }));
+        }, 200);
+        return () => clearTimeout(timeout);
+    }, [dispatch, page, pageSize, q]);
+
+    useEffect(() => {
+        dispatch(loadCredits({ page: 1, pageSize: 500 }));
     }, [dispatch]);
 
+    useEffect(() => {
+        setPage(1);
+    }, [q, rol]);
+
     const usuariosConDatos = useMemo(() => {
-        return usuarios.map((u) => {
+        return (usuarios || []).map((u) => {
             const creditosUsuario = creditos.filter((c) => c.userId === u.id);
             const totalCreditos = creditosUsuario.length;
 
@@ -193,6 +199,20 @@ export default function Usuarios() {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            <div className="mt-6">
+                <Pagination
+                    page={meta?.page ?? page}
+                    pageSize={meta?.pageSize ?? pageSize}
+                    totalItems={meta?.totalItems ?? usuarios.length}
+                    totalPages={meta?.totalPages ?? 1}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }}
+                />
             </div>
         </div>
     );

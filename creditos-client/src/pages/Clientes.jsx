@@ -12,20 +12,37 @@ import {
     HiSearch,
 } from "react-icons/hi";
 import { loadClients, removeClient } from "../store/clientsSlice";
+import Pagination from "../components/Pagination";
 
 export default function Clientes() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { list, loading } = useSelector(state => state.clients);
+    const { list, loading, meta } = useSelector(state => state.clients) || { list: [], loading: false, meta: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 } };
 
     const [q, setQ] = useState("");
     const [activo, setActivo] = useState("todos");
     const [confianza, setConfianza] = useState("todas");
     const [showFilters, setShowFilters] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
-        dispatch(loadClients());
-    }, [dispatch]);
+        setPage(meta?.page ?? 1);
+        setPageSize(meta?.pageSize ?? 10);
+    }, [meta?.page, meta?.pageSize]);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            dispatch(loadClients({ page, pageSize, q: q.trim() ? q.trim() : undefined }));
+        }, 200);
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [dispatch, page, pageSize, q]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [q, activo, confianza]);
 
     const rows = useMemo(() => {
         const qn = q.trim().toLowerCase();
@@ -172,6 +189,20 @@ export default function Clientes() {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            <div className="mt-4">
+                <Pagination
+                    page={meta?.page ?? page}
+                    pageSize={meta?.pageSize ?? pageSize}
+                    totalItems={meta?.totalItems ?? rows.length}
+                    totalPages={meta?.totalPages ?? 1}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }}
+                />
             </div>
         </div>
     );

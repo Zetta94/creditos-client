@@ -4,6 +4,7 @@ import { fetchUser } from "../services/usersService";
 import { fetchClients } from "../services/clientsService";
 import { fetchCredits } from "../services/creditsService";
 import { fetchPayments } from "../services/paymentsService";
+import { fetchReportsByUser } from "../services/reportsService";
 import { HiOutlineArrowLeft } from "react-icons/hi2";
 
 export default function UsuarioReportes() {
@@ -13,7 +14,9 @@ export default function UsuarioReportes() {
     const [clientes, setClientes] = useState([]);
     const [creditos, setCreditos] = useState([]);
     const [pagos, setPagos] = useState([]);
+    const [reportes, setReportes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [rateLimit, setRateLimit] = useState(false);
 
     const [semana, setSemana] = useState(() => {
         const today = new Date();
@@ -25,24 +28,38 @@ export default function UsuarioReportes() {
     const porPagina = 5;
 
     useEffect(() => {
+        let mounted = true;
+        const controller = new AbortController();
         const load = async () => {
             setLoading(true);
+            setRateLimit(false);
             try {
-                const [u, cl, cr, pa] = await Promise.all([
+                const [u, cl, cr, pa, rep] = await Promise.all([
                     fetchUser(id).then(r => r.data),
-                    fetchClients().then(r => r.data),
-                    fetchCredits().then(r => r.data),
-                    fetchPayments().then(r => r.data),
+                    fetchClients({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+                    fetchCredits({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+                    fetchPayments({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+                    fetchReportsByUser(id, { page: 1, pageSize: 200 }).then(r => r.data?.data ?? []).catch(() => [])
                 ]);
+                if (!mounted) return;
                 setUsuario(u);
                 setClientes(cl);
                 setCreditos(cr);
                 setPagos(pa);
+                setReportes(rep);
+            } catch (err) {
+                if (err?.response?.status === 429) {
+                    setRateLimit(true);
+                }
             } finally {
-                setLoading(false);
+                if (mounted) setLoading(false);
             }
         };
         load();
+        return () => {
+            mounted = false;
+            controller.abort();
+        };
     }, [id]);
 
     const pagosUsuario = useMemo(
@@ -88,6 +105,13 @@ export default function UsuarioReportes() {
         return (
             <div className="mx-auto max-w-6xl px-4 py-6">
                 <p className="text-center text-gray-500 dark:text-gray-400">Cargando reportes...</p>
+            </div>
+        );
+    }
+    if (rateLimit) {
+        return (
+            <div className="mx-auto max-w-6xl px-4 py-6">
+                <p className="text-center text-red-500 dark:text-red-400 font-semibold">Demasiadas solicitudes. Espera unos segundos y vuelve a intentar.</p>
             </div>
         );
     }
@@ -162,32 +186,40 @@ export default function UsuarioReportes() {
                 </div>
             </div>
 
-            {/* === RESUMEN === */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Kpi
-                    label="Total MercadoPago"
-                    color="blue"
-                    value={`$${resumen.mercadopago.toLocaleString("es-AR")}`}
-                />
-                <Kpi
-                    label="Total Efectivo"
-                    color="emerald"
-                    value={`$${resumen.efectivo.toLocaleString("es-AR")}`}
-                />
-                <Kpi label="Cobros" color="indigo" value={pagosFiltrados.length} />
-                <Kpi
-                    label="Semana"
-                    color="gray"
-                    value={`${new Date(semana).toLocaleDateString("es-AR", {
-                        day: "2-digit",
-                        month: "short",
-                    })} - ${new Date(
-                        new Date(semana).setDate(new Date(semana).getDate() + 6)
-                    ).toLocaleDateString("es-AR", {
-                        day: "2-digit",
-                        month: "short",
-                    })}`}
-                />
+            {/* === REPORTES DEL USUARIO (REGISTRADOS) === */}
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Reportes registrados</h2>
+
+                <div className="overflow-x-auto mt-4">
+                    <table className="min-w-full text-left text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            <tr>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Fecha</th>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Clientes visitados</th>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Efectivo</th>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">MercadoPago</th>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {reportes.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No hay reportes registrados.</td>
+                                </tr>
+                            ) : (
+                                reportes.map((r) => (
+                                    <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/70">
+                                        <td className="px-3 py-2 sm:px-4 sm:py-3">{new Date(r.fechaDeReporte).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                                        <td className="px-3 py-2 sm:px-4 sm:py-3">{r.clientsVisited}</td>
+                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-green-600">${(r.efectivo || 0).toLocaleString("es-AR")}</td>
+                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-blue-600">${(r.mercadopago || 0).toLocaleString("es-AR")}</td>
+                                        <td className="px-3 py-2 sm:px-4 sm:py-3 font-semibold">${(r.total || 0).toLocaleString("es-AR")}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* === TABLA SIMPLE === */}

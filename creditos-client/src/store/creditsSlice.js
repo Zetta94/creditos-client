@@ -7,9 +7,11 @@ import {
   deleteCredit as deleteCreditService
 } from "../services/creditsService";
 
-export const loadCredits = createAsyncThunk("credits/loadAll", async (q) => {
-  const { data } = await fetchCreditsService(q);
-  return data;
+const emptyMeta = { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 };
+
+export const loadCredits = createAsyncThunk("credits/loadAll", async (params = {}) => {
+  const response = await fetchCreditsService(params);
+  return response.data;
 });
 
 export const loadCredit = createAsyncThunk("credits/loadOne", async (id) => {
@@ -34,15 +36,28 @@ export const removeCredit = createAsyncThunk("credits/remove", async (id) => {
 
 const slice = createSlice({
   name: "credits",
-  initialState: { list: [], current: null, loading: false, error: null },
+  initialState: { list: [], meta: emptyMeta, current: null, loading: false, error: null },
   reducers: {},
   extraReducers: builder => {
     builder
       .addCase(loadCredits.pending, s => { s.loading = true; s.error = null; })
-      .addCase(loadCredits.fulfilled, (s, a) => { s.loading = false; s.list = a.payload; })
+      .addCase(loadCredits.fulfilled, (s, a) => {
+        s.loading = false;
+        s.list = a.payload?.data ?? [];
+        s.meta = a.payload?.meta ?? emptyMeta;
+      })
       .addCase(loadCredits.rejected, (s, a) => { s.loading = false; s.error = a.error.message; })
       .addCase(loadCredit.fulfilled, (s, a) => { s.current = a.payload; })
-      .addCase(addCredit.fulfilled, (s, a) => { s.list.unshift(a.payload); })
+      .addCase(addCredit.fulfilled, (s, a) => {
+        s.list.unshift(a.payload);
+        const totalItems = s.meta.totalItems + 1;
+        const pageSize = s.meta.pageSize || emptyMeta.pageSize;
+        s.meta = {
+          ...s.meta,
+          totalItems,
+          totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
+        };
+      })
       .addCase(saveCredit.fulfilled, (s, a) => {
         const idx = s.list.findIndex(cr => cr.id === a.payload.id);
         if (idx !== -1) s.list[idx] = a.payload;
@@ -50,6 +65,13 @@ const slice = createSlice({
       })
       .addCase(removeCredit.fulfilled, (s, a) => {
         s.list = s.list.filter(cr => cr.id !== a.payload);
+        const totalItems = Math.max(0, s.meta.totalItems - 1);
+        const pageSize = s.meta.pageSize || emptyMeta.pageSize;
+        s.meta = {
+          ...s.meta,
+          totalItems,
+          totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
+        };
       });
   }
 });

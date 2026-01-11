@@ -117,14 +117,21 @@ export default function Login() {
           )}
 
           {/* Botones */}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-
+          <div className="flex flex-col gap-2">
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 sm:w-auto"
+              className="w-full rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
             >
               {loading ? "Ingresando..." : "Ingresar"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="w-full rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              ¿Olvidaste la contraseña?
             </button>
           </div>
         </form>
