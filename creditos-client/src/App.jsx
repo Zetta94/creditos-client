@@ -43,7 +43,9 @@ const userId = localStorage.getItem("userId");
 
 // 🧩 Verificador de rutas (solo en producción)
 if (import.meta.env.PROD) {
-  console.log("🔍 Verificando rutas en producción...");
+  if (import.meta.env.DEV) {
+    console.log("🔍 Verificando rutas en desarrollo...");
+  }
 
   const base = window.location.pathname;
 
@@ -64,7 +66,9 @@ if (import.meta.env.PROD) {
   fetch(`${window.location.origin}/creditos-client/404.html`, { cache: "no-store" })
     .then((res) => {
       if (res.ok) {
-        console.log("✅ 404.html detectado correctamente en el deploy.");
+        if (import.meta.env.DEV) {
+          console.log("✅ 404.html detectado correctamente en el deploy.");
+        }
       } else {
         console.warn("⚠️ No se encontró el archivo 404.html — las rutas directas pueden fallar.");
       }
