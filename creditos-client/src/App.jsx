@@ -41,49 +41,6 @@ import CobradorReportes from "./pages/CobradorReportes.jsx";
 import CobradorTrayectoGuard from "./components/CobradorTrayectoGuard.jsx";
 const userId = localStorage.getItem("userId");
 
-// 🧩 Verificador de rutas (solo en producción)
-if (import.meta.env.PROD) {
-  if (import.meta.env.DEV) {
-    console.log("🔍 Verificando rutas en desarrollo...");
-  }
-
-  const base = window.location.pathname;
-
-  // Listado de rutas esperadas en tu app
-  const rutas = [
-    "/", // dashboard
-    "/login",
-    "/clientes",
-    "/usuarios",
-    "/usuarios/nuevo",
-    "/usuarios/u2",
-    "/creditos",
-    "/cobrador/dashboard",
-    "/cobrador/pagos",
-  ];
-
-  // Prueba asincrónica de existencia de 404.html
-  fetch(`${window.location.origin}/creditos-client/404.html`, { cache: "no-store" })
-    .then((res) => {
-      if (res.ok) {
-        if (import.meta.env.DEV) {
-          console.log("✅ 404.html detectado correctamente en el deploy.");
-        }
-      } else {
-        console.warn("⚠️ No se encontró el archivo 404.html — las rutas directas pueden fallar.");
-      }
-    })
-    .catch(() => console.warn("⚠️ Error al verificar 404.html"));
-
-  // Log informativo de rutas
-  console.table(
-    rutas.map((r) => ({
-      ruta: r,
-      url: `https://zetta94.github.io/creditos-client${r}`,
-    }))
-  );
-}
-
 
 export default function App() {
   React.useEffect(() => {
