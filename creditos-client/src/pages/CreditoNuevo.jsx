@@ -1,9 +1,16 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
 import { loadClients } from "../store/clientsSlice";
 import { addCredit } from "../store/creditsSlice";
 import { loadUsers } from "../store/employeeSlice";
+
+const PLAN_OPTIONS = [
+    { label: "Diario", value: "DAILY" },
+    { label: "Semanal", value: "WEEKLY" },
+    { label: "Mensual", value: "MONTHLY" }
+];
 
 export default function CreditoNuevo() {
     const navigate = useNavigate();
@@ -24,7 +31,7 @@ export default function CreditoNuevo() {
         monto: "",
         interes: "",
         cuotas: "",
-        plan: "MONTHLY",
+        plan: PLAN_OPTIONS[2].value,
         cobradorId: "",
         comisionLibre: "",
         cobradorComisionId: "",
@@ -38,19 +45,43 @@ export default function CreditoNuevo() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!form.clienteId) {
+            toast.error("Seleccioná un cliente antes de crear el crédito");
+            return;
+        }
+
+        if (!montoBase || montoBase <= 0) {
+            toast.error("Ingresá un monto base válido");
+            return;
+        }
+
+        if (!cuotasNumber) {
+            toast.error("Indicá la cantidad de cuotas");
+            return;
+        }
+
         const payload = {
             clientId: form.clienteId,
-            creditType: form.plan,
-            amount: Number(form.monto),
-            interestRate: Number(form.interes) || 0,
-            totalInstallments: Number(form.cuotas) || undefined,
+            type: form.plan,
+            amount: montoBase,
             installmentAmount: cuotaEstim || undefined,
+            totalInstallments: cuotasNumber || undefined,
             startDate: new Date().toISOString(),
             status: "PENDING",
         };
 
-        await dispatch(addCredit(payload));
-        navigate("/creditos");
+        if (form.cobradorId) {
+            payload.userId = form.cobradorId;
+        }
+
+        try {
+            await dispatch(addCredit(payload)).unwrap();
+            toast.success("Crédito creado correctamente");
+            navigate("/creditos", { replace: true });
+        } catch (error) {
+            console.error("No se pudo crear el crédito", error);
+            toast.error("No se pudo crear el crédito");
+        }
     };
 
     // === Cálculos ===
@@ -79,6 +110,8 @@ export default function CreditoNuevo() {
     const generarContrato = () => {
         alert(`Contrato generado y enviado al mail del cliente (simulado).`);
     };
+
+    const selectedPlan = PLAN_OPTIONS.find((p) => p.value === form.plan) || PLAN_OPTIONS[2];
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -176,17 +209,17 @@ export default function CreditoNuevo() {
                             Plan o tipo
                         </label>
                         <div className="flex flex-wrap gap-2">
-                            {["Diario", "Semanal", "Mensual"].map((p) => (
+                            {PLAN_OPTIONS.map((option) => (
                                 <button
-                                    key={p}
+                                    key={option.value}
                                     type="button"
-                                    onClick={() => setForm((f) => ({ ...f, plan: p }))}
-                                    className={`rounded-full border px-3 py-1 text-xs ${form.plan === p
+                                    onClick={() => setForm((f) => ({ ...f, plan: option.value }))}
+                                    className={`rounded-full border px-3 py-1 text-xs ${form.plan === option.value
                                         ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-300"
                                         : "border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
                                         }`}
                                 >
-                                    {p}
+                                    {option.label}
                                 </button>
                             ))}
                         </div>
@@ -250,7 +283,7 @@ export default function CreditoNuevo() {
                     </div>
 
                     {/* Botón generar contrato si es mensual */}
-                    {form.plan === "Mensual" && (
+                    {form.plan === "MONTHLY" && (
                         <div className="pt-2">
                             <button
                                 type="button"
@@ -271,7 +304,7 @@ export default function CreditoNuevo() {
                         </h3>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                             <div className="text-gray-500">Plan</div>
-                            <div className="text-right">{form.plan || "—"}</div>
+                            <div className="text-right">{selectedPlan.label}</div>
                             <div className="text-gray-500">Monto base</div>
                             <div className="text-right">
                                 {montoBase

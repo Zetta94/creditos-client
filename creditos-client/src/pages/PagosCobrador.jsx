@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";
-import { fetchAssignments, fetchAssignmentsEnriched } from "../services/assignmentsService";
-import { fetchCredits } from "../services/creditsService";
+import { toast } from "react-hot-toast";
+import { fetchAssignmentsEnriched, postponeAssignment } from "../services/assignmentsService";
 
 export default function ClientesAsignadosCobrador({ cobradorId }) {
     const [tipo, setTipo] = useState("todos");
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [postponiendo, setPostponiendo] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -35,7 +36,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 params.tipo = filtro.toUpperCase();
             }
 
-            const response = await fetchAssignmentsEnriched({ page: 1, pageSize: 500, ...params });
+            const response = await fetchAssignmentsEnriched({ page: 1, pageSize: 500, dueOnly: true, ...params });
             const enriched = response.data?.data ?? [];
 
             // Para cada asignación enriquecida, verificamos que tenga crédito y si le toca pagar hoy (el backend ya calculó paidToday)
@@ -61,7 +62,14 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 const cuotaActual = credit.paidInstallments + 1;
                 const cuotasRestantes = credit.totalInstallments - credit.paidInstallments;
 
+                const pendingAmount = asig.pendingAmount ?? credit.installmentAmount ?? 0;
+                const pendingOccurrences = asig.effectiveOccurrences ?? 1;
+                const pendingDates = Array.isArray(asig.pendingDates) ? asig.pendingDates : [];
+                const pendingSince = asig.pendingSince || asig.nextVisitDate;
+                const pendingDatesFormatted = pendingDates.map((d) => new Date(d).toLocaleDateString("es-AR"));
+
                 clientesOrdenados.push({
+                    assignmentId: asig.id,
                     ...cliente,
                     creditoId: credit.id,
                     monto: credit.installmentAmount,
@@ -73,7 +81,13 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                     paidToday: !!asig.paidToday,
                     lastPayment: asig.lastPayment || null,
                     venceHoy,
-                    orden: asig.orden
+                    orden: asig.orden,
+                    pendingAmount,
+                    pendingOccurrences,
+                    pendingDates,
+                    pendingDatesFormatted,
+                    pendingSince,
+                    nextVisitDate: asig.nextVisitDate
                 });
             }
 
@@ -89,6 +103,21 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
             setClientes([]);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function reprogramarCliente(assignmentId, nombre) {
+        if (!assignmentId) return;
+        try {
+            setPostponiendo(assignmentId);
+            await postponeAssignment(assignmentId);
+            toast.success(`Reprogramado ${nombre} para el próximo día.`);
+            await cargarClientes(tipo);
+        } catch (err) {
+            console.error(err);
+            toast.error("No se pudo reprogramar al cliente.");
+        } finally {
+            setPostponiendo(null);
         }
     }
 
@@ -168,16 +197,51 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                             <span className="ml-3 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Vence hoy</span>
                                         ) : null}
                                     </p>
+
+                                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                                        <p>
+                                            Monto pendiente estimado:
+                                            <span className="font-semibold"> ${Number(c.pendingAmount || 0).toLocaleString("es-AR")}</span>
+                                            {c.pendingOccurrences > 1 && ` (${c.pendingOccurrences} días)`}
+                                        </p>
+                                        {c.pendingDatesFormatted?.length > 0 && (
+                                            <p>
+                                                Correspondiente a: {c.pendingDatesFormatted.join(" • ")}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <button
-                                    onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`)}
-                                    disabled={c.paidToday}
-                                    className={`flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm focus:outline-none ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500"}`}
-                                >
-                                    {c.paidToday ? "Ya cobrado" : "Cobrar"}
-                                    <HiArrowRight className="h-4 w-4" />
-                                </button>
+                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                    <button
+                                        onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, {
+                                            state: {
+                                                pendingInfo: {
+                                                    pendingAmount: c.pendingAmount,
+                                                    pendingOccurrences: c.pendingOccurrences,
+                                                    pendingDates: c.pendingDates,
+                                                    pendingSince: c.pendingSince
+                                                }
+                                            }
+                                        })}
+                                        disabled={c.paidToday}
+                                        className={`flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm focus:outline-none ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500"}`}
+                                    >
+                                        {c.paidToday ? "Ya cobrado" : "Cobrar"}
+                                        <HiArrowRight className="h-4 w-4" />
+                                    </button>
+
+                                    {!c.paidToday && (
+                                        <button
+                                            type="button"
+                                            onClick={() => reprogramarCliente(c.assignmentId, c.name)}
+                                            disabled={postponiendo === c.assignmentId}
+                                            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                                        >
+                                            {postponiendo === c.assignmentId ? "Reprogramando..." : "No pude cobrar"}
+                                        </button>
+                                    )}
+                                </div>
                             </li>
                         ))}
                     </ul>

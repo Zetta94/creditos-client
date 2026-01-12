@@ -5,6 +5,7 @@ import creditsReducer from "./creditsSlice";
 import paymentsReducer from "./paymentsSlice";
 import assignmentsReducer from "./assignmentsSlice";
 import employeeReducer from "./employeeSlice";
+import trayectoReducer from "./trayectoSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +15,6 @@ export const store = configureStore({
     payments: paymentsReducer,
     assignments: assignmentsReducer,
     employees: employeeReducer,
+    trayecto: trayectoReducer,
   },
 });

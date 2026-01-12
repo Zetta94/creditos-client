@@ -85,7 +85,10 @@ export default function ComisionesCobrador() {
         load();
     }, [cobrador?.id]);
 
-    if (!cobrador || cobrador.role !== "cobrador") {
+    const role = (cobrador?.role || "").toLowerCase();
+    const esCobrador = role === "cobrador" || role === "employee";
+
+    if (!esCobrador) {
         return (
             <div className="p-6 text-center text-red-400">
                 No tienes permiso para acceder a esta vista.

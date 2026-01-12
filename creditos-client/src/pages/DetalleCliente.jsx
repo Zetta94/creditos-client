@@ -1,17 +1,71 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { mockClients, mockCredits } from "../mocks/mockData";
+import { fetchClient } from "../services/clientsService";
+import { fetchCredits } from "../services/creditsService";
 
 export default function ClienteDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [cliente, setCliente] = useState(null);
+    const [creditos, setCreditos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const cliente = mockClients.find((c) => c.id === id);
-    const creditos = mockCredits.filter((cr) => cr.clientId === id);
+    useEffect(() => {
+        let active = true;
+        async function loadData() {
+            setLoading(true);
+            setError(null);
+            try {
+                const [clienteRes, creditosRes] = await Promise.all([
+                    fetchClient(id),
+                    fetchCredits({ page: 1, pageSize: 200, clientId: id })
+                ]);
 
-    if (!cliente) {
+                if (!active) return;
+
+                setCliente(clienteRes.data ?? null);
+                const contratos = Array.isArray(creditosRes.data?.data)
+                    ? creditosRes.data.data.filter((cr) => cr.clientId === id)
+                    : [];
+                setCreditos(contratos);
+            } catch (err) {
+                console.error("No se pudo cargar el detalle de cliente", err);
+                if (!active) return;
+                setError("No se pudo cargar la información del cliente.");
+                setCliente(null);
+                setCreditos([]);
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
+
+        loadData();
+        return () => {
+            active = false;
+        };
+    }, [id]);
+
+    const creditosOrdenados = useMemo(() => {
+        return [...creditos].sort((a, b) => {
+            const endB = new Date(b.createdAt || b.startDate || 0).getTime();
+            const endA = new Date(a.createdAt || a.startDate || 0).getTime();
+            return endB - endA;
+        });
+    }, [creditos]);
+
+    if (loading) {
+        return (
+            <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-gray-400">
+                Cargando cliente...
+            </div>
+        );
+    }
+
+    if (error || !cliente) {
         return (
             <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-                <p className="mb-4 text-red-400">Cliente no encontrado.</p>
+                <p className="mb-4 text-red-400">{error || "Cliente no encontrado."}</p>
                 <button
                     onClick={() => navigate("/clientes")}
                     className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600 text-white"
@@ -21,6 +75,9 @@ export default function ClienteDetalle() {
             </div>
         );
     }
+
+    const reliability = (cliente.reliability || "").toUpperCase();
+    const reliabilityLabel = reliability === "ALTA" ? "Alta" : reliability === "MOROSO" ? "Baja" : reliability === "BAJA" ? "Baja" : "Media";
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -36,9 +93,7 @@ export default function ClienteDetalle() {
                     </p>
                     <p className="text-sm text-gray-400">
                         Confianza:{" "}
-                        <span className="font-semibold">
-                            {cliente.reliability}
-                        </span>
+                        <span className="font-semibold capitalize">{reliabilityLabel}</span>
                     </p>
                 </div>
 
@@ -72,10 +127,10 @@ export default function ClienteDetalle() {
 
                 {/* Lista MOBILE */}
                 <div className="grid gap-3 sm:hidden">
-                    {creditos.length === 0 ? (
+                    {creditosOrdenados.length === 0 ? (
                         <CardEmpty />
                     ) : (
-                        creditos.map((cr) => (
+                        creditosOrdenados.map((cr) => (
                             <CreditoCard
                                 key={cr.id}
                                 cr={cr}
@@ -90,7 +145,7 @@ export default function ClienteDetalle() {
                     <table className="w-full text-left text-sm">
                         <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
                             <tr>
-                                <th className="min-w-[140px] px-4 py-3 font-medium">Crédito</th>
+                                <th className="min-w-[140px] px-4 py-3 font-medium">Creado</th>
                                 <th className="min-w-[140px] px-4 py-3 font-medium">Monto</th>
                                 <th className="min-w-[100px] px-4 py-3 font-medium">Cuotas</th>
                                 <th className="min-w-[120px] px-4 py-3 font-medium">Pagadas</th>
@@ -99,32 +154,39 @@ export default function ClienteDetalle() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {creditos.length === 0 ? (
+                            {creditosOrdenados.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                                         Sin créditos para este cliente.
                                     </td>
                                 </tr>
                             ) : (
-                                creditos.map((cr) => (
+                                creditosOrdenados.map((cr) => (
                                     <tr
                                         key={cr.id}
                                         className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
                                     >
-                                        <td className="px-4 py-3 align-middle">{cr.id}</td>
                                         <td className="px-4 py-3 align-middle">
-                                            ${cr.amount.toLocaleString("es-AR")}
+                                            {cr.startDate
+                                                ? new Date(cr.startDate).toLocaleDateString("es-AR")
+                                                : "-"}
                                         </td>
                                         <td className="px-4 py-3 align-middle">
-                                            {cr.totalInstallments}
+                                            ${formatCurrency(cr.amount)}
+                                        </td>
+                                        <td className="px-4 py-3 align-middle">
+                                            {Number(cr.totalInstallments || 0)}
                                         </td>
                                         <td className="px-4 py-3 align-middle">
                                             <div className="flex items-center gap-2">
                                                 <span>
-                                                    {cr.paidInstallments}/{cr.totalInstallments}
+                                                    {Number(cr.paidInstallments || 0)}/{Number(cr.totalInstallments || 0)}
                                                 </span>
                                                 <Progress
-                                                    value={(cr.paidInstallments / cr.totalInstallments) * 100}
+                                                    value={(Number(cr.totalInstallments || 0) > 0
+                                                        ? (Number(cr.paidInstallments || 0) / Number(cr.totalInstallments || 0)) * 100
+                                                        : 0)
+                                                    }
                                                 />
                                             </div>
                                         </td>
@@ -181,6 +243,8 @@ function EstadoPill({ estado }) {
     );
 }
 
+const formatCurrency = (value) => Number(value || 0).toLocaleString("es-AR");
+
 function Progress({ value }) {
     return (
         <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
@@ -193,30 +257,32 @@ function Progress({ value }) {
 }
 
 function CreditoCard({ cr, onView }) {
+    const amountLabel = formatCurrency(cr.amount);
+    const installments = Number(cr.totalInstallments || 0);
+    const paid = Number(cr.paidInstallments || 0);
+    const progress = installments > 0 ? (paid / installments) * 100 : 0;
+    const startDate = cr.startDate ? new Date(cr.startDate).toLocaleDateString("es-AR") : "-";
     return (
         <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
-                    <div className="text-sm font-semibold">Crédito {cr.id}</div>
-                    <div className="text-xs text-gray-500">
-                        Inicio: {new Date(cr.startDate).toLocaleDateString("es-AR")}
-                    </div>
+                    <div className="text-sm font-semibold">Creado el {startDate}</div>
                 </div>
                 <EstadoPill estado={cr.status} />
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-gray-500">Monto</div>
-                <div>${cr.amount.toLocaleString("es-AR")}</div>
+                <div>${amountLabel}</div>
                 <div className="text-gray-500">Cuotas</div>
-                <div>{cr.totalInstallments}</div>
+                <div>{installments}</div>
                 <div className="text-gray-500">Pagadas</div>
                 <div className="flex items-center gap-2">
-                    {cr.paidInstallments}/{cr.totalInstallments}
-                    <Progress
-                        value={(cr.paidInstallments / cr.totalInstallments) * 100}
-                    />
+                    {paid}/{installments}
+                    <Progress value={progress} />
                 </div>
+                <div className="text-gray-500">Inicio</div>
+                <div>{startDate}</div>
             </div>
 
             <div className="mt-3">

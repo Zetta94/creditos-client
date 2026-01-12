@@ -68,7 +68,7 @@ export default function ClienteEditar() {
         };
         try {
             await dispatch(saveClient({ id, payload })).unwrap();
-            navigate("/clientes");
+            navigate("/clientes", { replace: true });
         } catch (err) {
             console.error("Error al guardar cliente", err);
         }
@@ -213,7 +213,7 @@ export default function ClienteEditar() {
                 <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <button
                         type="button"
-                        onClick={() => navigate(`/clientes/${id}`)}
+                        onClick={() => navigate("/clientes", { replace: true })}
                         className="w-full rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:w-auto"
                     >
                         Cancelar

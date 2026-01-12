@@ -1,14 +1,23 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { login as loginService, fetchCurrentUser as fetchCurrentUserService } from "../services/authService";
 
+const normalizeRole = (value) => (typeof value === "string" ? value.toLowerCase() : "");
+const normalizeUser = (user) => (user ? { ...user, role: normalizeRole(user.role) } : null);
+
 export const login = createAsyncThunk("auth/login", async (creds, thunkAPI) => {
   try {
     const { data } = await loginService(creds);
-    const roleLower = data.user?.role ? data.user.role.toLowerCase() : "";
+    const normalizedUser = normalizeUser(data.user);
+    const roleLower = normalizedUser?.role || "";
     localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    localStorage.setItem("role", roleLower);
-    return { ...data, user: { ...data.user, role: roleLower } };
+    if (normalizedUser) {
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+    } else {
+      localStorage.removeItem("user");
+    }
+    if (roleLower) localStorage.setItem("role", roleLower);
+    else localStorage.removeItem("role");
+    return { ...data, user: normalizedUser };
   } catch (err) {
     return thunkAPI.rejectWithValue(err.response?.data?.message || "Error al iniciar sesión");
   }
@@ -17,10 +26,16 @@ export const login = createAsyncThunk("auth/login", async (creds, thunkAPI) => {
 export const fetchCurrentUser = createAsyncThunk("auth/current", async (_, thunkAPI) => {
   try {
     const { data } = await fetchCurrentUserService();
-    const roleLower = data?.role ? data.role.toLowerCase() : "";
-    localStorage.setItem("user", JSON.stringify({ ...data, role: roleLower }));
-    localStorage.setItem("role", roleLower);
-    return { user: { ...data, role: roleLower } };
+    const normalizedUser = normalizeUser(data);
+    const roleLower = normalizedUser?.role || "";
+    if (normalizedUser) {
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+    } else {
+      localStorage.removeItem("user");
+    }
+    if (roleLower) localStorage.setItem("role", roleLower);
+    else localStorage.removeItem("role");
+    return { user: normalizedUser };
   } catch (err) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -36,9 +51,23 @@ export const logout = createAsyncThunk("auth/logout", async () => {
   return {};
 });
 
+const storedUser = localStorage.getItem("user");
+let initialUser = null;
+if (storedUser) {
+  try {
+    initialUser = normalizeUser(JSON.parse(storedUser));
+    localStorage.setItem("user", JSON.stringify(initialUser));
+    if (initialUser?.role) localStorage.setItem("role", initialUser.role);
+    else localStorage.removeItem("role");
+  } catch (error) {
+    console.warn("No se pudo leer el usuario de localStorage:", error);
+    localStorage.removeItem("user");
+  }
+}
+
 const initialState = {
   token: localStorage.getItem("token") || null,
-  user: localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null,
+  user: initialUser,
   loading: false,
   error: null,
 };

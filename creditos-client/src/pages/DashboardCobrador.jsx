@@ -9,9 +9,12 @@ import {
 } from "react-icons/hi";
 import Toast from "../components/Toast.jsx";
 import { fetchDashboardResumenCobrador } from "../services/dashboardService";
+import { useDispatch } from "react-redux";
+import { setTrayectoActivo as setTrayectoActivoAction } from "../store/trayectoSlice";
 
 export default function DashboardCobrador() {
-    const [trayectoActivo, setTrayectoActivo] = useState(false);
+    const dispatch = useDispatch();
+    const [trayectoActivo, setTrayectoActivoState] = useState(false);
     const [loadingTrayecto, setLoadingTrayecto] = useState(true);
     const [toast, setToast] = useState(null);
     const [resumen, setResumen] = useState({
@@ -47,10 +50,12 @@ export default function DashboardCobrador() {
             reporteGenerado: Boolean(data.reporteGenerado),
             trayectoActivo: Boolean(data.trayectoActivo),
         });
-        setTrayectoActivo(Boolean(data.trayectoActivo));
+        const activo = Boolean(data.trayectoActivo);
+        setTrayectoActivoState(activo);
+        dispatch(setTrayectoActivoAction(activo));
         setLoadingTrayecto(false);
         setErrorResumen(null);
-    }, []);
+    }, [dispatch]);
 
     const getResumen = useCallback(async () => {
         const response = await fetchDashboardResumenCobrador();
@@ -99,21 +104,29 @@ export default function DashboardCobrador() {
             try {
                 const { fetchMyReports } = await import("../services/reportsService");
                 const res = await fetchMyReports();
+                const reportes = Array.isArray(res?.data?.data) ? res.data.data : [];
                 const hoy = new Date();
                 hoy.setHours(0, 0, 0, 0);
-                const existeHoy = res.data?.find(r => {
+                const existeHoy = reportes.find(r => {
                     const fecha = new Date(r.fechaDeReporte);
                     fecha.setHours(0, 0, 0, 0);
                     return fecha.getTime() === hoy.getTime() && !r.finalized;
                 });
-                if (mounted) setTrayectoActivo(Boolean(existeHoy));
+                if (mounted) {
+                    const estaActivo = Boolean(existeHoy);
+                    setTrayectoActivoState(estaActivo);
+                    dispatch(setTrayectoActivoAction(estaActivo));
+                }
             } catch (err) {
-                if (mounted) setTrayectoActivo(false);
+                if (mounted) {
+                    setTrayectoActivoState(false);
+                    dispatch(setTrayectoActivoAction(false));
+                }
             }
         }
         checkTrayecto();
         return () => { mounted = false; };
-    }, []);
+    }, [dispatch]);
     async function confirmarInicio() {
         setToast({
             message: "¿Deseás iniciar el trayecto del día?",
@@ -123,7 +136,8 @@ export default function DashboardCobrador() {
                 try {
                     setLoadingTrayecto(true);
                     const res = await import("../services/reportsService").then(m => m.startReport());
-                    setTrayectoActivo(true);
+                    setTrayectoActivoState(true);
+                    dispatch(setTrayectoActivoAction(true));
                     setToast({ message: "Trayecto iniciado correctamente.", type: "success" });
                     console.log("🟢 Trayecto iniciado.", res?.data || "");
                     await reloadResumen({ showLoader: false }).catch(() => undefined);
@@ -146,7 +160,8 @@ export default function DashboardCobrador() {
                 try {
                     setLoadingTrayecto(true);
                     const res = await import("../services/reportsService").then(m => m.finalizeReport());
-                    setTrayectoActivo(false);
+                    setTrayectoActivoState(false);
+                    dispatch(setTrayectoActivoAction(false));
                     setToast({ message: "Reporte finalizado. El administrador podrá verlo en Usuarios > Reportes.", type: "info" });
                     console.log("🔴 Día finalizado. Resumen finalizado:", res?.data || "");
                     await reloadResumen({ showLoader: false }).catch(() => undefined);

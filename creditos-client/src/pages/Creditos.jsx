@@ -37,15 +37,24 @@ export default function Creditos() {
     // === Construcción de datos combinados ===
     const creditosMock = useMemo(
         () =>
-            creditos.map((cr) => {
+            creditos.map((cr, index) => {
+                const monto = Number(cr.amount) || 0;
+                const totalInstallments = Number(cr.totalInstallments || 0);
+                const paidInstallments = Number(cr.paidInstallments || 0);
+                const safeTotal = totalInstallments > 0 ? totalInstallments : 1;
+                const progress = Math.min(100, Math.max(0, (paidInstallments / safeTotal) * 100));
+                const key = cr.id || `temp-${cr.clientId || ""}-${cr.startDate || index}`;
                 return {
                     id: cr.id,
+                    key,
                     cliente: cr.client?.name || "Cliente desconocido",
-                    monto: cr.amount,
-                    cuotas: cr.totalInstallments,
-                    pagadas: cr.paidInstallments,
+                    monto,
+                    cuotas: totalInstallments,
+                    pagadas: paidInstallments,
                     estado: cr.status,
                     fechaInicio: cr.startDate,
+                    progress,
+                    progressLabel: `${paidInstallments}/${totalInstallments || 0}`
                 };
             }),
         [creditos]
@@ -114,7 +123,7 @@ export default function Creditos() {
                 ) : (
                     rows.map((c) => (
                         <CreditoCard
-                            key={c.id}
+                            key={c.key}
                             data={c}
                             onView={() => navigate(`/creditos/${c.id}`)}
                         />
@@ -160,7 +169,7 @@ export default function Creditos() {
                         ) : (
                             rows.map((c) => (
                                 <tr
-                                    key={c.id}
+                                    key={c.key}
                                     className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
                                 >
                                     <td className="px-4 py-3 align-middle text-gray-900 dark:text-gray-100">
@@ -172,10 +181,8 @@ export default function Creditos() {
                                     <td className="px-4 py-3 align-middle">{c.cuotas}</td>
                                     <td className="px-4 py-3 align-middle">
                                         <div className="flex items-center gap-2">
-                                            <span>
-                                                {c.pagadas}/{c.cuotas}
-                                            </span>
-                                            <Progress value={(c.pagadas / c.cuotas) * 100} />
+                                            <span>{c.progressLabel}</span>
+                                            <Progress value={c.progress} />
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 align-middle">
@@ -288,7 +295,6 @@ function EstadoPill({ estado }) {
 }
 
 function CreditoCard({ data, onView }) {
-    const pct = (data.pagadas / data.cuotas) * 100;
     return (
         <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-2 flex items-start justify-between gap-2">
@@ -308,8 +314,8 @@ function CreditoCard({ data, onView }) {
                 <div>{data.cuotas}</div>
                 <div className="text-gray-500">Pagadas</div>
                 <div className="flex items-center gap-2">
-                    {data.pagadas}/{data.cuotas}
-                    <Progress value={pct} />
+                    {data.progressLabel}
+                    <Progress value={data.progress} />
                 </div>
             </div>
 

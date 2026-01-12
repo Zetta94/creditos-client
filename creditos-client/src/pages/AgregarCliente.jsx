@@ -57,7 +57,7 @@ export default function AgregarCliente() {
                     Nuevo Cliente
                 </h1>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Completǭ la informaci��n para registrar un nuevo cliente.
+                    Completá la información para registrar un nuevo cliente.
                 </p>
             </div>
 
@@ -65,10 +65,10 @@ export default function AgregarCliente() {
                 onSubmit={handleSubmit}
                 className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800"
             >
-                {/* Informaci��n personal */}
+                {/* Información personal */}
                 <div>
                     <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-100">
-                        Informaci��n personal
+                        Información personal
                     </h2>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <Input
@@ -76,7 +76,7 @@ export default function AgregarCliente() {
                             name="name"
                             value={cliente.name}
                             onChange={handleChange}
-                            placeholder="Ej: Laura G��mez"
+                            placeholder="Ej: Laura Gómez"
                             required
                         />
                         <Input
@@ -89,7 +89,7 @@ export default function AgregarCliente() {
                         />
                     </div>
                     <Input
-                        label="TelǸfono"
+                        label="Teléfono"
                         name="phone"
                         value={cliente.phone}
                         onChange={handleChange}
@@ -98,13 +98,13 @@ export default function AgregarCliente() {
                     />
                 </div>
 
-                {/* Direcci��n */}
+                {/* Dirección */}
                 <div>
                     <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-100">
-                        Direcci��n
+                        Dirección
                     </h2>
                     <Input
-                        label="Calle y nǧmero"
+                        label="Calle y número"
                         name="address"
                         value={cliente.address}
                         onChange={handleChange}
@@ -116,14 +116,14 @@ export default function AgregarCliente() {
                             name="city"
                             value={cliente.city}
                             onChange={handleChange}
-                            placeholder="Tucumǭn"
+                            placeholder="Tucumán"
                         />
                         <Input
                             label="Provincia"
                             name="province"
                             value={cliente.province}
                             onChange={handleChange}
-                            placeholder="Tucumǭn"
+                            placeholder="Tucumán"
                         />
                     </div>
                 </div>

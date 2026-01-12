@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     HiExclamation,
     HiCheckCircle,
@@ -100,11 +100,21 @@ export default function Mensajes() {
     const [meta, setMeta] = useState({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1 });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const { desde, hasta, tipo, soloImportantes } = filtros;
 
     useEffect(() => {
         let active = true;
         setLoading(true);
-        fetchMessages({ page, pageSize })
+        const params = {
+            page,
+            pageSize,
+            ...(tipo !== "TODOS" ? { tipo } : {}),
+            ...(desde ? { desde } : {}),
+            ...(hasta ? { hasta } : {}),
+            ...(soloImportantes ? { importante: true } : {})
+        };
+
+        fetchMessages(params)
             .then((res) => {
                 if (!active) return;
                 setMessages(normalizarMensajes(res.data?.data));
@@ -123,7 +133,7 @@ export default function Mensajes() {
         return () => {
             active = false;
         };
-    }, [page, pageSize]);
+    }, [page, pageSize, desde, hasta, tipo, soloImportantes]);
 
     useEffect(() => {
         setPage(meta.page ?? 1);
@@ -132,31 +142,7 @@ export default function Mensajes() {
 
     useEffect(() => {
         setPage(1);
-    }, [filtros.desde, filtros.hasta, filtros.tipo, filtros.soloImportantes]);
-
-    const mensajesFiltrados = useMemo(() => {
-        if (loading || error) return [];
-
-        const desdeDate = filtros.desde ? new Date(filtros.desde) : null;
-        const hastaDate = filtros.hasta ? new Date(filtros.hasta) : null;
-        if (hastaDate) {
-            hastaDate.setHours(23, 59, 59, 999);
-        }
-
-        return messages
-            .filter((m) => {
-                if (desdeDate && m.fechaDate && m.fechaDate < desdeDate) return false;
-                if (hastaDate && m.fechaDate && m.fechaDate > hastaDate) return false;
-                if (filtros.tipo !== "TODOS" && m.tipo !== filtros.tipo) return false;
-                if (filtros.soloImportantes && !m.importante) return false;
-                return true;
-            })
-            .sort((a, b) => {
-                const aTime = a.fechaDate ? a.fechaDate.getTime() : 0;
-                const bTime = b.fechaDate ? b.fechaDate.getTime() : 0;
-                return bTime - aTime;
-            });
-    }, [messages, filtros, loading, error]);
+    }, [desde, hasta, tipo, soloImportantes]);
 
     const reset = () =>
         setFiltros({ desde: "", hasta: "", tipo: "TODOS", soloImportantes: false });
@@ -200,7 +186,7 @@ export default function Mensajes() {
             </div>
 
             {/* Lista */}
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3">
                 {loading ? (
                     <div className="col-span-full rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                         Cargando mensajes...
@@ -209,12 +195,12 @@ export default function Mensajes() {
                     <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-600 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
                         {error}
                     </div>
-                ) : mensajesFiltrados.length === 0 ? (
+                ) : messages.length === 0 ? (
                     <div className="col-span-full rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                         No hay mensajes con los filtros seleccionados.
                     </div>
                 ) : (
-                    mensajesFiltrados.map((m) => <MensajeItem key={m.id} m={m} />)
+                    messages.map((m) => <MensajeItem key={m.id} m={m} />)
                 )}
             </div>
 
@@ -222,7 +208,7 @@ export default function Mensajes() {
                 <Pagination
                     page={meta.page ?? page}
                     pageSize={meta.pageSize ?? pageSize}
-                    totalItems={meta.totalItems ?? mensajesFiltrados.length}
+                    totalItems={meta.totalItems ?? messages.length}
                     totalPages={meta.totalPages ?? 1}
                     onPageChange={setPage}
                     onPageSizeChange={(size) => {
@@ -265,7 +251,8 @@ function Filters({ filtros, setFiltros }) {
                 <select
                     value={filtros.tipo}
                     onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value }))}
-                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    disabled={filtros.soloImportantes}
+                    className={`h-10 w-full rounded-lg border bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:bg-gray-900 dark:text-gray-100 ${filtros.soloImportantes ? "border-dashed border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500" : "border-gray-300 dark:border-gray-700"}`}
                 >
                     {TYPE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -282,7 +269,11 @@ function Filters({ filtros, setFiltros }) {
                         type="checkbox"
                         checked={filtros.soloImportantes}
                         onChange={(e) =>
-                            setFiltros((f) => ({ ...f, soloImportantes: e.target.checked }))
+                            setFiltros((f) => ({
+                                ...f,
+                                soloImportantes: e.target.checked,
+                                tipo: e.target.checked ? "TODOS" : f.tipo
+                            }))
                         }
                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
                     />

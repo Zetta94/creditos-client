@@ -135,19 +135,11 @@ export default function App() {
             />
             <Route
               path="cobrador/sueldo"
-              element={
-                <CobradorTrayectoGuard>
-                  <SueldoCobrador />
-                </CobradorTrayectoGuard>
-              }
+              element={<SueldoCobrador />}
             />
             <Route
               path="cobrador/comisiones"
-              element={
-                <CobradorTrayectoGuard>
-                  <ComisionesCobrador />
-                </CobradorTrayectoGuard>
-              }
+              element={<ComisionesCobrador />}
             />
             <Route
               path="cobrador/pagos/:creditoId"
@@ -159,11 +151,7 @@ export default function App() {
             />
             <Route
               path="cobrador/reportes"
-              element={
-                <CobradorTrayectoGuard>
-                  <CobradorReportes cobradorId={userId} />
-                </CobradorTrayectoGuard>
-              }
+              element={<CobradorReportes cobradorId={userId} />}
             />
           </Route>
 

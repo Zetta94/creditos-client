@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { HiMenu, HiChevronDown } from "react-icons/hi";
 import SidebarAdmin from "./SideBarAdmin.jsx";
 import SidebarCobrador from "./SideBarCobrador";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { resetTrayecto } from "../../store/trayectoSlice";
 
 export default function SideBar() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function SideBar() {
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef(null);
   const authUser = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
 
   const user = useMemo(() => {
     if (authUser) return authUser;
@@ -25,7 +27,8 @@ export default function SideBar() {
     }
   }, [authUser]);
 
-  const role = user?.role || localStorage.getItem("role") || "admin";
+  const rawRole = user?.role ?? localStorage.getItem("role") ?? "admin";
+  const role = typeof rawRole === "string" ? rawRole.toLowerCase() : "admin";
   const email = user?.email || "";
   const displayName = user?.name || (email ? email.split("@")[0] : "Usuario");
 
@@ -103,6 +106,7 @@ export default function SideBar() {
                   <li>
                     <button
                       onClick={() => {
+                        dispatch(resetTrayecto());
                         localStorage.clear();
                         setUserOpen(false);
                         navigate("/login", { replace: true });

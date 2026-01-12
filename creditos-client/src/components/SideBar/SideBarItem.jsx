@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 
-export default function SidebarItem({ to, label, icon }) {
+export default function SidebarItem({ to, label, icon, disabled = false }) {
     const icons = {
         // === GENERALES ===
         dashboard: "📊",        // Panel general
@@ -63,18 +63,32 @@ export default function SidebarItem({ to, label, icon }) {
 
 
     const location = useLocation();
-    const isActive = location.pathname === to;
+    const isActive = !disabled && location.pathname === to;
+
+    const baseClasses = "flex items-center gap-2 p-2 rounded-lg transition";
+    const stateClasses = isActive
+        ? "!bg-gray-200 dark:!bg-gray-700 font-semibold"
+        : "text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700";
+    const disabledClasses = disabled ? "text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60" : "";
+
+    const content = (
+        <>
+            <span>{icons[icon]}</span>
+            <span>{label}</span>
+        </>
+    );
 
     return (
         <li>
-            <NavLink
-                to={to}
-                className={`flex items-center gap-2 p-2 rounded-lg transition text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${isActive ? "!bg-gray-200 dark:!bg-gray-700 font-semibold" : ""
-                    }`}
-            >
-                <span>{icons[icon]}</span>
-                <span>{label}</span>
-            </NavLink>
+            {disabled ? (
+                <div className={`${baseClasses} ${disabledClasses}`} aria-disabled="true">
+                    {content}
+                </div>
+            ) : (
+                <NavLink to={to} className={`${baseClasses} ${stateClasses}`}>
+                    {content}
+                </NavLink>
+            )}
         </li>
     );
 }

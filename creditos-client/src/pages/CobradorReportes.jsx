@@ -15,7 +15,8 @@ export default function ReportesCobrador() {
         setLoading(true);
         fetchMyReports()
             .then(res => {
-                setReportes(res.data || []);
+                const items = Array.isArray(res?.data?.data) ? res.data.data : [];
+                setReportes(items);
                 setError(null);
             })
             .catch(err => {

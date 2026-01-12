@@ -154,9 +154,15 @@ export default function Clientes() {
                                                     ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-700 dark:text-white dark:hover:bg-red-600"
                                                     : "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-700 dark:text-white dark:hover:bg-green-600"
                                                     }`}
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
-                                                    if (ok) dispatch(removeClient(c.id));
+                                                    if (!ok) return;
+                                                    try {
+                                                        await dispatch(removeClient(c.id)).unwrap();
+                                                        navigate("/clientes", { replace: true });
+                                                    } catch (error) {
+                                                        console.error("No se pudo eliminar el cliente", error);
+                                                    }
                                                 }}
                                             >
                                                 {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}

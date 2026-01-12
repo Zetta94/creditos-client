@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
@@ -10,6 +10,7 @@ import { HiArrowLeft, HiTrash, HiPlus } from "react-icons/hi";
 export default function RegistrarPago() {
     const { creditoId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useDispatch();
 
     const { current: credito, loading: loadingCredit } = useSelector(state => state.credits) || { current: null, loading: false };
@@ -20,6 +21,13 @@ export default function RegistrarPago() {
 
     const [pagos, setPagos] = useState([{ metodo: "efectivo", monto: "", id: Date.now() }]);
     const [nota, setNota] = useState("");
+
+    const pendingInfo = location.state?.pendingInfo;
+    const pendingAmount = pendingInfo?.pendingAmount;
+    const pendingOccurrences = pendingInfo?.pendingOccurrences;
+    const pendingDates = Array.isArray(pendingInfo?.pendingDates)
+        ? pendingInfo.pendingDates.map((d) => new Date(d).toLocaleDateString("es-AR"))
+        : null;
 
     useEffect(() => {
         if (creditoId) {
@@ -120,6 +128,18 @@ export default function RegistrarPago() {
                     <strong>${credito.amount.toLocaleString("es-AR")}</strong> — Cuota:{" "}
                     <strong>${credito.installmentAmount.toLocaleString("es-AR")}</strong>
                 </p>
+                {pendingInfo && (
+                    <div className="mt-3 rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-500/10 dark:text-blue-200">
+                        <p>
+                            Monto sugerido según adeudos:
+                            <span className="font-semibold"> ${Number(pendingAmount || 0).toLocaleString("es-AR")}</span>
+                            {pendingOccurrences > 1 && ` (${pendingOccurrences} días)`}
+                        </p>
+                        {pendingDates && pendingDates.length > 0 && (
+                            <p>Días pendientes: {pendingDates.join(" • ")}</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Formulario */}

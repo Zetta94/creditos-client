@@ -25,7 +25,7 @@ export default function UsuarioDetalle() {
             try {
                 const [u, cr, pa, cl] = await Promise.all([
                     fetchUser(id).then(r => r.data),
-                    fetchCredits({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+                    fetchCredits({ page: 1, pageSize: 2000 }).then(r => r.data?.data ?? []),
                     fetchPayments({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
                     fetchClients({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
                 ]);

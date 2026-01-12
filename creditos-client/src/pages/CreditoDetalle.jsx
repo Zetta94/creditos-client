@@ -12,12 +12,31 @@ import {
 } from "recharts";
 import { fetchCredit } from "../services/creditsService";
 
+const chartLabelFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short" });
+
+const buildDemoSeries = (baseAmount, count = 4) => {
+    const now = new Date();
+    const reference = baseAmount > 0 ? baseAmount : 10000;
+    const series = [];
+    for (let i = count; i >= 1; i -= 1) {
+        const date = new Date(now);
+        date.setMonth(now.getMonth() - i);
+        series.push({
+            fecha: chartLabelFormatter.format(date),
+            monto: Math.round(reference * (0.7 + ((count - i) * 0.1)))
+        });
+    }
+    return series;
+};
+
 export default function CreditoDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [credito, setCredito] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const pageSize = 5;
+    const [page, setPage] = useState(1);
 
     useEffect(() => {
         setLoading(true);
@@ -31,6 +50,16 @@ export default function CreditoDetalle() {
             })
             .finally(() => setLoading(false));
     }, [id]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [id]);
+
+    useEffect(() => {
+        const length = credito?.payments?.length || 0;
+        const total = Math.max(1, Math.ceil(length / pageSize));
+        setPage((prev) => Math.min(prev, total));
+    }, [credito?.payments?.length, pageSize]);
 
     if (loading) {
         return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando crédito...</div>;
@@ -51,17 +80,32 @@ export default function CreditoDetalle() {
 
     const cliente = credito.client;
     const cobrador = credito.user;
-    const pagosCredito = credito.payments || [];
+    const pagosCredito = Array.isArray(credito.payments) ? credito.payments : [];
     const progreso = credito.totalInstallments ? Math.round((credito.paidInstallments / credito.totalInstallments) * 100) : 0;
-    const chartData = pagosCredito.length > 0
-        ? pagosCredito.map((p) => ({
-            fecha: new Date(p.date).toLocaleDateString("es-AR", {
-                day: "2-digit",
-                month: "short",
-            }),
-            monto: p.amount,
-        }))
-        : [{ fecha: "Sin pagos", monto: 0 }];
+    const pagosOrdenados = [...pagosCredito].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const totalPages = Math.ceil(pagosOrdenados.length / pageSize) || 1;
+    const currentPage = Math.min(page, totalPages);
+    const sliceStart = (currentPage - 1) * pageSize;
+    const currentPayments = pagosOrdenados.slice(sliceStart, sliceStart + pageSize);
+    const showPagination = pagosOrdenados.length > pageSize;
+    const chartPayments = [...pagosCredito].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const chartBase = chartPayments.map((p) => {
+        const amountValue = Number(p.amount);
+        const monto = Number.isNaN(amountValue) ? 0 : amountValue;
+        return {
+            fecha: chartLabelFormatter.format(new Date(p.date)),
+            monto
+        };
+    });
+    const fallbackBaseAmount = Number(credito.installmentAmount) || (credito.totalInstallments ? Number(credito.amount) / credito.totalInstallments : 0);
+    const chartData = chartBase.length === 0
+        ? buildDemoSeries(fallbackBaseAmount)
+        : chartBase.length === 1
+            ? [...buildDemoSeries(fallbackBaseAmount, 3), chartBase[0]]
+            : chartBase;
+
+    const cuotasCompletadas = credito.totalInstallments && credito.paidInstallments >= credito.totalInstallments;
+    const creditoFinalizado = credito.status === "PAID" || cuotasCompletadas;
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
@@ -139,20 +183,25 @@ export default function CreditoDetalle() {
 
                     {/* Mobile: Cards */}
                     <div className="grid gap-2 sm:hidden">
-                        {pagosCredito.length > 0 ? (
-                            pagosCredito.map((p) => (
-                                <div
-                                    key={p.id}
-                                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                                >
-                                    <span className="text-gray-500">
-                                        {new Date(p.date).toLocaleDateString("es-AR")}
-                                    </span>
-                                    <span className="font-medium">
-                                        ${p.amount.toLocaleString("es-AR")}
-                                    </span>
-                                </div>
-                            ))
+                        {pagosOrdenados.length > 0 ? (
+                            currentPayments.map((p) => {
+                                const amountValue = Number(p.amount);
+                                const monto = Number.isNaN(amountValue) ? 0 : amountValue;
+                                const fecha = new Date(p.date).toLocaleDateString("es-AR");
+                                return (
+                                    <div
+                                        key={p.id}
+                                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                                    >
+                                        <span className="text-gray-500">
+                                            {fecha}
+                                        </span>
+                                        <span className="font-medium">
+                                            ${monto.toLocaleString("es-AR")}
+                                        </span>
+                                    </div>
+                                );
+                            })
                         ) : (
                             <p className="text-gray-500 text-sm">Sin pagos registrados.</p>
                         )}
@@ -169,18 +218,21 @@ export default function CreditoDetalle() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {pagosCredito.length > 0 ? (
-                                    pagosCredito.map((p) => (
-                                        <tr key={p.id}>
-                                            <td className="py-2 pr-3">
-                                                {new Date(p.date).toLocaleDateString("es-AR")}
-                                            </td>
-                                            <td className="py-2">
-                                                ${p.amount.toLocaleString("es-AR")}
-                                            </td>
-                                            <td className="py-2 text-gray-500">{p.note}</td>
-                                        </tr>
-                                    ))
+                                {pagosOrdenados.length > 0 ? (
+                                    currentPayments.map((p) => {
+                                        const amountValue = Number(p.amount);
+                                        const monto = Number.isNaN(amountValue) ? 0 : amountValue;
+                                        const fecha = new Date(p.date).toLocaleDateString("es-AR");
+                                        return (
+                                            <tr key={p.id}>
+                                                <td className="py-2 pr-3">{fecha}</td>
+                                                <td className="py-2">
+                                                    ${monto.toLocaleString("es-AR")}
+                                                </td>
+                                                <td className="py-2 text-gray-500">{p.note || "-"}</td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan={3} className="py-3 text-center text-gray-500">
@@ -191,6 +243,33 @@ export default function CreditoDetalle() {
                             </tbody>
                         </table>
                     </div>
+                    {showPagination && (
+                        <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                            <button
+                                type="button"
+                                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className={`rounded-md px-3 py-1 font-medium border transition ${currentPage === 1
+                                    ? "cursor-not-allowed border-gray-200 text-gray-400 dark:border-gray-700 dark:text-gray-500"
+                                    : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"}`}
+                            >
+                                Anterior
+                            </button>
+                            <span>
+                                Página {currentPage} de {totalPages}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className={`rounded-md px-3 py-1 font-medium border transition ${currentPage === totalPages
+                                    ? "cursor-not-allowed border-gray-200 text-gray-400 dark:border-gray-700 dark:text-gray-500"
+                                    : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"}`}
+                            >
+                                Siguiente
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* === Gráfico === */}
@@ -223,12 +302,14 @@ export default function CreditoDetalle() {
                 >
                     Volver
                 </button>
-                <button
-                    onClick={() => navigate(`/creditos/${id}/cancelar`)}
-                    className="w-full sm:w-auto rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400"
-                >
-                    Cancelar crédito
-                </button>
+                {!creditoFinalizado && (
+                    <button
+                        onClick={() => navigate(`/creditos/${id}/cancelar`)}
+                        className="w-full sm:w-auto rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400"
+                    >
+                        Cancelar crédito
+                    </button>
+                )}
             </div>
         </div>
     );
