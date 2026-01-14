@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { HiPlus, HiEye, HiSearch } from "react-icons/hi";
@@ -22,11 +22,29 @@ export default function Usuarios() {
         setPageSize(meta?.pageSize ?? 10);
     }, [meta?.page, meta?.pageSize]);
 
+    const lastRequestRef = useRef({ page: null, pageSize: null, q: null });
+
     useEffect(() => {
+        const normalizedQuery = q.trim() ? q.trim() : undefined;
+        const params = { page, pageSize, q: normalizedQuery };
+        const last = lastRequestRef.current;
+        const sameRequest =
+            last.page === params.page &&
+            last.pageSize === params.pageSize &&
+            last.q === params.q;
+
+        if (sameRequest) {
+            return;
+        }
+
         const timeout = setTimeout(() => {
-            dispatch(loadUsers({ page, pageSize, q: q.trim() ? q.trim() : undefined }));
+            lastRequestRef.current = params;
+            dispatch(loadUsers(params));
         }, 200);
-        return () => clearTimeout(timeout);
+
+        return () => {
+            clearTimeout(timeout);
+        };
     }, [dispatch, page, pageSize, q]);
 
     useEffect(() => {

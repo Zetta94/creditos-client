@@ -1,6 +1,9 @@
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { HiOutlinePrinter } from "react-icons/hi2";
 import {
     LineChart,
     Line,
@@ -13,6 +16,12 @@ import {
 import { fetchCredit } from "../services/creditsService";
 
 const chartLabelFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short" });
+const currencyFormatter = new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 0
+});
+const COMPANY_NAME = "El Imperio Créditos";
 
 const buildDemoSeries = (baseAmount, count = 4) => {
     const now = new Date();
@@ -64,12 +73,20 @@ export default function CreditoDetalle() {
     if (loading) {
         return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando crédito...</div>;
     }
+    const handleGoBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else {
+            navigate("/creditos");
+        }
+    };
+
     if (error || !credito) {
         return (
             <div className="mx-auto max-w-5xl px-4 py-6 text-red-400">
                 {error || "Crédito no encontrado."}
                 <button
-                    onClick={() => navigate("/creditos")}
+                    onClick={handleGoBack}
                     className="ml-4 rounded-md bg-gray-700 px-3 py-2 hover:bg-gray-600 text-white"
                 >
                     Volver
@@ -106,6 +123,93 @@ export default function CreditoDetalle() {
 
     const cuotasCompletadas = credito.totalInstallments && credito.paidInstallments >= credito.totalInstallments;
     const creditoFinalizado = credito.status === "PAID" || cuotasCompletadas;
+
+    const totalPagado = pagosCredito.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    const installmentAmount = Number(credito.installmentAmount) || 0;
+    const cuotasTotales = Number(credito.totalInstallments) || 0;
+    const cuotasPagadas = Number(credito.paidInstallments) || 0;
+    const saldoObjetivo = cuotasTotales && installmentAmount
+        ? cuotasTotales * installmentAmount
+        : Number(credito.amount) || 0;
+    const saldoPendiente = Math.max(saldoObjetivo - totalPagado, 0);
+    const cuotasRestantes = cuotasTotales ? Math.max(cuotasTotales - cuotasPagadas, 0) : null;
+
+    const handleDownloadPdf = () => {
+        if (!credito) return;
+
+        const doc = new jsPDF();
+        const leftMargin = 14;
+        let cursorY = 16;
+
+        const formatDate = (value) => {
+            if (!value) return "-";
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString("es-AR");
+        };
+
+        doc.setFontSize(18);
+        doc.text(COMPANY_NAME, leftMargin, cursorY);
+        cursorY += 8;
+
+        doc.setFontSize(14);
+        doc.text("Resumen de crédito", leftMargin, cursorY);
+        cursorY += 7;
+
+        doc.setFontSize(12);
+        doc.text(`Cliente: ${cliente?.name || "-"}`, leftMargin, cursorY);
+        cursorY += 6;
+        if (cliente?.document) {
+            doc.text(`Documento: ${cliente.document}`, leftMargin, cursorY);
+            cursorY += 6;
+        }
+        if (cliente?.address) {
+            doc.text(`Dirección: ${cliente.address}`, leftMargin, cursorY);
+            cursorY += 6;
+        }
+        doc.text(`Cobrador: ${cobrador?.name || "-"}`, leftMargin, cursorY);
+        cursorY += 6;
+        doc.text(`Contacto cobrador: ${cobrador?.email || "-"}`, leftMargin, cursorY);
+        cursorY += 8;
+
+        autoTable(doc, {
+            startY: cursorY,
+            head: [["Detalle", "Valor"]],
+            body: [
+                ["Monto total", currencyFormatter.format(Number(credito.amount) || 0)],
+                ["Cuota", currencyFormatter.format(installmentAmount)],
+                ["Cuotas pagadas", `${cuotasPagadas}/${cuotasTotales || "-"}`],
+                ["Cuotas restantes", cuotasRestantes !== null ? String(cuotasRestantes) : "-"],
+                ["Saldo pagado", currencyFormatter.format(totalPagado)],
+                ["Saldo pendiente", currencyFormatter.format(saldoPendiente)],
+                ["Estado", credito.status === "PAID" ? "Pagado" : credito.status === "OVERDUE" ? "Vencido" : "Pendiente"],
+                ["Inicio", formatDate(credito.startDate)],
+                ["Vencimiento", formatDate(credito.dueDate)]
+            ],
+            styles: { fontSize: 11 },
+            headStyles: { fillColor: [59, 130, 246] }
+        });
+
+        cursorY = (doc.lastAutoTable?.finalY || cursorY) + 8;
+
+        if (pagosOrdenados.length > 0) {
+            autoTable(doc, {
+                startY: cursorY,
+                head: [["Fecha", "Monto", "Nota"]],
+                body: pagosOrdenados.map((payment) => [
+                    formatDate(payment.date),
+                    currencyFormatter.format(Number(payment.amount) || 0),
+                    payment.note || "-"
+                ]),
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [37, 99, 235] },
+                columnStyles: {
+                    2: { cellWidth: 80 }
+                }
+            });
+        }
+
+        doc.save(`credito-${id}.pdf`);
+    };
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
@@ -144,6 +248,13 @@ export default function CreditoDetalle() {
 
                     {/* DERECHA */}
                     <div className="flex flex-col items-end gap-2">
+                        <button
+                            onClick={handleDownloadPdf}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                        >
+                            <HiOutlinePrinter className="h-4 w-4" />
+                            Descargar PDF
+                        </button>
                         <EstadoPill estado={credito.status} />
                     </div>
                 </div>
@@ -297,7 +408,7 @@ export default function CreditoDetalle() {
             {/* === BOTONES === */}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button
-                    onClick={() => navigate("/creditos")}
+                    onClick={handleGoBack}
                     className="w-full sm:w-auto rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                 >
                     Volver

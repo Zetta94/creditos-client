@@ -42,6 +42,16 @@ export default function CancelarCredito() {
     }, [form.metodo, form.efectivo, form.mercadopago, form.montoRecibido]);
     const descuento = Math.max(0, montoOriginal - totalRecibido);
 
+    const handleBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else if (id) {
+            navigate(`/creditos/${id}`);
+        } else {
+            navigate("/creditos");
+        }
+    };
+
     if (loading) return <div className="text-center text-gray-500 py-10">Cargando crédito...</div>;
     if (error || !credito) return <div className="text-center text-red-500 py-10">{error || "Crédito no encontrado"}</div>;
 
@@ -194,7 +204,7 @@ export default function CancelarCredito() {
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-4">
                     <button
                         type="button"
-                        onClick={() => navigate(`/creditos/${id}`)}
+                        onClick={handleBack}
                         className="w-full sm:w-auto rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                     >
                         Volver

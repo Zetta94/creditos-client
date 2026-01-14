@@ -67,7 +67,13 @@ export default function ClienteDetalle() {
             <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
                 <p className="mb-4 text-red-400">{error || "Cliente no encontrado."}</p>
                 <button
-                    onClick={() => navigate("/clientes")}
+                    onClick={() => {
+                        if (window.history.length > 2) {
+                            navigate(-1);
+                        } else {
+                            navigate("/clientes");
+                        }
+                    }}
                     className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600 text-white"
                 >
                     Volver
@@ -77,7 +83,24 @@ export default function ClienteDetalle() {
     }
 
     const reliability = (cliente.reliability || "").toUpperCase();
-    const reliabilityLabel = reliability === "ALTA" ? "Alta" : reliability === "MOROSO" ? "Baja" : reliability === "BAJA" ? "Baja" : "Media";
+    const reliabilityLabel = reliability === "MUYALTA"
+        ? "Muy alta"
+        : reliability === "ALTA"
+            ? "Alta"
+            : reliability === "MOROSO" || reliability === "BAJA"
+                ? "Baja"
+                : "Media";
+    const status = (cliente.status || "ACTIVE").toUpperCase();
+    const statusLabel = status === "ACTIVE" ? "Activo" : "Inactivo";
+    const birthDateLabel = cliente.birthDate ? new Date(cliente.birthDate).toLocaleDateString("es-AR") : null;
+
+    const handleBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else {
+            navigate("/clientes");
+        }
+    };
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -86,8 +109,21 @@ export default function ClienteDetalle() {
                 <div className="min-w-0">
                     <h1 className="truncate text-xl font-bold sm:text-2xl">{cliente.name}</h1>
                     <p className="text-sm text-gray-300">
-                        {cliente.phone} • DNI: {cliente.document}
+                        {cliente.phone}
+                        {cliente.alternatePhone && (
+                            <span> • Alt: {cliente.alternatePhone}</span>
+                        )}
+                        {" "}• DNI: {cliente.document}
                     </p>
+                    <p className="text-sm text-gray-400 flex items-center gap-2">
+                        <span>Estado:</span>
+                        <StatusBadge status={status} label={statusLabel} />
+                    </p>
+                    {birthDateLabel && (
+                        <p className="text-sm text-gray-400">
+                            Fecha de nacimiento: {birthDateLabel}
+                        </p>
+                    )}
                     <p className="text-sm text-gray-400">
                         {cliente.address} — {cliente.city}, {cliente.province}
                     </p>
@@ -105,7 +141,7 @@ export default function ClienteDetalle() {
                         Editar
                     </button>
                     <button
-                        onClick={() => navigate("/clientes")}
+                        onClick={handleBack}
                         className="w-full rounded-lg bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 sm:w-auto"
                     >
                         Volver
@@ -223,6 +259,19 @@ function estadoClasses(estado) {
         OVERDUE:
             "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
     }[estado];
+}
+
+function StatusBadge({ status, label }) {
+    const isActive = status === "ACTIVE";
+    const classes = isActive
+        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
+        : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
+
+    return (
+        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${classes}`}>
+            {label}
+        </span>
+    );
 }
 
 function EstadoPill({ estado }) {

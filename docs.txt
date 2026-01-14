@@ -1,0 +1,8 @@
+Ingreso al servidor: ssh app@66.97.46.168
+
+cloud: root - Franco636.elimperios
+
+Base de datos: CREATE USER creditos_user WITH PASSWORD 'zetta94636.';
+
+/var/www/backend/creditos-api
+/var/www/frontend/creditos-client

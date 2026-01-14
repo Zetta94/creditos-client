@@ -18,8 +18,10 @@ export default function UsuarioNuevo() {
         password: "",
         role: "COBRADOR",
         phone: "",
+        alternatePhone: "",
         address: "",
         document: "",
+        birthDate: "",
         responsability: "MEDIA",
         salary: "",
         salaryType: "MENSUAL",
@@ -51,9 +53,12 @@ export default function UsuarioNuevo() {
 
         const payload = {
             ...form,
+            phone: form.phone.trim() === "" ? undefined : form.phone.trim(),
+            alternatePhone: form.alternatePhone.trim() === "" ? undefined : form.alternatePhone.trim(),
             salary: form.salary === "" ? 0 : Number(form.salary),
             comisions: form.comisions === "" ? 0 : Number(form.comisions),
-            status: "ACTIVE"
+            status: "ACTIVE",
+            birthDate: form.birthDate ? form.birthDate : undefined
         };
 
         try {
@@ -66,13 +71,21 @@ export default function UsuarioNuevo() {
         }
     }
 
+    const handleBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else {
+            navigate("/usuarios");
+        }
+    };
+
     return (
         <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
 
             {/* === BOTÓN VOLVER === */}
             <div className="flex justify-end">
                 <button
-                    onClick={() => navigate("/usuarios")}
+                    onClick={handleBack}
                     className="flex items-center gap-2 rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                 >
                     <HiOutlineArrowLeft className="h-4 w-4" />
@@ -119,6 +132,13 @@ export default function UsuarioNuevo() {
                             placeholder="Ej: 3815551234"
                         />
                         <Field
+                            label="Teléfono alternativo"
+                            name="alternatePhone"
+                            value={form.alternatePhone}
+                            onChange={handleChange}
+                            placeholder="Ej: 3815555678"
+                        />
+                        <Field
                             label="Dirección"
                             name="address"
                             value={form.address}
@@ -131,6 +151,13 @@ export default function UsuarioNuevo() {
                             value={form.document}
                             onChange={handleChange}
                             placeholder="Ej: 35123456"
+                        />
+                        <Field
+                            label="Fecha de nacimiento"
+                            name="birthDate"
+                            value={form.birthDate}
+                            onChange={handleChange}
+                            type="date"
                         />
                     </div>
                 </section>
@@ -263,7 +290,7 @@ export default function UsuarioNuevo() {
                 <div className="flex justify-end gap-3 pt-4">
                     <button
                         type="button"
-                        onClick={() => navigate("/usuarios")}
+                        onClick={handleBack}
                         className="flex items-center gap-2 rounded-md bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-400"
                     >
                         <HiXMark className="h-4 w-4" />

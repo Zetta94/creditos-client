@@ -152,6 +152,14 @@ export default function HomeDashboard() {
     if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
     if (!resumen) return null;
 
+    const currencyFormatter = new Intl.NumberFormat("es-AR", {
+        style: "currency",
+        currency: "ARS",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    });
+    const pagosHoyFormatted = currencyFormatter.format(resumen.pagosHoy ?? 0);
+
     return (
         <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -181,7 +189,7 @@ export default function HomeDashboard() {
                 <KpiCard
                     icon={<HiCurrencyDollar className="h-8 w-8 text-blue-500" />}
                     label="Pagos de hoy"
-                    value={resumen.pagosHoy}
+                    value={pagosHoyFormatted}
                 />
                 <KpiCard
                     icon={<HiUsers className="h-8 w-8 text-purple-500" />}

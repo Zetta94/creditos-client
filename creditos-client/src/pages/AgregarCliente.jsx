@@ -12,13 +12,15 @@ export default function AgregarCliente() {
     const [cliente, setCliente] = useState({
         name: "",
         phone: "",
+        alternatePhone: "",
         document: "",
         address: "",
         city: "",
         province: "",
         email: "",
         reliability: "MEDIA",
-        activo: true,
+        birthDate: "",
+        status: "ACTIVE"
     });
 
     const handleChange = (e) => {
@@ -38,8 +40,16 @@ export default function AgregarCliente() {
         }
 
         const payload = {
-            ...cliente,
+            name: cliente.name,
+            phone: cliente.phone,
+            alternatePhone: cliente.alternatePhone.trim() ? cliente.alternatePhone.trim() : undefined,
+            document: cliente.document,
+            address: cliente.address,
+            city: cliente.city,
+            province: cliente.province,
             reliability: cliente.reliability.toUpperCase(),
+            birthDate: cliente.birthDate ? cliente.birthDate : undefined,
+            status: cliente.status
         };
 
         try {
@@ -88,13 +98,29 @@ export default function AgregarCliente() {
                             required
                         />
                     </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <Input
+                            label="Teléfono"
+                            name="phone"
+                            value={cliente.phone}
+                            onChange={handleChange}
+                            placeholder="+54 9 381 555 1234"
+                            required
+                        />
+                        <Input
+                            label="Teléfono alternativo"
+                            name="alternatePhone"
+                            value={cliente.alternatePhone}
+                            onChange={handleChange}
+                            placeholder="Opcional"
+                        />
+                    </div>
                     <Input
-                        label="Teléfono"
-                        name="phone"
-                        value={cliente.phone}
+                        label="Fecha de nacimiento"
+                        name="birthDate"
+                        value={cliente.birthDate}
                         onChange={handleChange}
-                        placeholder="+54 9 381 555 1234"
-                        required
+                        type="date"
                     />
                 </div>
 
@@ -140,27 +166,23 @@ export default function AgregarCliente() {
                             value={cliente.reliability}
                             onChange={handleChange}
                             options={[
+                                { value: "MUYALTA", label: "Muy alta" },
                                 { value: "ALTA", label: "Alta" },
                                 { value: "MEDIA", label: "Media" },
-                                { value: "MOROSO", label: "Moroso" },
+                                { value: "BAJA", label: "Baja" },
+                                { value: "MOROSO", label: "Moroso" }
                             ]}
                         />
-                        <div className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-3 dark:border-gray-700">
-                            <input
-                                id="activo"
-                                name="activo"
-                                type="checkbox"
-                                checked={cliente.activo}
-                                onChange={handleChange}
-                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
-                            />
-                            <label
-                                htmlFor="activo"
-                                className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                            >
-                                Cliente activo
-                            </label>
-                        </div>
+                        <Select
+                            label="Estado"
+                            name="status"
+                            value={cliente.status}
+                            onChange={handleChange}
+                            options={[
+                                { value: "ACTIVE", label: "Activo" },
+                                { value: "INACTIVE", label: "Inactivo" }
+                            ]}
+                        />
                     </div>
                 </div>
 
