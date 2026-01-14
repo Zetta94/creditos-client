@@ -221,6 +221,11 @@ export default function UsuarioReportes() {
         return Array.from(set).sort();
     }, [pagosSemana]);
 
+    const openReportDetail = (reportId) => {
+        const base = `${window.location.origin}${window.location.pathname}#/reportes/${reportId}`;
+        window.open(base, "_blank", "noopener,noreferrer");
+    };
+
     if (loading) {
         return (
             <div className="mx-auto max-w-6xl px-4 py-6">
@@ -241,6 +246,16 @@ export default function UsuarioReportes() {
             <div className="text-center text-red-400 mt-10">Usuario no encontrado.</div>
         );
 
+    const handleBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else if (id) {
+            navigate(`/usuarios/${id}`);
+        } else {
+            navigate("/usuarios");
+        }
+    };
+
     return (
         <div className="mx-auto max-w-6xl px-4 py-6 space-y-8">
             {/* === HEADER === */}
@@ -249,7 +264,7 @@ export default function UsuarioReportes() {
                     Reportes de {usuario.name}
                 </h1>
                 <button
-                    onClick={() => navigate(`/usuarios/${id}`)}
+                    onClick={handleBack}
                     className="flex items-center gap-2 rounded-md bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 w-full sm:w-auto justify-center"
                 >
                     <HiOutlineArrowLeft className="h-4 w-4" />
@@ -337,12 +352,13 @@ export default function UsuarioReportes() {
                                 <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Efectivo</th>
                                 <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">MercadoPago</th>
                                 <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Total</th>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-center">Detalle</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {reportes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No hay reportes registrados.</td>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No hay reportes registrados.</td>
                                 </tr>
                             ) : (
                                 reportes.map((r) => (
@@ -352,6 +368,14 @@ export default function UsuarioReportes() {
                                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-green-600">${(r.efectivo || 0).toLocaleString("es-AR")}</td>
                                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-blue-600">${(r.mercadopago || 0).toLocaleString("es-AR")}</td>
                                         <td className="px-3 py-2 sm:px-4 sm:py-3 font-semibold">${(r.total || 0).toLocaleString("es-AR")}</td>
+                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-center">
+                                            <button
+                                                onClick={() => openReportDetail(r.id)}
+                                                className="inline-flex items-center justify-center rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500"
+                                            >
+                                                Ver detalle
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))
                             )}

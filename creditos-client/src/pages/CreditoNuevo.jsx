@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import jsPDF from "jspdf";
 import toast from "react-hot-toast";
 import { loadClients } from "../store/clientsSlice";
 import { addCredit } from "../store/creditsSlice";
@@ -9,8 +10,17 @@ import { loadUsers } from "../store/employeeSlice";
 const PLAN_OPTIONS = [
     { label: "Diario", value: "DAILY" },
     { label: "Semanal", value: "WEEKLY" },
+    { label: "Quincenal", value: "QUINCENAL" },
     { label: "Mensual", value: "MONTHLY" }
 ];
+
+const DEFAULT_PLAN = "MONTHLY";
+const COMPANY_NAME = "El Imperio Créditos";
+const currencyFormatter = new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0
+});
 
 export default function CreditoNuevo() {
     const navigate = useNavigate();
@@ -31,7 +41,7 @@ export default function CreditoNuevo() {
         monto: "",
         interes: "",
         cuotas: "",
-        plan: PLAN_OPTIONS[2].value,
+        plan: DEFAULT_PLAN,
         cobradorId: "",
         comisionLibre: "",
         cobradorComisionId: "",
@@ -108,10 +118,146 @@ export default function CreditoNuevo() {
     }, [cuotasNumber, cuotaEstim]);
 
     const generarContrato = () => {
-        alert(`Contrato generado y enviado al mail del cliente (simulado).`);
+        if (!form.clienteId) {
+            toast.error("Seleccioná un cliente antes de generar el contrato");
+            return;
+        }
+
+        if (!montoBase || montoBase <= 0) {
+            toast.error("Ingresá un monto base válido");
+            return;
+        }
+
+        if (!cuotasNumber) {
+            toast.error("Indicá la cantidad de cuotas");
+            return;
+        }
+
+        const cliente = clients.find((c) => c.id === form.clienteId);
+        const cobradorAsignado = users.find((u) => u.id === form.cobradorId);
+
+        const doc = new jsPDF();
+        const marginLeft = 16;
+        const contentWidth = 178;
+        let cursorY = 22;
+        const today = new Date();
+        const day = today.getDate();
+        const monthName = today.toLocaleDateString("es-AR", { month: "long" });
+        const year = today.getFullYear();
+        const clientCity = cliente?.city || "San Luis";
+        const clientProvince = cliente?.province || "San Luis";
+        const clientAddress = cliente?.address || "—";
+        const clientDocument = cliente?.document || "—";
+        const firstDueDate = new Date(today);
+        firstDueDate.setMonth(today.getMonth() + 1);
+        const firstDueFormatted = firstDueDate.toLocaleDateString("es-AR");
+
+        const formatCurrency = (value) => {
+            const numericValue = Number(value);
+            if (!Number.isFinite(numericValue) || numericValue <= 0) return "—";
+            return currencyFormatter.format(numericValue);
+        };
+
+        const addParagraph = (text, options = {}) => {
+            const lines = doc.splitTextToSize(text, contentWidth);
+            doc.text(lines, marginLeft, cursorY, options);
+            cursorY += lines.length * 6 + 2;
+        };
+
+        doc.setFontSize(18);
+        doc.setFont(undefined, "bold");
+        doc.text(COMPANY_NAME, doc.internal.pageSize.getWidth() / 2, cursorY, { align: "center" });
+        cursorY += 10;
+
+        doc.setFontSize(14);
+        doc.text("CONTRATO DE MUTUO", doc.internal.pageSize.getWidth() / 2, cursorY, { align: "center" });
+        cursorY += 10;
+
+        doc.setFontSize(11);
+        doc.setFont(undefined, "normal");
+
+        addParagraph(
+            `En la ciudad de ${clientCity}, a los ${day} días del mes de ${monthName} de ${year}, entre el Sr. Franco Martin Correas, D.N.I. N° 44.219.412, con domicilio real en calle Córdoba 53, Ciudad de San Luis, Provincia de San Luis, en adelante el "MUTUANTE"; y ${cliente?.name || "el/la Sr./Sra."}, D.N.I. N° ${clientDocument}, con domicilio real en ${clientAddress}, ${clientCity}, Provincia de ${clientProvince}, en adelante el "MUTUARIO"; convienen en celebrar el presente contrato de mutuo, sujeto a las siguientes cláusulas.`
+        );
+
+        doc.setFont(undefined, "bold");
+        doc.text("PRIMERA:", marginLeft, cursorY);
+        doc.setFont(undefined, "normal");
+        cursorY += 2;
+        addParagraph(
+            `El mutuante da en préstamo al mutuario la suma de PESOS ${formatCurrency(montoBase)} (${formatCurrency(montoBase)}), quien lo recibe en efectivo en este acto, sirviéndose la presente cláusula como recibo suficiente para tener por acreditada la recepción del dinero y dando el mutuario conformidad al importe.`
+        );
+
+        doc.setFont(undefined, "bold");
+        doc.text("SEGUNDA:", marginLeft, cursorY);
+        doc.setFont(undefined, "normal");
+        cursorY += 2;
+        addParagraph(
+            `Las partes acuerdan un interés punitorio del ${interesPorc || 0}% mensual sobre los saldos en mora, que el mutuario pagará al mutuante conjuntamente con el capital adeudado.`
+        );
+
+        doc.setFont(undefined, "bold");
+        doc.text("TERCERA:", marginLeft, cursorY);
+        doc.setFont(undefined, "normal");
+        cursorY += 2;
+        addParagraph(
+            `El plazo de restitución del capital será de ${cuotasNumber || 1} ${cuotasNumber === 1 ? "cuota" : "cuotas"}, que el mutuario abonará según el siguiente esquema: la cuota N° 1 vencerá el ${firstDueFormatted} por la suma de PESOS ${formatCurrency(cuotaEstim)}, continuando en iguales períodos hasta la cancelación total.`
+        );
+
+        doc.setFont(undefined, "bold");
+        doc.text("CUARTA:", marginLeft, cursorY);
+        doc.setFont(undefined, "normal");
+        cursorY += 2;
+        addParagraph(
+            `El lugar de pago es fijado por las partes en calle Córdoba 53, Ciudad de San Luis, Provincia de San Luis, debiendo el mutuario extender recibo firmado al mutuante.`
+        );
+
+        doc.setFont(undefined, "bold");
+        doc.text("QUINTA:", marginLeft, cursorY);
+        doc.setFont(undefined, "normal");
+        cursorY += 2;
+        addParagraph(
+            `En caso de mora en el cumplimiento del pago por parte del mutuario, el mutuante podrá resolver el contrato exigiendo el inmediato pago del capital e intereses adeudados.`
+        );
+
+        doc.setFont(undefined, "bold");
+        doc.text("SEXTA:", marginLeft, cursorY);
+        doc.setFont(undefined, "normal");
+        cursorY += 2;
+        addParagraph(
+            `La falta de cumplimiento por el mutuario de cualquiera de las obligaciones asumidas, en particular la falta de pago a su vencimiento de las cuotas, producirá la caducidad de los plazos, quedando exigible la totalidad del capital e intereses desde la mora hasta su efectivo pago.`
+        );
+
+        doc.setFont(undefined, "bold");
+        doc.text("SÉPTIMA:", marginLeft, cursorY);
+        doc.setFont(undefined, "normal");
+        cursorY += 2;
+        addParagraph(
+            `Para todos los efectos contractuales y extracontractuales, las partes constituyen sus domicilios legales en los indicados, donde serán válidas las notificaciones. Las partes se someten voluntaria y exclusivamente a la competencia de la Justicia Ordinaria de la Provincia de San Luis, renunciando a cualquier otro fuero o jurisdicción.`
+        );
+
+        addParagraph("En prueba de conformidad, se firman dos ejemplares de un mismo tenor y a un solo efecto, en el lugar y fecha ut supra indicados.");
+
+        cursorY += 8;
+
+        doc.text("__________________________", marginLeft, cursorY);
+        doc.text("__________________________", marginLeft + 100, cursorY);
+        cursorY += 6;
+        doc.text("Mutuante", marginLeft + 20, cursorY);
+        doc.text("Mutuario", marginLeft + 120, cursorY);
+
+        if (cobradorAsignado?.name) {
+            cursorY += 12;
+            doc.text("Cobrador asignado:", marginLeft, cursorY);
+            doc.text(cobradorAsignado.name, marginLeft + 45, cursorY);
+        }
+
+        const sanitizedName = (cliente?.name || "cliente").replace(/\s+/g, "-").toLowerCase();
+        doc.save(`contrato-${sanitizedName}.pdf`);
+        toast.success("Contrato generado correctamente");
     };
 
-    const selectedPlan = PLAN_OPTIONS.find((p) => p.value === form.plan) || PLAN_OPTIONS[2];
+    const selectedPlan = PLAN_OPTIONS.find((p) => p.value === form.plan) || PLAN_OPTIONS.find((p) => p.value === DEFAULT_PLAN) || PLAN_OPTIONS[0];
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">

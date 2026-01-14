@@ -179,7 +179,7 @@ export default function RegistrarPago() {
                                 value={p.monto}
                                 onChange={(e) => actualizarPago(p.id, "monto", e.target.value)}
                                 min="0"
-                                step="100"
+                                step="0.01"
                                 placeholder="0"
                                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                             />

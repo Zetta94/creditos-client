@@ -13,13 +13,16 @@ export default function ClienteEditar() {
     const [form, setForm] = useState({
         name: "",
         phone: "",
+        alternatePhone: "",
         document: "",
         address: "",
         city: "",
         province: "",
         email: "",
         reliability: "MEDIA",
-        notes: "",
+        birthDate: "",
+        status: "ACTIVE",
+        notes: ""
     });
 
     useEffect(() => {
@@ -31,12 +34,15 @@ export default function ClienteEditar() {
             setForm({
                 name: current.name || "",
                 phone: current.phone || "",
+                alternatePhone: current.alternatePhone || "",
                 document: current.document || "",
                 address: current.address || "",
                 city: current.city || "",
                 province: current.province || "",
                 email: current.email || "",
                 reliability: (current.reliability || "MEDIA").toUpperCase(),
+                birthDate: current.birthDate ? current.birthDate.substring(0, 10) : "",
+                status: (current.status || "ACTIVE").toUpperCase(),
                 notes: current.notes || "",
             });
         }
@@ -58,12 +64,15 @@ export default function ClienteEditar() {
         const payload = {
             name: form.name,
             phone: form.phone,
+            alternatePhone: form.alternatePhone.trim() ? form.alternatePhone.trim() : undefined,
             document: form.document,
             address: form.address,
             city: form.city,
             province: form.province,
             email: form.email,
             reliability: form.reliability?.toUpperCase(),
+            birthDate: form.birthDate ? form.birthDate : undefined,
+            status: form.status,
             notes: form.notes,
         };
         try {
@@ -71,6 +80,14 @@ export default function ClienteEditar() {
             navigate("/clientes", { replace: true });
         } catch (err) {
             console.error("Error al guardar cliente", err);
+        }
+    };
+
+    const handleBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else {
+            navigate("/clientes");
         }
     };
 
@@ -87,7 +104,7 @@ export default function ClienteEditar() {
             <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
                 <p className="mb-4 text-red-400">Cliente no encontrado.</p>
                 <button
-                    onClick={() => navigate("/clientes")}
+                    onClick={handleBack}
                     className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600"
                 >
                     Volver
@@ -134,6 +151,19 @@ export default function ClienteEditar() {
                     </div>
 
                     <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Teléfono alternativo</label>
+                        <input
+                            name="alternatePhone"
+                            value={form.alternatePhone}
+                            onChange={handle}
+                            type="tel"
+                            inputMode="tel"
+                            placeholder="Opcional"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        />
+                    </div>
+
+                    <div className="grid gap-1.5">
                         <label className="text-sm text-gray-600 dark:text-gray-300">Documento</label>
                         <input
                             name="document"
@@ -153,10 +183,24 @@ export default function ClienteEditar() {
                             onChange={handle}
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         >
+                            <option value="MUYALTA">Muy alta</option>
                             <option value="ALTA">Alta</option>
                             <option value="MEDIA">Media</option>
                             <option value="BAJA">Baja</option>
                             <option value="MOROSO">Moroso</option>
+                        </select>
+                    </div>
+
+                    <div className="grid gap-1.5">
+                        <label className="text-sm text-gray-600 dark:text-gray-300">Estado</label>
+                        <select
+                            name="status"
+                            value={form.status}
+                            onChange={handle}
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        >
+                            <option value="ACTIVE">Activo</option>
+                            <option value="INACTIVE">Inactivo</option>
                         </select>
                     </div>
 
@@ -195,6 +239,17 @@ export default function ClienteEditar() {
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         />
                     </div>
+                </div>
+
+                <div className="grid gap-1.5">
+                    <label className="text-sm text-gray-600 dark:text-gray-300">Fecha de nacimiento</label>
+                    <input
+                        name="birthDate"
+                        value={form.birthDate}
+                        onChange={handle}
+                        type="date"
+                        className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    />
                 </div>
 
                 <div className="grid gap-1.5">

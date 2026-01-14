@@ -23,6 +23,7 @@ import UsuarioNuevo from "./pages/UsuarioNuevo.jsx";
 import UsuarioDetalle from "./pages/UsuarioDetalle.jsx";
 import UsuarioEditar from "./pages/UsuarioEditar.jsx";
 import UsuarioReportes from "./pages/UsuarioReportes.jsx";
+import ReporteDetalle from "./pages/ReporteDetalle.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
 import Creditos from "./pages/Creditos.jsx";
 import CreditoNuevo from "./pages/CreditoNuevo.jsx";
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="usuarios/:id" element={<UsuarioDetalle />} />
             <Route path="usuarios/:id/editar" element={<UsuarioEditar />} />
             <Route path="usuarios/:id/reportes" element={<UsuarioReportes />} />
+            <Route path="reportes/:reportId" element={<ReporteDetalle />} />
             <Route path="mensajes" element={<Mensajes />} />
             <Route path="creditos" element={<Creditos />} />
             <Route path="creditos/nuevo" element={<CreditoNuevo />} />

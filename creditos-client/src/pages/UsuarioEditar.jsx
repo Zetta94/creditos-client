@@ -18,6 +18,7 @@ export default function UsuarioEditar() {
                 setUsuario({
                     ...data,
                     phone: data.phone || "",
+                    alternatePhone: data.alternatePhone || "",
                     address: data.address || "",
                     document: data.document || "",
                     responsability: data.responsability || "",
@@ -25,6 +26,7 @@ export default function UsuarioEditar() {
                     salaryType: data.salaryType || "",
                     comisions: data.comisions ?? "",
                     role: data.role || "",
+                    birthDate: data.birthDate ? data.birthDate.slice(0, 10) : "",
                 });
             } finally {
                 setLoading(false);
@@ -52,6 +54,7 @@ export default function UsuarioEditar() {
             name: usuario.name,
             email: usuario.email,
             phone: usuario.phone,
+            alternatePhone: usuario.alternatePhone,
             address: usuario.address,
             document: usuario.document,
             responsability: usuario.responsability ? usuario.responsability.toUpperCase() : undefined,
@@ -59,6 +62,7 @@ export default function UsuarioEditar() {
             salaryType: usuario.salaryType ? usuario.salaryType.toUpperCase() : undefined,
             comisions: usuario.comisions === "" ? undefined : Number(usuario.comisions),
             role: usuario.role ? usuario.role.toUpperCase() : undefined,
+            birthDate: usuario.birthDate === "" ? null : usuario.birthDate,
             ...(usuario.password ? { password: usuario.password } : {}),
         };
         const payload = Object.fromEntries(
@@ -125,6 +129,13 @@ export default function UsuarioEditar() {
                     onChange={(v) => handleChange("phone", v)}
                 />
 
+                {/* === Teléfono alternativo === */}
+                <Field
+                    label="Teléfono alternativo"
+                    value={usuario.alternatePhone}
+                    onChange={(v) => handleChange("alternatePhone", v)}
+                />
+
                 {/* === Dirección === */}
                 <Field
                     label="Dirección"
@@ -137,6 +148,14 @@ export default function UsuarioEditar() {
                     label="Documento"
                     value={usuario.document}
                     onChange={(v) => handleChange("document", v)}
+                />
+
+                {/* === Fecha de nacimiento === */}
+                <Field
+                    label="Fecha de nacimiento"
+                    value={usuario.birthDate}
+                    onChange={(v) => handleChange("birthDate", v)}
+                    type="date"
                 />
 
                 {/* === Responsabilidad (select) === */}

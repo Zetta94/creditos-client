@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +14,23 @@ import {
 } from "react-icons/hi";
 import { loadClients, removeClient } from "../store/clientsSlice";
 import Pagination from "../components/Pagination";
+
+const reliabilityOptions = [
+    { label: "Todas", value: "todas" },
+    { label: "Muy alta", value: "MUYALTA" },
+    { label: "Alta", value: "ALTA" },
+    { label: "Media", value: "MEDIA" },
+    { label: "Baja", value: "BAJA" },
+    { label: "Moroso", value: "MOROSO" }
+];
+
+const reliabilityLabelMap = {
+    MUYALTA: "Muy alta",
+    ALTA: "Alta",
+    MEDIA: "Media",
+    BAJA: "Baja",
+    MOROSO: "Moroso"
+};
 
 export default function Clientes() {
     const navigate = useNavigate();
@@ -33,33 +51,40 @@ export default function Clientes() {
 
     useEffect(() => {
         const timeout = setTimeout(() => {
-            dispatch(loadClients({ page, pageSize, q: q.trim() ? q.trim() : undefined }));
+            const params = {
+                page,
+                pageSize
+            };
+
+            const search = q.trim();
+            if (search) params.q = search;
+
+            if (confianza !== "todas") {
+                params.reliability = [confianza];
+            }
+
+            if (activo !== "todos") {
+                params.status = activo === "si" ? "ACTIVE" : "INACTIVE";
+            }
+
+            dispatch(loadClients(params));
         }, 200);
         return () => {
             clearTimeout(timeout);
         };
-    }, [dispatch, page, pageSize, q]);
+    }, [dispatch, page, pageSize, q, confianza, activo]);
 
     useEffect(() => {
         setPage(1);
     }, [q, activo, confianza]);
 
     const rows = useMemo(() => {
-        const qn = q.trim().toLowerCase();
         return list.filter((c) => {
-            const matchesText =
-                !qn ||
-                c.name?.toLowerCase().includes(qn) ||
-                c.phone?.toLowerCase().includes(qn) ||
-                c.document?.toLowerCase().includes(qn);
-            const isActive = c.activo ?? true;
-            const matchesActivo = activo === "todos" || (activo === "si" ? isActive : !isActive);
-            const reliability = (c.reliability || "").toUpperCase();
-            const confianzaLabel = reliability === "ALTA" ? "Alta" : reliability === "MOROSO" ? "Baja" : "Media";
-            const matchesConf = confianza === "todas" || confianza === confianzaLabel;
-            return matchesText && matchesActivo && matchesConf;
+            const status = (c.status || "ACTIVE").toUpperCase();
+            const isActive = status === "ACTIVE";
+            return activo === "todos" || (activo === "si" ? isActive : !isActive);
         });
-    }, [list, q, activo, confianza]);
+    }, [list, activo]);
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -130,13 +155,21 @@ export default function Clientes() {
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {rows.map((c) => {
-                            const isActive = c.activo ?? true;
+                            const status = (c.status || "ACTIVE").toUpperCase();
+                            const isActive = status === "ACTIVE";
                             const reliability = (c.reliability || "").toUpperCase();
-                            const confianzaLabel = reliability === "ALTA" ? "Alta" : reliability === "MOROSO" ? "Baja" : "Media";
+                            const confianzaLabel = reliabilityLabelMap[reliability] ?? (reliability || "—");
                             return (
                                 <tr key={c.id} className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/70">
                                     <td className="px-4 py-3">{c.name}</td>
-                                    <td className="px-4 py-3">{c.phone}</td>
+                                    <td className="px-4 py-3">
+                                        <div>{c.phone}</div>
+                                        {c.alternatePhone && (
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                Alt: {c.alternatePhone}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-3">
                                         <StatusPill ok={isActive} okText="Activo" badText="Inactivo" />
                                     </td>
@@ -253,10 +286,11 @@ function FiltersRow({ activo, setActivo, confianza, setConfianza }) {
                     onChange={(e) => setConfianza(e.target.value)}
                     className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                 >
-                    <option value="todas">Todas</option>
-                    <option value="Alta">Alta</option>
-                    <option value="Media">Media</option>
-                    <option value="Baja">Baja</option>
+                    {reliabilityOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
                 </select>
             </div>
 

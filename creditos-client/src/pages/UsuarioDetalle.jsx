@@ -33,12 +33,14 @@ export default function UsuarioDetalle() {
                     ...u,
                     status: (u.status || "ACTIVE").toUpperCase(),
                     phone: u.phone || "—",
+                    alternatePhone: u.alternatePhone || "—",
                     address: u.address || "—",
                     document: u.document || "—",
                     responsability: u.responsability || "MEDIA",
                     salary: u.salary ?? 0,
                     salaryType: u.salaryType || "N_A",
                     comisions: u.comisions ?? 0,
+                    birthDate: u.birthDate || null,
                 });
                 setCreditos(cr);
                 setPagos(pa);
@@ -86,6 +88,20 @@ export default function UsuarioDetalle() {
 
     const roleDisplay = (usuario.role || "").toUpperCase();
     const statusDisplay = usuario.status || "ACTIVE";
+    const birthDateDisplay = (() => {
+        if (!usuario.birthDate) return "—";
+        const parsed = new Date(usuario.birthDate);
+        if (Number.isNaN(parsed.getTime())) return "—";
+        return parsed.toLocaleDateString("es-AR", { timeZone: "UTC" });
+    })();
+
+    const handleBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else {
+            navigate("/usuarios");
+        }
+    };
 
     return (
         <div className="mx-auto max-w-6xl px-4 py-6 space-y-10">
@@ -93,7 +109,7 @@ export default function UsuarioDetalle() {
             {/* === BOTÓN VOLVER === */}
             <div className="flex justify-end">
                 <button
-                    onClick={() => navigate("/usuarios")}
+                    onClick={handleBack}
                     className="flex items-center gap-2 rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                 >
                     <HiOutlineArrowLeft className="h-4 w-4" />
@@ -139,10 +155,14 @@ export default function UsuarioDetalle() {
                             <div className="mt-4 grid grid-cols-2 gap-y-1 text-sm text-gray-700 dark:text-gray-300">
                                 <p className="font-medium">Teléfono:</p>
                                 <p>{usuario.phone}</p>
+                                <p className="font-medium">Teléfono alternativo:</p>
+                                <p>{usuario.alternatePhone}</p>
                                 <p className="font-medium">Dirección:</p>
                                 <p>{usuario.address}</p>
                                 <p className="font-medium">Documento:</p>
                                 <p>{usuario.document}</p>
+                                <p className="font-medium">Cumpleaños:</p>
+                                <p>{birthDateDisplay}</p>
                                 <p className="font-medium">Responsabilidad:</p>
                                 <p>{usuario.responsability}</p>
                                 <p className="font-medium">Sueldo:</p>

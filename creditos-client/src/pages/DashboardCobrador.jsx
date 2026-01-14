@@ -22,6 +22,7 @@ export default function DashboardCobrador() {
         efectivo: 0,
         pagosDiarios: 0,
         pagosSemanales: 0,
+        pagosQuincenales: 0,
         pagosMensuales: 0,
         totalCobrado: 0,
         clientesVisitados: 0,
@@ -43,6 +44,7 @@ export default function DashboardCobrador() {
             efectivo: data.efectivo ?? 0,
             pagosDiarios: data.pagosDiarios ?? 0,
             pagosSemanales: data.pagosSemanales ?? 0,
+            pagosQuincenales: data.pagosQuincenales ?? 0,
             pagosMensuales: data.pagosMensuales ?? 0,
             totalCobrado: data.totalCobrado ?? ((data.mercadopago ?? 0) + (data.efectivo ?? 0)),
             clientesVisitados: data.clientesVisitados ?? 0,
@@ -196,7 +198,7 @@ export default function DashboardCobrador() {
                     {errorResumen}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                     <Indicador
                         icon={<HiCreditCard className="h-6 w-6 text-blue-500" />}
                         label="Cobrado por MP"
@@ -216,6 +218,11 @@ export default function DashboardCobrador() {
                         icon={<HiCalendar className="h-6 w-6 text-purple-500" />}
                         label="Pagos semanales"
                         valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosSemanales)}
+                    />
+                    <Indicador
+                        icon={<HiCalendar className="h-6 w-6 text-indigo-500" />}
+                        label="Pagos quincenales"
+                        valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosQuincenales)}
                     />
                     <Indicador
                         icon={<HiCalendar className="h-6 w-6 text-red-500" />}

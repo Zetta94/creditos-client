@@ -25,10 +25,14 @@ export default function Creditos() {
     // Cargar créditos al montar
     useEffect(() => {
         const timeout = setTimeout(() => {
-            dispatch(loadCredits({ page, pageSize, q: q.trim() ? q.trim() : undefined }));
+            const params = { page, pageSize };
+            const search = q.trim();
+            if (search) params.q = search;
+            if (estado !== "todos") params.status = estado;
+            dispatch(loadCredits(params));
         }, 200);
         return () => clearTimeout(timeout);
-    }, [dispatch, page, pageSize, q]);
+    }, [dispatch, page, pageSize, q, estado]);
 
     useEffect(() => {
         setPage(1);
@@ -48,6 +52,9 @@ export default function Creditos() {
                     id: cr.id,
                     key,
                     cliente: cr.client?.name || "Cliente desconocido",
+                    documento: cr.client?.document || "",
+                    telefono: cr.client?.phone || "",
+                    telefonoAlternativo: cr.client?.alternatePhone || "",
                     monto,
                     cuotas: totalInstallments,
                     pagadas: paidInstallments,
@@ -61,14 +68,7 @@ export default function Creditos() {
     );
 
     // === Filtrado ===
-    const rows = useMemo(() => {
-        const qn = q.trim().toLowerCase();
-        return creditosMock.filter((c) => {
-            const okText = !qn || c.cliente.toLowerCase().includes(qn);
-            const okEstado = estado === "todos" || c.estado === estado;
-            return okText && okEstado;
-        });
-    }, [q, estado, creditosMock]);
+    const rows = useMemo(() => creditosMock, [creditosMock]);
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -229,7 +229,7 @@ function SearchInput({ q, setQ }) {
             <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por cliente..."
+                placeholder="Buscar por cliente, documento o teléfono..."
                 className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
         </div>
