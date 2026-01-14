@@ -32,3 +32,4 @@ start-dev.bat
 start-dev.sh
 creditos-client/ssh-copy-id root@66.97.46.168
 creditos-client/ssh-copy-id root@66.97.46.168.pub
+creditos-api/
