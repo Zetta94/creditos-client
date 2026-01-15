@@ -13,6 +13,10 @@
 html,
 body {
   overflow-x: hidden;
+  min-height: 100%;
+  background-color: #0f172a;
+  color: #f8fafc;
+  margin: 0;
 }
 
 @keyframes slide-up {
