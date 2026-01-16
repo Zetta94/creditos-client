@@ -16,6 +16,7 @@ const PLAN_OPTIONS = [
 ];
 
 const DEFAULT_PLAN = "MONTHLY";
+const CLIENTS_FETCH_LIMIT = 1000;
 const COMPANY_NAME = "El Imperio Créditos";
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -100,7 +101,7 @@ export default function CreditoNuevo() {
     );
 
     useEffect(() => {
-        if (!clients.length) dispatch(loadClients());
+        if (!clients.length) dispatch(loadClients({ pageSize: CLIENTS_FETCH_LIMIT }));
         if (!users.length) dispatch(loadUsers());
     }, [clients.length, users.length, dispatch]);
 
