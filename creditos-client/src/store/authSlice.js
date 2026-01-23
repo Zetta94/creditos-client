@@ -40,7 +40,7 @@ export const fetchCurrentUser = createAsyncThunk("auth/current", async (_, thunk
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-    return thunkAPI.rejectWithValue("Sesión inválida");
+    return thunkAPI.rejectWithValue({ silent: true, message: "Sesión inválida" });
   }
 });
 
@@ -52,6 +52,7 @@ export const logout = createAsyncThunk("auth/logout", async () => {
 });
 
 const storedUser = localStorage.getItem("user");
+const initialToken = localStorage.getItem("token");
 let initialUser = null;
 if (storedUser) {
   try {
@@ -66,10 +67,11 @@ if (storedUser) {
 }
 
 const initialState = {
-  token: localStorage.getItem("token") || null,
+  token: initialToken || null,
   user: initialUser,
   loading: false,
   error: null,
+  checkingSession: Boolean(initialToken),
 };
 
 const slice = createSlice({
@@ -78,26 +80,44 @@ const slice = createSlice({
   reducers: {},
   extraReducers: builder => {
     builder
-      .addCase(login.pending, s => { s.loading = true; s.error = null; })
+      .addCase(login.pending, s => {
+        s.loading = true;
+        s.error = null;
+      })
       .addCase(login.fulfilled, (s, a) => {
         s.loading = false;
         s.token = a.payload.token;
         s.user = a.payload.user;
+        s.error = null;
+        s.checkingSession = false;
       })
       .addCase(login.rejected, (s, a) => {
         s.loading = false;
         s.error = a.payload || a.error.message;
+        s.checkingSession = false;
+      })
+      .addCase(fetchCurrentUser.pending, s => {
+        s.checkingSession = true;
+        s.error = null;
       })
       .addCase(fetchCurrentUser.fulfilled, (s, a) => {
         s.user = a.payload.user;
+        s.token = localStorage.getItem("token") || null;
+        s.checkingSession = false;
+        s.error = null;
       })
-      .addCase(fetchCurrentUser.rejected, s => {
+      .addCase(fetchCurrentUser.rejected, (s, a) => {
         s.token = null;
         s.user = null;
+        s.checkingSession = false;
+        s.error = a.payload?.silent ? null : (a.payload?.message || a.payload || a.error.message);
       })
       .addCase(logout.fulfilled, s => {
         s.token = null;
         s.user = null;
+        s.checkingSession = false;
+        s.error = null;
+        s.loading = false;
       });
   }
 });

@@ -22,6 +22,38 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
     minimumFractionDigits: 0
 });
 const COMPANY_NAME = "El Imperio Créditos";
+const CREDIT_TYPE_LABELS = {
+    DAILY: "Diario",
+    WEEKLY: "Semanal",
+    QUINCENAL: "Quincenal",
+    MONTHLY: "Mensual",
+    ONE_TIME: "Pago único"
+};
+
+const CLIENT_RELIABILITY_LABELS = {
+    MUYALTA: "Muy alta",
+    ALTA: "Alta",
+    MEDIA: "Media",
+    BAJA: "Baja",
+    MOROSO: "Moroso"
+};
+
+const CLIENT_RELIABILITY_STYLES = {
+    MUYALTA: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700",
+    ALTA: "bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-900/40 dark:text-sky-300 dark:border-sky-700",
+    MEDIA: "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700",
+    BAJA: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700",
+    MOROSO: "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-700"
+};
+
+const normalizeToAsciiLower = (value) => {
+    if (value === null || value === undefined) return "";
+    return value
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+};
 
 const buildDemoSeries = (baseAmount, count = 4) => {
     const now = new Date();
@@ -125,14 +157,234 @@ export default function CreditoDetalle() {
     const creditoFinalizado = credito.status === "PAID" || cuotasCompletadas;
 
     const totalPagado = pagosCredito.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    const baseAmount = Math.max(Number(credito.amount) || 0, 0);
     const installmentAmount = Number(credito.installmentAmount) || 0;
     const cuotasTotales = Number(credito.totalInstallments) || 0;
     const cuotasPagadas = Number(credito.paidInstallments) || 0;
-    const saldoObjetivo = cuotasTotales && installmentAmount
+    let saldoObjetivo = cuotasTotales && installmentAmount
         ? cuotasTotales * installmentAmount
-        : Number(credito.amount) || 0;
-    const saldoPendiente = Math.max(saldoObjetivo - totalPagado, 0);
+        : baseAmount;
+    let saldoPendiente = Math.max(saldoObjetivo - totalPagado, 0);
     const cuotasRestantes = cuotasTotales ? Math.max(cuotasTotales - cuotasPagadas, 0) : null;
+    const startDateLabel = credito.startDate ? new Date(credito.startDate).toLocaleDateString("es-AR") : "—";
+    const dueDateLabel = credito.dueDate ? new Date(credito.dueDate).toLocaleDateString("es-AR") : "—";
+    const expenses = Array.isArray(credito.expenses) ? credito.expenses : [];
+    const specialCredit = credito?.specialCredit || null;
+    const specialCreditName = typeof specialCredit?.name === "string" && specialCredit.name.trim().length > 0
+        ? specialCredit.name
+        : null;
+    const hasSpecialCredit = Boolean(specialCreditName);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+    const hasExpenses = expenses.length > 0;
+    const creditTypeLabel = CREDIT_TYPE_LABELS[credito.type] ?? credito.type ?? "—";
+    const receivedAmount = Number(credito.receivedAmount) || 0;
+    const rawNextInstallment = Number(credito.nextInstallmentToCharge) || 0;
+    const nextInstallmentLabel = rawNextInstallment > 0 ? `Cuota ${rawNextInstallment}` : "—";
+    const toNumberOrNull = (value) => {
+        if (value === null || value === undefined) return null;
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : null;
+    };
+
+    const interestCandidates = [
+        credito?.interestPercentage,
+        credito?.interestRate,
+        credito?.interest,
+        credito?.interes,
+        credito?.interest_percent,
+        credito?.interestPercent,
+        credito?.specialCredit?.interestPercentage,
+        credito?.specialCredit?.interestRate,
+        credito?.specialCredit?.interest
+    ];
+    const interestPercentageValue = interestCandidates
+        .map((candidate) => toNumberOrNull(candidate))
+        .find((value) => value !== null);
+
+    const totalFromInterest = interestPercentageValue !== undefined
+        ? baseAmount + (baseAmount * interestPercentageValue) / 100
+        : null;
+    const totalFromInstallments = installmentAmount && cuotasTotales
+        ? installmentAmount * cuotasTotales
+        : null;
+
+    let totalCreditAmount = totalFromInterest ?? totalFromInstallments ?? baseAmount;
+    if (totalCreditAmount < baseAmount) {
+        totalCreditAmount = baseAmount;
+    }
+
+    const interestAmount = Math.max(totalCreditAmount - baseAmount, 0);
+    const derivedInterestPercentage = interestPercentageValue ?? (
+        baseAmount > 0 && totalCreditAmount > baseAmount
+            ? (interestAmount / baseAmount) * 100
+            : null
+    );
+
+    const interestPercentageLabel = typeof derivedInterestPercentage === "number"
+        ? `${derivedInterestPercentage.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`
+        : null;
+    const totalCreditAmountLabel = interestPercentageLabel
+        ? `${currencyFormatter.format(totalCreditAmount)} (${interestPercentageLabel})`
+        : currencyFormatter.format(totalCreditAmount);
+
+    if (!(cuotasTotales && installmentAmount)) {
+        saldoObjetivo = totalCreditAmount;
+        saldoPendiente = Math.max(totalCreditAmount - totalPagado, 0);
+    }
+
+    const netAfterExpenses = Math.max(totalCreditAmount - totalExpenses, 0);
+    const expenseTypeSummary = Array.from(
+        new Set(
+            expenses
+                .map((expense) => expense?.specialCredit?.name || expense?.description || null)
+                .filter(Boolean)
+        )
+    );
+
+    const reliabilityCode = typeof cliente?.reliability === "string" ? cliente.reliability.toUpperCase() : null;
+    const clientReliabilityLabel = reliabilityCode ? CLIENT_RELIABILITY_LABELS[reliabilityCode] ?? reliabilityCode : null;
+    const clientReliabilityClass = reliabilityCode ? CLIENT_RELIABILITY_STYLES[reliabilityCode] ?? CLIENT_RELIABILITY_STYLES.MEDIA : null;
+
+    const calculateNextInstallmentDate = () => {
+        if (rawNextInstallment <= 0) return null;
+        if (!credito.startDate) return credito.dueDate ? new Date(credito.dueDate) : null;
+
+        const baseDate = new Date(credito.startDate);
+        if (Number.isNaN(baseDate.getTime())) return credito.dueDate ? new Date(credito.dueDate) : null;
+
+        const nextIndex = Math.max(rawNextInstallment, 1) - 1;
+        const date = new Date(baseDate);
+
+        switch (credito.type) {
+            case "DAILY":
+                date.setDate(date.getDate() + nextIndex);
+                break;
+            case "WEEKLY":
+                date.setDate(date.getDate() + nextIndex * 7);
+                break;
+            case "QUINCENAL":
+                date.setDate(date.getDate() + nextIndex * 15);
+                break;
+            case "MONTHLY":
+                date.setMonth(date.getMonth() + nextIndex);
+                break;
+            case "ONE_TIME":
+                if (credito.dueDate) {
+                    const due = new Date(credito.dueDate);
+                    if (!Number.isNaN(due.getTime())) return due;
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (credito.type !== "ONE_TIME" && credito.dueDate) {
+            const due = new Date(credito.dueDate);
+            if (!Number.isNaN(due.getTime()) && date > due) {
+                return due;
+            }
+        }
+
+        return date;
+    };
+
+    const nextInstallmentDate = calculateNextInstallmentDate();
+    const nextInstallmentDateLabel = nextInstallmentDate && !Number.isNaN(nextInstallmentDate.getTime())
+        ? nextInstallmentDate.toLocaleDateString("es-AR")
+        : credito.dueDate
+            ? new Date(credito.dueDate).toLocaleDateString("es-AR")
+            : "—";
+
+    const commissionFieldNames = [
+        "commissionAmount",
+        "commission",
+        "commissionValue",
+        "commissionFee",
+        "commission_fee",
+        "comision",
+        "comisionMonto",
+        "comisionAmount",
+        "comisionLibre"
+    ];
+    const explicitCommissionAmount = commissionFieldNames
+        .map((field) => toNumberOrNull(credito?.[field]))
+        .find((value) => value !== null && value > 0);
+
+    const commissionExpenses = expenses.filter((expense) => {
+        const descriptorSource = `${expense?.description ?? ""} ${expense?.category ?? ""} ${expense?.specialCredit?.name ?? ""} ${expense?.notes ?? ""}`;
+        const descriptor = normalizeToAsciiLower(descriptorSource);
+        return descriptor.includes("comision") || descriptor.includes("commission");
+    });
+
+    const totalCommissionFromExpenses = commissionExpenses.reduce(
+        (sum, expense) => sum + (Number(expense.amount) || 0),
+        0
+    );
+
+    const commissionAmount = explicitCommissionAmount ?? (totalCommissionFromExpenses > 0 ? totalCommissionFromExpenses : null);
+    const hasCommission = typeof commissionAmount === "number" && commissionAmount > 0;
+
+    const rawCommissionRecipients = [
+        ...commissionExpenses.map((expense) => expense?.specialCredit?.name || expense?.description || null),
+        ...commissionExpenses.map((expense) => expense?.notes || null),
+        credito?.commissionReceiver,
+        credito?.commissionRecipient,
+        credito?.commissionReceiverName,
+        credito?.commissionAssignedTo,
+        credito?.commissionAssignedToName,
+        credito?.commissionDestination,
+        credito?.commissionDestinationName,
+        credito?.comisionDestinatario,
+        credito?.comisionCobrador
+    ];
+
+    if (credito?.commissionUser) {
+        const commissionUser = credito.commissionUser;
+        if (typeof commissionUser === "string") {
+            rawCommissionRecipients.push(commissionUser);
+        } else if (typeof commissionUser === "object" && commissionUser?.name) {
+            rawCommissionRecipients.push(commissionUser.name);
+        }
+    }
+
+    const commissionRecipients = rawCommissionRecipients.reduce((acc, value) => {
+        if (!value) return acc;
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            if (!trimmed) return acc;
+
+            const normalized = normalizeToAsciiLower(trimmed);
+            if (normalized.includes("comision cobrador")) {
+                const parts = trimmed.split(/[-:]/);
+                if (parts.length > 1) {
+                    const possibleName = parts.slice(1).join(" ").trim();
+                    if (possibleName) {
+                        acc.push(possibleName);
+                        return acc;
+                    }
+                }
+            }
+
+            acc.push(trimmed);
+            return acc;
+        }
+        if (typeof value === "object") {
+            if (value?.name) acc.push(value.name);
+            else if (value?.fullName) acc.push(value.fullName);
+        }
+        return acc;
+    }, []);
+
+    const commissionRecipientsUnique = Array.from(new Set(commissionRecipients));
+
+    if (hasCommission && commissionRecipientsUnique.length === 0 && cobrador?.name) {
+        commissionRecipientsUnique.push(cobrador.name);
+    }
+
+    const commissionRecipientsLabel = commissionRecipientsUnique.join(", ");
+    const commissionDisplay = hasCommission
+        ? `${currencyFormatter.format(commissionAmount)}${commissionRecipientsLabel ? ` · ${commissionRecipientsLabel}` : ""}`
+        : null;
 
     const handleDownloadPdf = () => {
         if (!credito) return;
@@ -145,6 +397,12 @@ export default function CreditoDetalle() {
             if (!value) return "-";
             const date = new Date(value);
             return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString("es-AR");
+        };
+
+        const formatCurrency = (value) => {
+            const numericValue = Number(value);
+            if (!Number.isFinite(numericValue)) return "—";
+            return currencyFormatter.format(Math.max(numericValue, 0));
         };
 
         doc.setFontSize(18);
@@ -171,25 +429,108 @@ export default function CreditoDetalle() {
         doc.text(`Contacto cobrador: ${cobrador?.email || "-"}`, leftMargin, cursorY);
         cursorY += 8;
 
+        const summaryRows = [
+            ["Tipo de crédito", creditTypeLabel]
+        ];
+
+        if (hasSpecialCredit) {
+            summaryRows.push(["Crédito especial", specialCreditName]);
+        }
+
+        if (clientReliabilityLabel) {
+            summaryRows.push(["Perfil cliente", clientReliabilityLabel]);
+        }
+
+        summaryRows.push([
+            "Monto base",
+            formatCurrency(baseAmount)
+        ]);
+
+        summaryRows.push([
+            "Monto total del plan",
+            formatCurrency(totalCreditAmount)
+        ]);
+
+        if (installmentAmount) {
+            summaryRows.push(["Cuota estimada", formatCurrency(installmentAmount)]);
+        }
+
+        summaryRows.push([
+            "Cuotas pagadas",
+            `${cuotasPagadas}/${cuotasTotales || "-"}`
+        ]);
+
+        if (cuotasRestantes !== null) {
+            summaryRows.push(["Cuotas restantes", String(cuotasRestantes)]);
+        }
+
+        summaryRows.push(["Saldo pagado", formatCurrency(totalPagado)]);
+        summaryRows.push(["Saldo pendiente", formatCurrency(saldoPendiente)]);
+        summaryRows.push(["Monto recibido", formatCurrency(receivedAmount)]);
+
+        if (nextInstallmentLabel && nextInstallmentLabel !== "—") {
+            summaryRows.push(["Próxima cuota", nextInstallmentLabel]);
+        }
+
+        if (nextInstallmentDateLabel && nextInstallmentDateLabel !== "—") {
+            summaryRows.push(["Próxima cuota (fecha)", nextInstallmentDateLabel]);
+        }
+
+        summaryRows.push(["Total gastos", formatCurrency(totalExpenses)]);
+        summaryRows.push(["Neto post gastos", formatCurrency(netAfterExpenses)]);
+
+        summaryRows.push([
+            "Comisión",
+            hasCommission
+                ? `${formatCurrency(commissionAmount)}${commissionRecipientsLabel ? ` · ${commissionRecipientsLabel}` : ""}`
+                : "—"
+        ]);
+
+        summaryRows.push([
+            "Estado",
+            credito.status === "PAID"
+                ? "Pagado"
+                : credito.status === "OVERDUE"
+                    ? "Vencido"
+                    : "Pendiente"
+        ]);
+
+        summaryRows.push(["Inicio", formatDate(credito.startDate)]);
+
+        if (credito.dueDate) {
+            summaryRows.push(["Vencimiento", formatDate(credito.dueDate)]);
+        }
+
+        summaryRows.push(["Generado", new Date().toLocaleDateString("es-AR")]);
+
         autoTable(doc, {
             startY: cursorY,
             head: [["Detalle", "Valor"]],
-            body: [
-                ["Monto total", currencyFormatter.format(Number(credito.amount) || 0)],
-                ["Cuota", currencyFormatter.format(installmentAmount)],
-                ["Cuotas pagadas", `${cuotasPagadas}/${cuotasTotales || "-"}`],
-                ["Cuotas restantes", cuotasRestantes !== null ? String(cuotasRestantes) : "-"],
-                ["Saldo pagado", currencyFormatter.format(totalPagado)],
-                ["Saldo pendiente", currencyFormatter.format(saldoPendiente)],
-                ["Estado", credito.status === "PAID" ? "Pagado" : credito.status === "OVERDUE" ? "Vencido" : "Pendiente"],
-                ["Inicio", formatDate(credito.startDate)],
-                ["Vencimiento", formatDate(credito.dueDate)]
-            ],
+            body: summaryRows,
             styles: { fontSize: 11 },
             headStyles: { fillColor: [59, 130, 246] }
         });
 
         cursorY = (doc.lastAutoTable?.finalY || cursorY) + 8;
+
+        if (hasExpenses) {
+            autoTable(doc, {
+                startY: cursorY,
+                head: [["Gasto", "Monto", "Categoría"]],
+                body: expenses.map((expense) => [
+                    expense.description,
+                    formatCurrency(expense.amount),
+                    expense?.specialCredit?.name || "—"
+                ]),
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [16, 185, 129] },
+                columnStyles: {
+                    0: { cellWidth: 80 }
+                }
+            });
+
+            cursorY = (doc.lastAutoTable?.finalY || cursorY) + 8;
+        }
 
         if (pagosOrdenados.length > 0) {
             autoTable(doc, {
@@ -223,6 +564,11 @@ export default function CreditoDetalle() {
                             <span className="text-blue-700 dark:text-blue-400">
                                 {cliente?.name || "Cliente desconocido"}
                             </span>
+                            {clientReliabilityLabel && (
+                                <span className="ml-3 align-middle">
+                                    <ReliabilityPill label={clientReliabilityLabel} intentClass={clientReliabilityClass} />
+                                </span>
+                            )}
                         </h1>
 
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -230,18 +576,32 @@ export default function CreditoDetalle() {
                             {cobrador?.name || "Sin asignar"}
                         </p>
 
+                        {hasSpecialCredit && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Crédito especial:</span>{" "}
+                                {specialCreditName}
+                            </p>
+                        )}
+
+                        {hasCommission && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Comisión:</span>{" "}
+                                {commissionDisplay}
+                            </p>
+                        )}
+
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                             <span className="flex items-center gap-1.5">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
                                 </svg>
-                                Inicio: {new Date(credito.startDate).toLocaleDateString("es-AR")}
+                                Inicio: {startDateLabel}
                             </span>
                             <span className="flex items-center gap-1.5">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Vencimiento: {new Date(credito.dueDate).toLocaleDateString("es-AR")}
+                                Vencimiento: {dueDateLabel}
                             </span>
                         </div>
                     </div>
@@ -266,11 +626,11 @@ export default function CreditoDetalle() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <KpiCard
                     label="Monto total"
-                    value={`$${credito.amount.toLocaleString("es-AR")}`}
+                    value={totalCreditAmountLabel}
                 />
                 <KpiCard
                     label="Cuotas"
-                    value={`${credito.paidInstallments}/${credito.totalInstallments}`}
+                    value={`${credito.paidInstallments}/${credito.totalInstallments || "-"}`}
                 />
                 <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Progreso</p>
@@ -284,7 +644,81 @@ export default function CreditoDetalle() {
                         {progreso}% pagado
                     </p>
                 </div>
+                <KpiCard label="Tipo de crédito" value={creditTypeLabel} />
+                {hasSpecialCredit && (
+                    <KpiCard label="Crédito especial" value={specialCreditName} />
+                )}
+                <KpiCard label="Monto recibido" value={currencyFormatter.format(receivedAmount)} />
+                <KpiCard
+                    label="Próxima cuota"
+                    value={
+                        nextInstallmentLabel !== "—"
+                            ? `${nextInstallmentLabel}${nextInstallmentDateLabel ? ` · ${nextInstallmentDateLabel}` : ""}`
+                            : nextInstallmentDateLabel
+                    }
+                />
+                <KpiCard label="Total gastos" value={currencyFormatter.format(totalExpenses)} />
+                <KpiCard label="Neto post gastos" value={currencyFormatter.format(netAfterExpenses)} />
             </div>
+
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <h2 className="text-lg font-semibold">Gastos asociados</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {hasExpenses
+                                ? `Registramos ${expenses.length} gasto${expenses.length > 1 ? "s" : ""}${expenseTypeSummary.length ? ` (${expenseTypeSummary.join(", ")})` : ""}.`
+                                : "Este crédito no tiene gastos registrados."}
+                        </p>
+                    </div>
+                    {hasExpenses && (
+                        <div className="rounded-full bg-emerald-100 px-4 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            Total: {currencyFormatter.format(totalExpenses)}
+                        </div>
+                    )}
+                </div>
+
+                {hasExpenses ? (
+                    <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                                <tr>
+                                    <th className="px-4 py-2 font-medium">Gasto</th>
+                                    <th className="px-4 py-2 font-medium">Monto</th>
+                                    <th className="px-4 py-2 font-medium">Categoría</th>
+                                    <th className="px-4 py-2 font-medium">Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {expenses.map((expense) => {
+                                    const incurredLabel = expense?.incurredOn
+                                        ? new Date(expense.incurredOn).toLocaleDateString("es-AR")
+                                        : "—";
+                                    const categoryLabel = expense?.specialCredit?.name || "—";
+                                    return (
+                                        <tr key={expense.id ?? expense.tempId} className="bg-white dark:bg-gray-900">
+                                            <td className="px-4 py-2 text-gray-800 dark:text-gray-100">{expense.description}</td>
+                                            <td className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                                                {currencyFormatter.format(Number(expense.amount) || 0)}
+                                            </td>
+                                            <td className="px-4 py-2 text-gray-600 dark:text-gray-300">{categoryLabel}</td>
+                                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{incurredLabel}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        <div className="flex items-center justify-end gap-6 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                            <span>Total gastos: {currencyFormatter.format(totalExpenses)}</span>
+                            <span>Neto post gastos: {currencyFormatter.format(netAfterExpenses)}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                        Agregá gastos desde la pantalla de alta para verlos reflejados aquí.
+                    </p>
+                )}
+            </section>
 
             {/* === HISTORIAL Y CHART === */}
             <section className="grid gap-4 lg:grid-cols-2">
@@ -451,6 +885,15 @@ function EstadoPill({ estado }) {
                 estado
             )}`}
         >
+            {label}
+        </span>
+    );
+}
+
+function ReliabilityPill({ label, intentClass }) {
+    const classes = intentClass || CLIENT_RELIABILITY_STYLES.MEDIA;
+    return (
+        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${classes}`}>
             {label}
         </span>
     );

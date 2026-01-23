@@ -142,50 +142,47 @@ export default function Clientes() {
             </div>
 
             {/* Tabla */}
-            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:block">
+            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl dark:border-slate-700 dark:bg-slate-900/80 sm:block">
                 <table className="w-full text-left text-sm">
-                    <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
+                    <thead className="sticky top-0 z-10 bg-white/70 text-slate-500 backdrop-blur-lg dark:bg-slate-900/70 dark:text-slate-200">
                         <tr>
-                            <th className="px-4 py-3 font-medium">Nombre</th>
-                            <th className="px-4 py-3 font-medium">Teléfono</th>
-                            <th className="px-4 py-3 font-medium">Activo</th>
-                            <th className="px-4 py-3 font-medium">Confianza</th>
-                            <th className="px-4 py-3 font-medium">Acciones</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Nombre</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Teléfono</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Confianza</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800/80">
                         {rows.map((c) => {
                             const status = (c.status || "ACTIVE").toUpperCase();
                             const isActive = status === "ACTIVE";
                             const reliability = (c.reliability || "").toUpperCase();
                             const confianzaLabel = reliabilityLabelMap[reliability] ?? (reliability || "—");
                             return (
-                                <tr key={c.id} className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/70">
-                                    <td className="px-4 py-3">{c.name}</td>
-                                    <td className="px-4 py-3">
-                                        <div>{c.phone}</div>
+                                <tr key={c.id} className="transition hover:bg-sky-50/40 odd:bg-white/95 even:bg-slate-50/80 dark:odd:bg-slate-900/50 dark:even:bg-slate-900/35 dark:hover:bg-slate-900/55">
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-700 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-100">{c.name}</td>
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-600 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-200">
+                                        <div className="font-medium text-slate-700 dark:text-slate-100">{c.phone}</div>
                                         {c.alternatePhone && (
-                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">
                                                 Alt: {c.alternatePhone}
                                             </div>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <StatusPill ok={isActive} okText="Activo" badText="Inactivo" />
-                                    </td>
-                                    <td className="px-4 py-3">{confianzaLabel}</td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex flex-wrap items-center gap-2">
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-600 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-200">{confianzaLabel}</td>
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
+                                        <div className="flex flex-wrap justify-center gap-2 text-sm">
                                             <button
-                                                className="rounded-md bg-gray-100 p-2 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+                                                className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:border-slate-500/40 dark:bg-slate-500/15 dark:text-slate-200 dark:hover:bg-slate-500/25"
                                                 onClick={() => navigate(`/clientes/${c.id}/editar`)}
                                             >
                                                 <HiPencilAlt className="h-4 w-4" />
+                                                Editar
                                             </button>
                                             <button
-                                                className={`rounded-md p-2 ${isActive
-                                                    ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-700 dark:text-white dark:hover:bg-red-600"
-                                                    : "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-700 dark:text-white dark:hover:bg-green-600"
+                                                className={`inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 font-semibold shadow-sm transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 ${isActive
+                                                    ? "border-rose-200 bg-white/80 text-rose-600 hover:border-rose-300 hover:bg-rose-50 focus:ring-rose-200 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
+                                                    : "border-emerald-200 bg-white/80 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 focus:ring-emerald-200 dark:border-emerald-500/50 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
                                                     }`}
                                                 onClick={async () => {
                                                     const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
@@ -199,29 +196,30 @@ export default function Clientes() {
                                                 }}
                                             >
                                                 {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
+                                                {isActive ? "Eliminar" : "Activar"}
                                             </button>
                                             <button
-                                                className="rounded-md bg-sky-100 p-2 text-sky-700 hover:bg-sky-200 dark:bg-sky-700 dark:text-white dark:hover:bg-sky-600"
+                                                className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 py-1.5 text-sm font-semibold text-sky-600 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20"
                                                 onClick={() => navigate(`/clientes/${c.id}`)}
                                             >
                                                 <HiEye className="h-4 w-4" />
+                                                Ver
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
                             );
                         })}
-
-                        {!loading && rows.length === 0 && (
+                        {!rows.length && !loading && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <td colSpan={4} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
                                     No hay clientes con esos filtros.
                                 </td>
                             </tr>
                         )}
                         {loading && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <td colSpan={4} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
                                     Cargando...
                                 </td>
                             </tr>
@@ -299,18 +297,3 @@ function FiltersRow({ activo, setActivo, confianza, setConfianza }) {
     );
 }
 
-function StatusPill({ ok, okText, badText }) {
-    return (
-        <span
-            className={[
-                "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs border",
-                ok
-                    ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
-                    : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
-            ].join(" ")}
-        >
-            <span className={`h-2 w-2 rounded-full ${ok ? "bg-green-500" : "bg-red-500"}`} />
-            {ok ? okText : badText}
-        </span>
-    );
-}

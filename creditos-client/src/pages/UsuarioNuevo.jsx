@@ -207,7 +207,7 @@ export default function UsuarioNuevo() {
                                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                             >
                                 <option value="COBRADOR">COBRADOR</option>
-                                <option value="EMPLOYEE">EMPLOYEE</option>
+                                <option value="EMPLOYEE">Empleado</option>
                                 <option value="ADMIN">ADMIN</option>
                             </select>
                         </div>

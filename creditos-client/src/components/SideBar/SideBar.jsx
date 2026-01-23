@@ -32,6 +32,12 @@ export default function SideBar() {
   const email = user?.email || "";
   const displayName = user?.name || (email ? email.split("@")[0] : "Usuario");
 
+  const handleLogoClick = () => {
+    const target = role === "cobrador" || role === "employee" ? "/cobrador/dashboard" : "/";
+    setOpen(false);
+    navigate(target);
+  };
+
   // Cerrar drawer al navegar
   useEffect(() => {
     setOpen(false);
@@ -71,7 +77,13 @@ export default function SideBar() {
             >
               <HiMenu className="h-6 w-6" />
             </button>
-            <img src={logo3} className="h-10 me-10 ml-5" alt="Logo" />
+            <button
+              type="button"
+              onClick={handleLogoClick}
+              className="ml-5 me-10 flex items-center rounded-lg p-1 transition hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:hover:bg-gray-700"
+            >
+              <img src={logo3} className="h-10" alt="Logo" />
+            </button>
           </div>
 
           {/* Avatar */}

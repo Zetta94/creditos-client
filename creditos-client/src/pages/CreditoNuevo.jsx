@@ -4,11 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import jsPDF from "jspdf";
 import toast from "react-hot-toast";
-import { loadClients } from "../store/clientsSlice";
 import { addCredit } from "../store/creditsSlice";
 import { loadUsers } from "../store/employeeSlice";
+import { fetchClients as fetchClientsService } from "../services/clientsService";
+import {
+    fetchSpecialCredits as fetchSpecialCreditsService,
+    createSpecialCredit as createSpecialCreditService
+} from "../services/specialCreditsService";
 
 const PLAN_OPTIONS = [
+    { label: "Pago único", value: "ONE_TIME" },
     { label: "Diario", value: "DAILY" },
     { label: "Semanal", value: "WEEKLY" },
     { label: "Quincenal", value: "QUINCENAL" },
@@ -16,7 +21,9 @@ const PLAN_OPTIONS = [
 ];
 
 const DEFAULT_PLAN = "MONTHLY";
-const CLIENTS_FETCH_LIMIT = 1000;
+const CLIENTS_FETCH_LIMIT = 100;
+const CLIENTS_SUGGESTION_LIMIT = 10;
+const SPECIAL_CREDITS_FETCH_LIMIT = 10;
 const COMPANY_NAME = "El Imperio Créditos";
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -47,6 +54,8 @@ const clientMatchesTokens = (client, tokens) => {
     return tokens.every((token) => fields.some((field) => field.includes(token)));
 };
 
+const isClientActive = (client) => ((client?.status ?? "ACTIVE").toUpperCase() === "ACTIVE");
+
 const calculateDueDate = (startDate, installments, plan) => {
     if (!startDate) return "";
 
@@ -57,6 +66,8 @@ const calculateDueDate = (startDate, installments, plan) => {
     const due = new Date(base);
 
     switch (plan) {
+        case "ONE_TIME":
+            break;
         case "DAILY":
             due.setDate(due.getDate() + periods);
             break;
@@ -87,23 +98,23 @@ const toUtcIsoFromLocalDate = (value) => {
     return localDate.toISOString();
 };
 
+const createTempId = () =>
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+
 export default function CreditoNuevo() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    const { list: clients = [] } = useSelector((state) => state.clients) ?? { list: [] };
     const { loading: isSubmitting = false } = useSelector((state) => state.credits) ?? { loading: false };
     const { list: users = [] } = useSelector((state) => state.employees) ?? { list: [] };
 
-    const cobradores = useMemo(
-        () => users.filter((user) => user.role === "COBRADOR" || user.role === "EMPLOYEE"),
-        [users]
-    );
-
-    useEffect(() => {
-        if (!clients.length) dispatch(loadClients({ pageSize: CLIENTS_FETCH_LIMIT }));
-        if (!users.length) dispatch(loadUsers());
-    }, [clients.length, users.length, dispatch]);
+    const [clientOptions, setClientOptions] = useState([]);
+    const [selectedClient, setSelectedClient] = useState(null);
+    const [isLoadingClients, setIsLoadingClients] = useState(false);
+    const [clientsError, setClientsError] = useState(null);
+    const [clientSearch, setClientSearch] = useState("");
 
     const todayIso = useMemo(() => toLocalDateIso(new Date()), []);
     const [form, setForm] = useState({
@@ -118,23 +129,201 @@ export default function CreditoNuevo() {
         startDate: todayIso
     });
 
-    const [clientSearch, setClientSearch] = useState("");
+    const selectedClientId = form.clienteId;
 
-    const selectedClient = useMemo(
-        () => clients.find((client) => client.id === form.clienteId) ?? null,
-        [clients, form.clienteId]
+    const cobradores = useMemo(
+        () => users.filter((user) => user.role === "COBRADOR" || user.role === "EMPLOYEE"),
+        [users]
     );
+
+    useEffect(() => {
+        if (!users.length) dispatch(loadUsers());
+    }, [users.length, dispatch]);
+
+    useEffect(() => {
+        if (selectedClientId) {
+            setIsLoadingClients(false);
+            return;
+        }
+
+        let disposed = false;
+        const searchTerm = clientSearch.trim();
+
+        const fetchOptions = async () => {
+            setIsLoadingClients(true);
+            setClientsError(null);
+            try {
+                const params = { pageSize: CLIENTS_FETCH_LIMIT };
+                if (searchTerm) params.q = searchTerm;
+                const response = await fetchClientsService(params);
+                if (!disposed) {
+                    setClientOptions(response.data?.data ?? []);
+                }
+            } catch (error) {
+                if (disposed) return;
+                console.error("No se pudieron cargar los clientes", error);
+                setClientOptions([]);
+                setClientsError("No se pudo cargar la lista de clientes");
+            } finally {
+                if (!disposed) setIsLoadingClients(false);
+            }
+        };
+
+        const delay = setTimeout(fetchOptions, searchTerm ? 250 : 0);
+
+        return () => {
+            disposed = true;
+            clearTimeout(delay);
+        };
+    }, [clientSearch, selectedClientId]);
+
+    const isSinglePayment = form.plan === "ONE_TIME";
+
+    const [creditMode, setCreditMode] = useState("NEW");
+    const isExistingCredit = creditMode === "EXISTING";
+    const [existingCreditData, setExistingCreditData] = useState({
+        nextInstallmentToCharge: ""
+    });
+
+    const [expenses, setExpenses] = useState([]);
+    const [expenseSearch, setExpenseSearch] = useState("");
+    const [expenseAmount, setExpenseAmount] = useState("");
+    const [selectedSpecialCredit, setSelectedSpecialCredit] = useState(null);
+    const [specialCreditOptions, setSpecialCreditOptions] = useState([]);
+    const [isLoadingSpecialCredits, setIsLoadingSpecialCredits] = useState(false);
+    const [specialCreditsError, setSpecialCreditsError] = useState(null);
+    const [isSavingExpense, setIsSavingExpense] = useState(false);
+
+    const [isSpecialCredit, setIsSpecialCredit] = useState(false);
+    const [creditSpecialSearch, setCreditSpecialSearch] = useState("");
+    const [creditSpecialOptions, setCreditSpecialOptions] = useState([]);
+    const [isLoadingCreditSpecials, setIsLoadingCreditSpecials] = useState(false);
+    const [creditSpecialError, setCreditSpecialError] = useState(null);
+    const [selectedCreditSpecial, setSelectedCreditSpecial] = useState(null);
+    const [isCreatingCreditSpecial, setIsCreatingCreditSpecial] = useState(false);
+
+    useEffect(() => {
+        if (!isSinglePayment) return;
+        setForm((prev) => (prev.cuotas === "1" ? prev : { ...prev, cuotas: "1" }));
+    }, [isSinglePayment]);
+
+    useEffect(() => {
+        const search = expenseSearch.trim();
+
+        if (!search) {
+            setSpecialCreditOptions([]);
+            setSpecialCreditsError(null);
+            return;
+        }
+
+        let disposed = false;
+
+        const run = async () => {
+            setIsLoadingSpecialCredits(true);
+            setSpecialCreditsError(null);
+            try {
+                const response = await fetchSpecialCreditsService({
+                    q: search,
+                    pageSize: SPECIAL_CREDITS_FETCH_LIMIT
+                });
+                if (!disposed) {
+                    setSpecialCreditOptions(response.data?.data ?? []);
+                }
+            } catch (error) {
+                if (disposed) return;
+                console.error("No se pudieron cargar los créditos especiales", error);
+                setSpecialCreditOptions([]);
+                setSpecialCreditsError("No se pudo cargar la lista de gastos");
+            } finally {
+                if (!disposed) setIsLoadingSpecialCredits(false);
+            }
+        };
+
+        const delay = setTimeout(run, 250);
+
+        return () => {
+            disposed = true;
+            clearTimeout(delay);
+        };
+    }, [expenseSearch]);
+
+    useEffect(() => {
+        if (!isSpecialCredit) {
+            setCreditSpecialSearch("");
+            setCreditSpecialOptions([]);
+            setCreditSpecialError(null);
+            setSelectedCreditSpecial(null);
+            setIsLoadingCreditSpecials(false);
+            return;
+        }
+
+        let disposed = false;
+        const search = creditSpecialSearch.trim();
+
+        const run = async () => {
+            setIsLoadingCreditSpecials(true);
+            setCreditSpecialError(null);
+            try {
+                const params = { pageSize: SPECIAL_CREDITS_FETCH_LIMIT };
+                if (search) params.q = search;
+                const response = await fetchSpecialCreditsService(params);
+                if (!disposed) {
+                    setCreditSpecialOptions(response.data?.data ?? []);
+                }
+            } catch (error) {
+                if (disposed) return;
+                console.error("No se pudieron cargar los créditos especiales", error);
+                setCreditSpecialOptions([]);
+                setCreditSpecialError("No se pudieron cargar los créditos especiales");
+            } finally {
+                if (!disposed) setIsLoadingCreditSpecials(false);
+            }
+        };
+
+        const delay = setTimeout(run, search ? 250 : 0);
+
+        return () => {
+            disposed = true;
+            clearTimeout(delay);
+        };
+    }, [isSpecialCredit, creditSpecialSearch]);
+
+    useEffect(() => {
+        if (!isExistingCredit) {
+            setExistingCreditData({ nextInstallmentToCharge: "" });
+        }
+    }, [isExistingCredit]);
 
     const searchTokens = useMemo(() => tokenize(clientSearch), [clientSearch]);
 
     const filteredClients = useMemo(() => {
+        if (selectedClientId) return [];
+        if (!clientOptions.length) return [];
+        const prioritized = [...clientOptions].sort((a, b) => Number(isClientActive(b)) - Number(isClientActive(a)));
         if (!searchTokens.length) {
-            return clients.slice(0, 10);
+            return prioritized.slice(0, CLIENTS_SUGGESTION_LIMIT);
         }
-        return clients.filter((client) => clientMatchesTokens(client, searchTokens)).slice(0, 10);
-    }, [clients, searchTokens]);
+        return prioritized
+            .filter((client) => clientMatchesTokens(client, searchTokens))
+            .slice(0, CLIENTS_SUGGESTION_LIMIT);
+    }, [clientOptions, searchTokens, selectedClientId]);
 
     const shouldShowClientResults = clientSearch.trim().length > 0 && !form.clienteId;
+
+    const normalizedExpenseSearch = expenseSearch.trim();
+    const shouldShowSpecialCreditResults = normalizedExpenseSearch.length > 0 && !selectedSpecialCredit;
+
+    const totalExpenses = useMemo(
+        () => expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
+        [expenses]
+    );
+
+    const nextInstallmentNumber = useMemo(
+        () => Math.max(0, Number(existingCreditData.nextInstallmentToCharge) || 0),
+        [existingCreditData.nextInstallmentToCharge]
+    );
+
+    const canAddExpense = Number(expenseAmount) > 0 && (normalizedExpenseSearch.length > 0 || selectedSpecialCredit);
 
     const montoBase = Number(form.monto) || 0;
     const interesPorc = Number(form.interes) || 0;
@@ -151,6 +340,26 @@ export default function CreditoNuevo() {
         return Math.round(totalCredito / cuotasNumber);
     }, [totalCredito, cuotasNumber]);
 
+    const paidInstallmentsNumber = useMemo(
+        () => Math.max(nextInstallmentNumber - 1, 0),
+        [nextInstallmentNumber]
+    );
+
+    const computedReceivedAmount = useMemo(() => {
+        const installmentValue = cuotaEstimada || 0;
+        if (!installmentValue || !paidInstallmentsNumber) return 0;
+        return paidInstallmentsNumber * installmentValue;
+    }, [paidInstallmentsNumber, cuotaEstimada]);
+
+    const hasNextInstallmentValue =
+        typeof existingCreditData.nextInstallmentToCharge === "string" &&
+        existingCreditData.nextInstallmentToCharge.trim() !== "";
+
+    const showComputedReceivedAmount = isExistingCredit && cuotaEstimada > 0 && hasNextInstallmentValue;
+    const computedReceivedAmountLabel = showComputedReceivedAmount
+        ? currencyFormatter.format(computedReceivedAmount)
+        : "—";
+
     const preview = useMemo(() => {
         if (!cuotaEstimada || !cuotasNumber) return [];
         const length = Math.min(6, cuotasNumber);
@@ -160,7 +369,11 @@ export default function CreditoNuevo() {
         }));
     }, [cuotaEstimada, cuotasNumber]);
 
-    const totalNetoCliente = useMemo(() => Math.max(montoBase - comisionLibre, 0), [montoBase, comisionLibre]);
+    const gananciaCredito = useMemo(() => Math.max(totalCredito - montoBase, 0), [totalCredito, montoBase]);
+    const totalNetoDespuesComision = useMemo(
+        () => Math.max(totalCredito - comisionLibre, 0),
+        [totalCredito, comisionLibre]
+    );
 
     const estimatedDueDate = useMemo(
         () => calculateDueDate(form.startDate, cuotasNumber, form.plan),
@@ -172,14 +385,146 @@ export default function CreditoNuevo() {
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
+    const resetExpenseInputs = () => {
+        setExpenseSearch("");
+        setExpenseAmount("");
+        setSelectedSpecialCredit(null);
+        setSpecialCreditsError(null);
+    };
+
     const clearClientSelection = () => {
         setForm((prev) => ({ ...prev, clienteId: "" }));
+        setSelectedClient(null);
         setClientSearch("");
+        setExpenses([]);
+        resetExpenseInputs();
     };
 
     const handleClientSelect = (client) => {
+        if (!isClientActive(client)) {
+            toast.error("Este cliente está inactivo. Activalo antes de asignar un crédito.");
+            return;
+        }
         setForm((prev) => ({ ...prev, clienteId: client.id }));
+        setSelectedClient(client);
         setClientSearch(client.name || client.document || "");
+    };
+
+    const handleExpenseSearchChange = (event) => {
+        const value = event.target.value;
+        setExpenseSearch(value);
+        if (!value.trim()) {
+            setSelectedSpecialCredit(null);
+        }
+    };
+
+    const handleSelectSpecialCredit = (item) => {
+        setSelectedSpecialCredit(item);
+        setExpenseSearch(item.name);
+    };
+
+    const handleClearSelectedSpecialCredit = () => {
+        setSelectedSpecialCredit(null);
+    };
+
+    const handleToggleSpecialCredit = () => {
+        setIsSpecialCredit((prev) => !prev);
+    };
+
+    const handleSelectCreditSpecial = (item) => {
+        setSelectedCreditSpecial(item);
+        setCreditSpecialSearch(item?.name ?? "");
+    };
+
+    const handleClearCreditSpecial = () => {
+        setSelectedCreditSpecial(null);
+        setCreditSpecialSearch("");
+    };
+
+    const handleCreateCreditSpecial = async () => {
+        const name = creditSpecialSearch.trim();
+
+        if (!name) {
+            toast.error("Ingresá el nombre del crédito especial");
+            return;
+        }
+
+        setIsCreatingCreditSpecial(true);
+        try {
+            const response = await createSpecialCreditService({ name });
+            const created = response.data;
+            setSelectedCreditSpecial(created);
+            setCreditSpecialSearch(created?.name ?? name);
+            setCreditSpecialOptions((prev) => {
+                if (!created) return prev;
+                const filtered = Array.isArray(prev) ? prev.filter((item) => item.id !== created.id) : [];
+                return [created, ...filtered];
+            });
+            toast.success("Crédito especial creado");
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "No se pudo crear el crédito especial";
+            toast.error(message);
+        } finally {
+            setIsCreatingCreditSpecial(false);
+        }
+    };
+
+    const handleExistingCreditChange = (event) => {
+        const { name, value } = event.target;
+        setExistingCreditData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleRemoveExpense = (tempId) => {
+        setExpenses((prev) => prev.filter((expense) => expense.tempId !== tempId));
+    };
+
+    const handleAddExpense = async () => {
+        const description = (selectedSpecialCredit?.name || expenseSearch).trim();
+        const amountNumber = Number(expenseAmount);
+
+        if (!description) {
+            toast.error("Indicá el nombre del gasto");
+            return;
+        }
+
+        if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+            toast.error("Ingresá un monto válido para el gasto");
+            return;
+        }
+
+        setIsSavingExpense(true);
+        try {
+            let specialCreditRecord = selectedSpecialCredit;
+
+            if (!specialCreditRecord) {
+                const response = await createSpecialCreditService({ name: description });
+                specialCreditRecord = response.data;
+            }
+
+            setExpenses((prev) => [
+                ...prev,
+                {
+                    tempId: createTempId(),
+                    description,
+                    amount: amountNumber,
+                    specialCreditId: specialCreditRecord?.id ?? null,
+                    specialCreditName: specialCreditRecord?.name ?? description
+                }
+            ]);
+
+            resetExpenseInputs();
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "No se pudo guardar el gasto";
+            toast.error(message);
+        } finally {
+            setIsSavingExpense(false);
+        }
     };
 
     const handleSubmit = async (event) => {
@@ -187,6 +532,12 @@ export default function CreditoNuevo() {
 
         if (!form.clienteId) {
             toast.error("Seleccioná un cliente antes de crear el crédito");
+            return;
+        }
+
+        const clientRecord = selectedClient || clientOptions.find((client) => client.id === form.clienteId);
+        if (clientRecord && !isClientActive(clientRecord)) {
+            toast.error("Este cliente está inactivo. Activalo antes de asignar un crédito.");
             return;
         }
 
@@ -219,6 +570,59 @@ export default function CreditoNuevo() {
             return;
         }
 
+        if (isSpecialCredit && !selectedCreditSpecial) {
+            toast.error("Seleccioná o creá un crédito especial");
+            return;
+        }
+
+        let receivedAmountValue = 0;
+        let nextInstallmentValue;
+
+        if (isExistingCredit) {
+            if (!existingCreditData.nextInstallmentToCharge.trim()) {
+                toast.error("Indicá la próxima cuota a cobrar");
+                return;
+            }
+
+            nextInstallmentValue = Number(existingCreditData.nextInstallmentToCharge);
+            if (!Number.isInteger(nextInstallmentValue) || nextInstallmentValue < 1) {
+                toast.error("La próxima cuota debe ser un número entero mayor o igual a 1");
+                return;
+            }
+
+            if (!cuotaEstimada) {
+                toast.error("Completá monto, interés y cuotas para calcular lo ya cobrado");
+                return;
+            }
+
+            const paidInstallments = Math.max(nextInstallmentValue - 1, 0);
+            const installmentValue = cuotaEstimada || 0;
+            receivedAmountValue = paidInstallments > 0 && installmentValue > 0
+                ? paidInstallments * installmentValue
+                : 0;
+        }
+
+        const expensesPayload = expenses.map((expense) => ({
+            description: expense.description,
+            amount: Number(expense.amount) || 0,
+            specialCreditId: expense.specialCreditId ?? undefined,
+            category: expense.category ?? undefined,
+            notes: expense.notes ?? undefined,
+            incurredOn: expense.incurredOn ?? undefined
+        }));
+
+        if (comisionLibre > 0) {
+            const commissionUser =
+                cobradores.find((user) => user.id === form.cobradorComisionId) ||
+                cobradores.find((user) => user.id === form.cobradorId);
+            expensesPayload.push({
+                description: `Comisión cobrador${commissionUser ? ` - ${commissionUser.name}` : ""}`,
+                amount: comisionLibre,
+                category: "COMISION",
+                notes: commissionUser ? `Cobrador: ${commissionUser.name}` : undefined
+            });
+        }
+
         const payload = {
             clientId: form.clienteId,
             type: form.plan,
@@ -227,8 +631,19 @@ export default function CreditoNuevo() {
             installmentAmount: cuotaEstimada || undefined,
             startDate: startDateIso,
             dueDate: dueDateIso,
-            status: "PENDING"
+            status: "PENDING",
+            expenses: expensesPayload,
+            receivedAmount: isExistingCredit ? receivedAmountValue : 0
         };
+
+        if (isSpecialCredit && selectedCreditSpecial?.id) {
+            payload.specialCreditId = selectedCreditSpecial.id;
+        }
+
+        if (isExistingCredit && typeof nextInstallmentValue === "number") {
+            payload.paidInstallments = Math.max(nextInstallmentValue - 1, 0);
+            payload.nextInstallmentToCharge = nextInstallmentValue;
+        }
 
         if (form.cobradorId) {
             payload.userId = form.cobradorId;
@@ -426,24 +841,37 @@ export default function CreditoNuevo() {
 
                             {shouldShowClientResults && (
                                 <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-950">
-                                    {filteredClients.length ? (
+                                    {isLoadingClients ? (
+                                        <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">Buscando clientes...</p>
+                                    ) : clientsError ? (
+                                        <p className="px-4 py-3 text-sm text-red-600 dark:text-red-300">{clientsError}</p>
+                                    ) : filteredClients.length ? (
                                         filteredClients.map((client) => {
                                             const isSelected = client.id === form.clienteId;
+                                            const isActive = isClientActive(client);
                                             return (
                                                 <button
                                                     key={client.id}
                                                     type="button"
                                                     onClick={() => handleClientSelect(client)}
-                                                    className={`flex w-full flex-col gap-1 border-b px-4 py-3 text-left text-sm transition last:border-b-0 dark:border-gray-800 ${isSelected ? "bg-blue-50 text-blue-800 shadow-inner dark:bg-blue-900/40 dark:text-blue-200" : "hover:bg-blue-50/60 dark:text-gray-100 dark:hover:bg-blue-900/20"}`}>
+                                                    className={`flex w-full flex-col gap-1 border-b px-4 py-3 text-left text-sm transition last:border-b-0 dark:border-gray-800 ${isSelected
+                                                        ? "bg-blue-50 text-blue-800 shadow-inner dark:bg-blue-900/40 dark:text-blue-200"
+                                                        : "hover:bg-blue-50/60 dark:text-gray-100 dark:hover:bg-blue-900/20"
+                                                        } ${isActive ? "" : "cursor-not-allowed opacity-60"}`}>
                                                     <span className="font-medium">{client.name || "Sin nombre"}</span>
                                                     <span className="text-xs text-gray-600 dark:text-gray-400">
                                                         DNI: {client.document || "—"} • Tel: {client.phone || client.alternatePhone || "—"}
+                                                    </span>
+                                                    <span className={`text-[11px] font-semibold ${isActive ? "text-emerald-600" : "text-red-500"}`}>
+                                                        {isActive ? "Activo" : "Inactivo"}
                                                     </span>
                                                 </button>
                                             );
                                         })
                                     ) : (
-                                        <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">No se encontraron clientes con ese criterio</p>
+                                        <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                                            {clientSearch.trim() ? "No se encontraron clientes con ese criterio" : "Aún no hay clientes para mostrar"}
+                                        </p>
                                     )}
                                 </div>
                             )}
@@ -464,7 +892,140 @@ export default function CreditoNuevo() {
                     </section>
 
                     <section className="rounded-xl border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Gastos asociados</h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Registrá fletes u otros gastos vinculados a este crédito.</p>
+                        </div>
+
+                        <div className="mt-4 space-y-5">
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Gasto</label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={expenseSearch}
+                                            onChange={handleExpenseSearchChange}
+                                            placeholder="Ej: Heladera, Flete, Tecnología"
+                                            className="h-11 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                                        {selectedSpecialCredit && (
+                                            <button
+                                                type="button"
+                                                onClick={handleClearSelectedSpecialCredit}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-transparent bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-900/60">
+                                                Cambiar
+                                            </button>
+                                        )}
+                                    </div>
+                                    {selectedSpecialCredit && (
+                                        <p className="text-xs text-blue-600 dark:text-blue-300">Usando gasto guardado: {selectedSpecialCredit.name}</p>
+                                    )}
+
+                                    {shouldShowSpecialCreditResults && (
+                                        <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-950">
+                                            {isLoadingSpecialCredits ? (
+                                                <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">Buscando gastos...</p>
+                                            ) : specialCreditsError ? (
+                                                <p className="px-4 py-3 text-sm text-red-600 dark:text-red-300">{specialCreditsError}</p>
+                                            ) : specialCreditOptions.length ? (
+                                                specialCreditOptions.map((item) => (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        onClick={() => handleSelectSpecialCredit(item)}
+                                                        className="flex w-full items-center justify-between border-b px-4 py-2 text-left text-sm transition last:border-b-0 dark:border-gray-800 hover:bg-blue-50/70 dark:text-gray-100 dark:hover:bg-blue-900/40">
+                                                        <span className="font-medium">{item.name}</span>
+                                                        {typeof item?._count?.expenses === "number" && (
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400">{item._count.expenses} usos</span>
+                                                        )}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">No encontramos gastos guardados. Crearemos "{normalizedExpenseSearch}" al agregarlo.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Monto del gasto (ARS)</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step="100"
+                                        value={expenseAmount}
+                                        onChange={(event) => setExpenseAmount(event.target.value)}
+                                        className="h-11 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end">
+                                <button
+                                    type="button"
+                                    onClick={handleAddExpense}
+                                    disabled={!canAddExpense || isSavingExpense}
+                                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-60">
+                                    {isSavingExpense ? "Agregando..." : selectedSpecialCredit ? "Agregar gasto" : "Crear y agregar gasto"}
+                                </button>
+                            </div>
+
+                            {expenses.length ? (
+                                <div className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                            <tr>
+                                                <th className="px-4 py-2 font-medium">Gasto</th>
+                                                <th className="px-4 py-2 font-medium">Monto</th>
+                                                <th className="px-4 py-2 text-right font-medium">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                            {expenses.map((expense) => (
+                                                <tr key={expense.tempId} className="bg-white dark:bg-gray-900">
+                                                    <td className="px-4 py-2">
+                                                        <div className="font-medium text-gray-800 dark:text-gray-100">{expense.description}</div>
+                                                        {expense.specialCreditName && (
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">Tipo registrado: {expense.specialCreditName}</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                                                        {currencyFormatter.format(expense.amount)}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveExpense(expense.tempId)}
+                                                            className="rounded-md bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/40 dark:text-red-200 dark:hover:bg-red-900/60">
+                                                            Quitar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Agregá los gastos que se generan por este crédito. Si el tipo no existe, lo crearemos automáticamente.</p>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="rounded-xl border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
                         <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Configuración del crédito</h2>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setCreditMode("NEW")}
+                                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${creditMode === "NEW" ? "bg-blue-600 text-white shadow-sm" : "border border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-blue-200"}`}>
+                                Ingresar nuevo crédito
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCreditMode("EXISTING")}
+                                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${creditMode === "EXISTING" ? "bg-blue-600 text-white shadow-sm" : "border border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-blue-200"}`}>
+                                Ingresar crédito existente
+                            </button>
+                        </div>
                         <div className="mt-4 space-y-5">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="grid gap-1.5">
@@ -490,6 +1051,97 @@ export default function CreditoNuevo() {
                                         ))}
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-4 shadow-inner dark:border-blue-900/50 dark:bg-blue-900/20">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200">Crédito especial</h3>
+                                        <p className="text-xs text-blue-700/80 dark:text-blue-300/80">
+                                            Asociá este crédito a un plan especial para diferenciarlo y seguir sus gastos.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleToggleSpecialCredit}
+                                        className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${isSpecialCredit
+                                            ? "bg-blue-600 text-white shadow-sm"
+                                            : "border border-blue-200 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-900/40"}`}>
+                                        {isSpecialCredit ? "Desactivar" : "Activar"}
+                                    </button>
+                                </div>
+
+                                {isSpecialCredit && (
+                                    <div className="mt-4 space-y-3">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                                Seleccioná o creá un crédito especial
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={creditSpecialSearch}
+                                                    onChange={(event) => setCreditSpecialSearch(event.target.value)}
+                                                    placeholder="Buscar por nombre"
+                                                    className="h-10 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                                                {selectedCreditSpecial && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleClearCreditSpecial}
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-transparent bg-blue-100 px-3 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-900/60">
+                                                        Quitar
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {selectedCreditSpecial && (
+                                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                                    Seleccionado: {selectedCreditSpecial.name}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {!selectedCreditSpecial && (
+                                            <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-950">
+                                                {isLoadingCreditSpecials ? (
+                                                    <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">Buscando créditos especiales...</p>
+                                                ) : creditSpecialError ? (
+                                                    <p className="px-4 py-3 text-sm text-red-600 dark:text-red-300">{creditSpecialError}</p>
+                                                ) : creditSpecialOptions.length ? (
+                                                    creditSpecialOptions.map((item) => (
+                                                        <button
+                                                            key={item.id}
+                                                            type="button"
+                                                            onClick={() => handleSelectCreditSpecial(item)}
+                                                            className="flex w-full items-center justify-between border-b px-4 py-2 text-left text-sm transition last:border-b-0 dark:border-gray-800 hover:bg-blue-50/70 dark:text-gray-100 dark:hover:bg-blue-900/40">
+                                                            <span className="font-medium">{item.name}</span>
+                                                            {typeof item?._count?.credits === "number" && (
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400">{item._count.credits} créditos</span>
+                                                            )}
+                                                        </button>
+                                                    ))
+                                                ) : creditSpecialSearch.trim() ? (
+                                                    <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                                                        No encontramos resultados. Podés crear "{creditSpecialSearch.trim()}".
+                                                    </p>
+                                                ) : (
+                                                    <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                                                        Empezá a escribir para buscar entre los créditos especiales.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-wrap items-center justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleCreateCreditSpecial}
+                                                disabled={isCreatingCreditSpecial || !creditSpecialSearch.trim()}
+                                                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60">
+                                                {isCreatingCreditSpecial ? "Creando..." : "Crear crédito especial"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-3">
@@ -527,7 +1179,11 @@ export default function CreditoNuevo() {
                                         value={form.cuotas}
                                         onChange={handleChange}
                                         placeholder="Ej: 10"
-                                        className="h-11 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                                        disabled={isSinglePayment}
+                                        className="h-11 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                                    {isSinglePayment && (
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">El pago único genera una sola cuota automática.</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -548,7 +1204,7 @@ export default function CreditoNuevo() {
                                     </select>
                                 </div>
                                 <div className="grid gap-1.5">
-                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Cobrador comisión</label>
+                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Comisión</label>
                                     <select
                                         name="cobradorComisionId"
                                         value={form.cobradorComisionId}
@@ -575,6 +1231,33 @@ export default function CreditoNuevo() {
                                         className="h-11 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
                                 </div>
                             </div>
+
+                            {isExistingCredit && (
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="grid gap-1.5">
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Monto ya cobrado (ARS)</span>
+                                        <div className="flex h-11 items-center rounded-lg border border-gray-300/80 bg-gray-100 px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+                                            {computedReceivedAmountLabel}
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            Se calcula automáticamente según las cuotas ya abonadas.
+                                        </p>
+                                    </div>
+                                    <div className="grid gap-1.5">
+                                        <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Próxima cuota a cobrar</label>
+                                        <input
+                                            name="nextInstallmentToCharge"
+                                            type="number"
+                                            min={1}
+                                            step="1"
+                                            value={existingCreditData.nextInstallmentToCharge}
+                                            onChange={handleExistingCreditChange}
+                                            placeholder="Ej: 3"
+                                            className="h-11 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Indicá la cuota que corresponde cobrar en la próxima visita.</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-6 border-t border-gray-200 pt-4 text-right dark:border-gray-700">
@@ -597,6 +1280,16 @@ export default function CreditoNuevo() {
                             </span>
                         </div>
                         <dl className="mt-4 space-y-3 text-sm">
+                            <div className="flex items-start justify-between">
+                                <dt className="text-gray-500">Modalidad</dt>
+                                <dd className="font-medium text-gray-900 dark:text-gray-100">{creditMode === "NEW" ? "Crédito nuevo" : "Crédito existente"}</dd>
+                            </div>
+                            <div className="flex items-start justify-between">
+                                <dt className="text-gray-500">Crédito especial</dt>
+                                <dd className="font-medium text-gray-900 dark:text-gray-100">
+                                    {isSpecialCredit ? selectedCreditSpecial?.name || "Sin seleccionar" : "No"}
+                                </dd>
+                            </div>
                             <div className="flex items-start justify-between">
                                 <dt className="text-gray-500">Inicio</dt>
                                 <dd className="font-medium text-gray-900 dark:text-gray-100">
@@ -625,35 +1318,71 @@ export default function CreditoNuevo() {
                                     {montoBase ? currencyFormatter.format(montoBase) : "—"}
                                 </dd>
                             </div>
+                            <div className="flex items-start justify-between">
+                                <dt className="text-gray-500">Gastos asociados</dt>
+                                <dd className="font-medium text-gray-900 dark:text-gray-100">
+                                    {expenses.length ? `${expenses.length} · ${currencyFormatter.format(totalExpenses)}` : "Sin gastos"}
+                                </dd>
+                            </div>
+                            {isExistingCredit && (
+                                <>
+                                    <div className="flex items-start justify-between">
+                                        <dt className="text-gray-500">Monto recibido</dt>
+                                        <dd className="font-medium text-gray-900 dark:text-gray-100">
+                                            {computedReceivedAmountLabel}
+                                        </dd>
+                                    </div>
+                                    <div className="flex items-start justify-between">
+                                        <dt className="text-gray-500">Próxima cuota</dt>
+                                        <dd className="font-medium text-gray-900 dark:text-gray-100">
+                                            {existingCreditData.nextInstallmentToCharge !== "" ? `Cuota ${nextInstallmentNumber}` : "—"}
+                                        </dd>
+                                    </div>
+                                </>
+                            )}
                         </dl>
                     </div>
 
                     <div className="rounded-xl border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
                         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Detalle de montos</h3>
-                        <div className="mt-4 space-y-3 text-sm">
+                        <div className="mt-4 space-y-4 text-sm">
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
+                                    <span>Total del crédito</span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                        {totalCredito ? currencyFormatter.format(totalCredito) : "—"}
+                                    </span>
+                                </div>
+                                {totalCredito ? (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Monto: {currencyFormatter.format(montoBase || 0)} • Ganancia: {currencyFormatter.format(gananciaCredito)}
+                                    </p>
+                                ) : null}
+                            </div>
                             <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                                <span>Total crédito</span>
+                                <span>Comisión de ganancia</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                    {totalCredito ? currencyFormatter.format(totalCredito) : "—"}
+                                    {montoBase > 0 ? currencyFormatter.format(gananciaCredito) : "—"}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
                                 <span>Cuota estimada</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                    {cuotaEstimada ? currencyFormatter.format(cuotaEstimada) : "—"}
+                                    {cuotaEstimada > 0 ? currencyFormatter.format(cuotaEstimada) : "—"}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                                <span>Comisión libre</span>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                    {comisionLibre ? currencyFormatter.format(comisionLibre) : "—"}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                                <span>Total neto cliente</span>
-                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                    {totalNetoCliente ? currencyFormatter.format(totalNetoCliente) : "—"}
-                                </span>
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
+                                    <span>Total neto</span>
+                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                        {totalCredito > 0 ? currencyFormatter.format(totalNetoDespuesComision) : "—"}
+                                    </span>
+                                </div>
+                                {totalCredito > 0 ? (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Comisión vendedor: {currencyFormatter.format(comisionLibre || 0)}
+                                    </p>
+                                ) : null}
                             </div>
                         </div>
                     </div>

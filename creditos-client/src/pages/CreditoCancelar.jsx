@@ -15,6 +15,8 @@ export default function CancelarCredito() {
         mercadopago: "",
         producto: "",
         montoRecibido: "",
+        otrosDescripcion: "",
+        otrosMonto: "",
         observaciones: "",
     });
 
@@ -33,13 +35,21 @@ export default function CancelarCredito() {
     const cliente = credito?.client;
     const montoOriginal = credito?.amount || 0;
     const totalRecibido = useMemo(() => {
-        if (form.metodo === "mixto") {
-            const e = Number(form.efectivo) || 0;
-            const mp = Number(form.mercadopago) || 0;
-            return e + mp;
+        switch (form.metodo) {
+            case "mixto": {
+                const e = Number(form.efectivo) || 0;
+                const mp = Number(form.mercadopago) || 0;
+                return e + mp;
+            }
+            case "otros":
+                return Number(form.otrosMonto) || 0;
+            case "efectivo":
+            case "mercadopago":
+                return Number(form.montoRecibido) || 0;
+            default:
+                return Number(form.montoRecibido) || 0;
         }
-        return Number(form.montoRecibido) || 0;
-    }, [form.metodo, form.efectivo, form.mercadopago, form.montoRecibido]);
+    }, [form.metodo, form.efectivo, form.mercadopago, form.montoRecibido, form.otrosMonto]);
     const descuento = Math.max(0, montoOriginal - totalRecibido);
 
     const handleBack = () => {
@@ -62,8 +72,39 @@ export default function CancelarCredito() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const producto = (form.producto || "").trim();
+        const otrosDescripcion = (form.otrosDescripcion || "").trim();
+
+        if (!form.metodo) {
+            alert("Elegí un método de cancelación");
+            return;
+        }
+
+        if (form.metodo === "producto" && !producto) {
+            alert("Indicá qué producto se entregó.");
+            return;
+        }
+
+        if (form.metodo === "otros") {
+            if (!otrosDescripcion) {
+                alert("Detallá qué se entregó en la cancelación.");
+                return;
+            }
+            if (form.otrosMonto && Number(form.otrosMonto) < 0) {
+                alert("El monto reconocido no puede ser negativo.");
+                return;
+            }
+        }
+
         const data = {
             ...form,
+            producto,
+            otrosDescripcion,
+            efectivo: Number(form.efectivo) || 0,
+            mercadopago: Number(form.mercadopago) || 0,
+            montoRecibido: Number(form.montoRecibido) || 0,
+            otrosMonto: Number(form.otrosMonto) || 0,
+            observaciones: (form.observaciones || "").trim(),
             totalRecibido,
             descuento,
         };
@@ -125,6 +166,7 @@ export default function CancelarCredito() {
                         <option value="mercadopago">Pago total en MercadoPago</option>
                         <option value="mixto">Mitad efectivo / mitad MP</option>
                         <option value="producto">Abonó con otro producto</option>
+                        <option value="otros">Otros medios / entregas</option>
                     </select>
                 </div>
 
@@ -157,7 +199,38 @@ export default function CancelarCredito() {
                         value={form.producto}
                         onChange={handleChange}
                         placeholder="Ej: Televisor 32 pulgadas"
+                        required
                     />
+                )}
+
+                {form.metodo === "otros" && (
+                    <div className="space-y-4">
+                        <Input
+                            label="Detalle de lo entregado"
+                            name="otrosDescripcion"
+                            value={form.otrosDescripcion}
+                            onChange={handleChange}
+                            placeholder="Ej: Auto usado, moto, electrodoméstico"
+                            required
+                        />
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="otrosMonto">
+                                Monto reconocido (si aplica)
+                            </label>
+                            <input
+                                id="otrosMonto"
+                                name="otrosMonto"
+                                type="number"
+                                value={form.otrosMonto}
+                                onChange={handleChange}
+                                placeholder="Ej: 150000"
+                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Si el acuerdo incluye dinero, registrá el monto para sumarlo al total.
+                            </p>
+                        </div>
+                    </div>
                 )}
 
                 {["efectivo", "mercadopago"].includes(form.metodo) && (
@@ -198,6 +271,16 @@ export default function CancelarCredito() {
                         Descuento aplicado: $
                         {descuento.toLocaleString("es-AR")}
                     </p>
+                    {form.metodo === "producto" && form.producto ? (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Producto entregado: {form.producto}
+                        </p>
+                    ) : null}
+                    {form.metodo === "otros" && form.otrosDescripcion ? (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Detalle entrega: {form.otrosDescripcion}
+                        </p>
+                    ) : null}
                 </div>
 
                 {/* Botones */}

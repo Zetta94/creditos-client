@@ -161,28 +161,28 @@ export default function Usuarios() {
             </div>
 
             {/* === Desktop: Tabla === */}
-            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:block">
+            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl dark:border-slate-700 dark:bg-slate-900/80 sm:block">
                 <table className="w-full text-left text-sm">
-                    <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
+                    <thead className="sticky top-0 z-10 bg-white/70 text-slate-500 backdrop-blur-lg dark:bg-slate-900/70 dark:text-slate-200">
                         <tr>
-                            <th className="px-4 py-3 font-medium min-w-[200px]">Nombre</th>
-                            <th className="px-4 py-3 font-medium min-w-[150px]">Créditos asignados</th>
-                            <th className="px-4 py-3 font-medium min-w-[160px]">Responsabilidad</th>
-                            <th className="px-4 py-3 font-medium min-w-[120px]">Rol</th>
-                            <th className="px-4 py-3 font-medium min-w-[150px] text-center">Estado</th>
-                            <th className="px-4 py-3 text-center font-medium min-w-[140px]">Acciones</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[200px]">Nombre</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[150px]">Créditos asignados</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[160px]">Responsabilidad</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[120px]">Rol</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[150px]">Estado</th>
+                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[160px]">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800/80">
                         {loading ? (
                             <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <td colSpan={6} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
                                     Cargando usuarios...
                                 </td>
                             </tr>
                         ) : rows.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <td colSpan={6} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
                                     No se encontraron usuarios.
                                 </td>
                             </tr>
@@ -190,23 +190,23 @@ export default function Usuarios() {
                             rows.map((u) => (
                                 <tr
                                     key={u.id}
-                                    className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
+                                    className="transition hover:bg-sky-50/40 odd:bg-white/95 even:bg-slate-50/80 dark:odd:bg-slate-900/50 dark:even:bg-slate-900/35 dark:hover:bg-slate-900/55"
                                 >
-                                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{u.nombre}</td>
-                                    <td className="px-4 py-3">{u.creditos}</td>
-                                    <td className="px-4 py-3">
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-700 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-100">{u.nombre}</td>
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-600 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-200">{u.creditos}</td>
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
                                         <NivelPill nivel={u.nivel} />
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
                                         <RolPill rol={u.rol} />
                                     </td>
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
                                         <EstadoPill status={u.status} />
                                     </td>
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
                                         <button
                                             onClick={() => navigate(`/usuarios/${u.id}`)}
-                                            className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-white hover:bg-sky-500"
+                                            className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border border-sky-200 bg-white/80 px-3 py-1.5 font-semibold text-sky-600 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
                                         >
                                             <HiEye className="h-4 w-4" />
                                             Ver
@@ -255,24 +255,24 @@ function SearchInput({ q, setQ }) {
 function RolPill({ rol }) {
     const cls =
         rol === "ADMIN"
-            ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800"
-            : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800";
+            ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700"
+            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700";
     return (
-        <span className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium min-w-[90px] text-center ${cls}`}>
-            {rol === "EMPLOYEE" ? "cobrador" : rol}
+        <span className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide text-center ${cls}`}>
+            {rol === "EMPLOYEE" ? "Cobrador" : rol}
         </span>
     );
 }
 
 function NivelPill({ nivel }) {
     const colors = {
-        ALTA: "bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-        EXCELENTE: "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300",
-        MEDIA: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300",
-        MALA: "bg-red-50 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300",
+        ALTA: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
+        EXCELENTE: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700",
+        MEDIA: "bg-sky-50 text-sky-700 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700",
+        MALA: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700",
     };
     return (
-        <span className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium min-w-[90px] text-center ${colors[nivel] || colors.MEDIA}`}>
+        <span className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide text-center ${colors[nivel] || colors.MEDIA}`}>
             {nivel}
         </span>
     );
@@ -281,12 +281,12 @@ function NivelPill({ nivel }) {
 function EstadoPill({ status }) {
     const isActive = status === "ACTIVE";
     const cls = isActive
-        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
-        : "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300";
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
+        : "bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700";
     const label = isActive ? "Activo" : "Inactivo";
 
     return (
-        <span className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium min-w-[90px] text-center ${cls}`}>
+        <span className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide text-center ${cls}`}>
             {label}
         </span>
     );

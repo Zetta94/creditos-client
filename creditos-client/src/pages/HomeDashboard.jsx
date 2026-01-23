@@ -179,7 +179,6 @@ export default function HomeDashboard() {
                     </button>
                 </div>
             </div>
-
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <KpiCard
                     icon={<HiCash className="h-8 w-8 text-green-500" />}
@@ -276,6 +275,21 @@ export default function HomeDashboard() {
                     </ul>
                 </div>
             </div>
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Detalle financiero</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Explora el detalle mensual y anual en la vista dedicada.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => navigate("/finanzas/detalle")}
+                        className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    >
+                        Ir al detalle
+                    </button>
+                </div>
+            </section>
 
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <h2 className="mb-4 text-lg font-semibold">Mensajes importantes</h2>

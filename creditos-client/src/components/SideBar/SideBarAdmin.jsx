@@ -4,6 +4,7 @@ export default function SidebarAdmin() {
     return (
         <ul className="space-y-2 font-medium">
             <SidebarItem to="/" label="Dashboard" icon="dashboard" />
+            <SidebarItem to="/finanzas/detalle" label="Detalle financiero" icon="stats" />
             <SidebarItem to="/creditos" label="Créditos" icon="grid" />
             <SidebarItem to="/clientes" label="Clientes" icon="clients" />
             <SidebarItem to="/mensajes" label="Mensajes" icon="message" />
