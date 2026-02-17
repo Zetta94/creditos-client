@@ -1,0 +1,25 @@
+{
+  "name": "El Imperio Dashboard",
+  "short_name": "El Imperio",
+  "description": "Dashboard de creditos y cobranzas",
+  "start_url": "/#/login",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1f55",
+  "theme_color": "#0b1f55",
+  "icons": [
+    {
+      "src": "/LogoMinimalista.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/LogoMinimalista.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
