@@ -14,6 +14,49 @@ export default function Login() {
   const [password, setPassword] = React.useState("");
   const [showPass, setShowPass] = React.useState(false);
   const [localError, setLocalError] = React.useState("");
+  const [installPrompt, setInstallPrompt] = React.useState(null);
+  const [installing, setInstalling] = React.useState(false);
+  const [isStandalone, setIsStandalone] = React.useState(false);
+  const [installTarget, setInstallTarget] = React.useState(null);
+
+  React.useEffect(() => {
+    const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone;
+    setIsStandalone(Boolean(standalone));
+    const ua = navigator.userAgent || "";
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    setInstallTarget(isMobile ? "mobile" : "desktop");
+
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+
+    const onAppInstalled = () => {
+      setInstallPrompt(null);
+      setIsStandalone(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, []);
+
+  async function handleInstallApp() {
+    if (!installPrompt) return;
+
+    try {
+      setInstalling(true);
+      await installPrompt.prompt();
+      await installPrompt.userChoice;
+    } finally {
+      setInstalling(false);
+      setInstallPrompt(null);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -138,6 +181,21 @@ export default function Login() {
             </button>
           </div>
         </form>
+
+        {!isStandalone && installPrompt && installTarget && (
+          <button
+            type="button"
+            onClick={handleInstallApp}
+            disabled={installing}
+            className="mt-3 w-full rounded-lg border border-cyan-500/60 bg-cyan-500/10 px-5 py-2.5 text-sm font-medium text-cyan-100 transition hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60"
+          >
+            {installing
+              ? "Abriendo instalador..."
+              : installTarget === "mobile"
+                ? "Descargar app para celular"
+                : "Descargar app para escritorio"}
+          </button>
+        )}
 
         <p className="mt-6 text-center text-xs text-gray-400">
           © {new Date().getFullYear()} El Imperio — Todos los derechos reservados
