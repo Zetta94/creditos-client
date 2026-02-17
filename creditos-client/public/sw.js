@@ -1,5 +1,5 @@
-const APP_CACHE = "el-imperio-app-v1";
-const ASSETS = ["/", "/index.html", "/manifest.webmanifest", "/LogoMinimalista.png"];
+const APP_CACHE = "el-imperio-app-v2";
+const ASSETS = ["/", "/index.html", "/manifest.webmanifest", "/imperio-app-icon.svg", "/LogoMinimalista.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

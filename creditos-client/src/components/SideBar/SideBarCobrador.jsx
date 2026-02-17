@@ -1,4 +1,4 @@
-import { useSelector } from "react-redux";
+﻿import { useSelector } from "react-redux";
 import SidebarItem from "./SideBarItem.jsx";
 
 export default function SidebarCobrador() {
@@ -23,3 +23,4 @@ export default function SidebarCobrador() {
         </ul>
     );
 }
+

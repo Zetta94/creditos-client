@@ -1,4 +1,4 @@
-import SidebarItem from "./SideBarItem.jsx";
+﻿import SidebarItem from "./SideBarItem.jsx";
 
 export default function SidebarAdmin() {
     return (
@@ -12,3 +12,4 @@ export default function SidebarAdmin() {
         </ul>
     );
 }
+

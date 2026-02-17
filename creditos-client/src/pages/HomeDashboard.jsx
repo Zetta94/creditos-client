@@ -20,7 +20,7 @@ import MessageCard from "../components/messages/MessageCard";
 const ingresosPorDia = [
     { fecha: "Lun", monto: 22000 },
     { fecha: "Mar", monto: 27500 },
-    { fecha: "MiÃ©", monto: 31000 },
+    { fecha: "Mié", monto: 31000 },
     { fecha: "Jue", monto: 28000 },
     { fecha: "Vie", monto: 36000 },
 ];
@@ -48,7 +48,7 @@ function KpiCard({ icon, label, value }) {
 
 export default function HomeDashboard() {
     const navigate = useNavigate();
-    const [range, setRange] = useState("Semana"); // estÃ©tica: selector simple
+    const [range, setRange] = useState("Semana"); // estética: selector simple
     const [resumen, setResumen] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -121,7 +121,7 @@ export default function HomeDashboard() {
                         onClick={() => navigate("/creditos/nuevo")}
                         className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:ring-2 focus:ring-blue-400"
                     >
-                        + Nuevo crÃ©dito
+                        + Nuevo crédito
                     </button>
                     <button
                         onClick={() => navigate("/clientes/nuevo")}
@@ -134,7 +134,7 @@ export default function HomeDashboard() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <KpiCard
                     icon={<HiCash className="h-8 w-8 text-green-500" />}
-                    label="CrÃ©ditos activos"
+                    label="Créditos activos"
                     value={resumen.creditosActivos}
                 />
                 <KpiCard
@@ -189,7 +189,7 @@ export default function HomeDashboard() {
                 </div>
 
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <h2 className="mb-3 text-lg font-semibold">DistribuciÃ³n de clientes</h2>
+                    <h2 className="mb-3 text-lg font-semibold">Distribución de clientes</h2>
                     <div className="h-[260px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>

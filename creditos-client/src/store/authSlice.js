@@ -55,7 +55,7 @@ export const fetchCurrentUser = createAsyncThunk("auth/current", async (_, thunk
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-    return thunkAPI.rejectWithValue({ silent: true, message: "SesiÃ³n invÃ¡lida" });
+    return thunkAPI.rejectWithValue({ silent: true, message: "Sesión inválida" });
   }
 });
 
