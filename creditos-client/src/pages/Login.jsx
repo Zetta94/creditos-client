@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { HiMail, HiLockClosed, HiEye, HiEyeOff } from "react-icons/hi";
@@ -19,23 +19,25 @@ export default function Login() {
     e.preventDefault();
     setLocalError("");
 
-    if (!email || !password) {
-      setLocalError("Completá email y contraseña.");
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      setLocalError("CompletÃ¡ email y contraseÃ±a.");
       return;
     }
 
     try {
-      const result = await dispatch(login({ email, password })).unwrap();
+      const result = await dispatch(login({ email: normalizedEmail, password })).unwrap();
       const role = result.user?.role;
       const isCobrador = role === "cobrador" || role === "employee";
       navigate(isCobrador ? "/cobrador/dashboard" : "/", { replace: true });
     } catch (errMsg) {
-      setLocalError(typeof errMsg === "string" ? errMsg : "Email o contraseña incorrectos.");
+      setLocalError(typeof errMsg === "string" ? errMsg : "Email o contraseÃ±a incorrectos.");
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-[#020b24] via-[#071a46] to-[#0b1f55] px-4 py-10">
       <div className="mx-auto flex max-w-md flex-col items-center">
         {/* Marca / logo */}
         <div className="mb-6 text-center">
@@ -44,24 +46,24 @@ export default function Login() {
             src={logoMinimal}
             alt="Logo"
           />
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Dashboard Créditos
+          <h1 className="text-xl font-semibold text-gray-100">
+            Dashboard CrÃ©ditos
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Ingresá para continuar
+          <p className="text-sm text-gray-300">
+            IngresÃ¡ para continuar
           </p>
         </div>
 
         {/* Formulario */}
         <form
           onSubmit={handleSubmit}
-          className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6"
+          className="w-full rounded-2xl border border-slate-700 bg-slate-900/85 p-5 shadow-sm sm:p-6"
         >
           {/* Email */}
           <div className="mb-4">
             <label
               htmlFor="email"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              className="mb-1 block text-sm font-medium text-slate-200"
             >
               Email
             </label>
@@ -74,7 +76,7 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className="h-11 w-full rounded-lg border border-slate-600 bg-slate-800 pl-10 pr-3 text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 autoComplete="username"
               />
             </div>
@@ -84,9 +86,9 @@ export default function Login() {
           <div className="mb-3">
             <label
               htmlFor="password"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              className="mb-1 block text-sm font-medium text-slate-200"
             >
-              Contraseña
+              ContraseÃ±a
             </label>
             <div className="relative">
               <HiLockClosed className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -96,13 +98,13 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className="h-11 w-full rounded-lg border border-slate-600 bg-slate-800 pl-10 pr-10 text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPass((s) => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-gray-400 hover:bg-slate-700 hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100"
               >
                 {showPass ? <HiEyeOff className="h-5 w-5" /> : <HiEye className="h-5 w-5" />}
               </button>
@@ -129,17 +131,18 @@ export default function Login() {
             <button
               type="button"
               onClick={() => navigate("/forgot-password")}
-              className="w-full rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
-              ¿Olvidaste la contraseña?
+              Â¿Olvidaste la contraseÃ±a?
             </button>
           </div>
         </form>
 
-        <p className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
-          © {new Date().getFullYear()} El Imperio — Todos los derechos reservados
+        <p className="mt-6 text-center text-xs text-gray-400">
+          Â© {new Date().getFullYear()} El Imperio â€” Todos los derechos reservados
         </p>
       </div>
     </div>
   );
 }
+

@@ -18,12 +18,6 @@ api.interceptors.request.use(config => {
     const token = localStorage.getItem("token");
     const url = config?.url || "";
 
-    config.headers = {
-        ...config.headers,
-        "Cache-Control": "no-store",
-        Pragma: "no-cache",
-    };
-
     if (!isPublicAuthPath(url) && token) {
         config.headers.Authorization = `Bearer ${token}`;
     } else if (config.headers.Authorization) {

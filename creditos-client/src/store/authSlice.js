@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+﻿import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { login as loginService, fetchCurrentUser as fetchCurrentUserService } from "../services/authService";
 
 const normalizeRole = (value) => (typeof value === "string" ? value.toLowerCase() : "");
@@ -24,7 +24,17 @@ export const login = createAsyncThunk("auth/login", async (creds, thunkAPI) => {
     else localStorage.removeItem("role");
     return { ...data, user: normalizedUser };
   } catch (err) {
-    return thunkAPI.rejectWithValue(err.response?.data?.message || "Error al iniciar sesión");
+    const status = err?.response?.status;
+    const data = err?.response?.data;
+    const message =
+      data?.message ||
+      data?.error ||
+      (status === 401 ? "Credenciales inválidas" : null) ||
+      (status === 429 ? "Demasiados intentos. Esperá un minuto e intentá nuevamente." : null) ||
+      (err?.code === "ERR_NETWORK" ? "No se pudo conectar con la API local (http://localhost:3000)." : null) ||
+      "Error al iniciar sesión";
+
+    return thunkAPI.rejectWithValue(message);
   }
 });
 
@@ -45,7 +55,7 @@ export const fetchCurrentUser = createAsyncThunk("auth/current", async (_, thunk
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-    return thunkAPI.rejectWithValue({ silent: true, message: "Sesión inválida" });
+    return thunkAPI.rejectWithValue({ silent: true, message: "SesiÃ³n invÃ¡lida" });
   }
 });
 
@@ -128,3 +138,4 @@ const slice = createSlice({
 });
 
 export default slice.reducer;
+
