@@ -6,6 +6,7 @@ import SidebarAdmin from "./SideBarAdmin.jsx";
 import SidebarCobrador from "./SideBarCobrador";
 import { useDispatch, useSelector } from "react-redux";
 import { resetTrayecto } from "../../store/trayectoSlice";
+import { logout } from "../../store/authSlice";
 
 export default function SideBar() {
   const navigate = useNavigate();
@@ -124,9 +125,9 @@ export default function SideBar() {
                 <ul className="p-2">
                   <li>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         dispatch(resetTrayecto());
-                        localStorage.clear();
+                        await dispatch(logout());
                         setUserOpen(false);
                         navigate("/login", { replace: true });
                       }}
