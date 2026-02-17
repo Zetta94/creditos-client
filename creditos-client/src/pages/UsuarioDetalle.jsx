@@ -192,7 +192,7 @@ export default function UsuarioDetalle() {
                                 </span>
                             </div>
 
-                            <div className="mt-4 grid grid-cols-2 gap-y-1 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="mt-4 grid grid-cols-1 gap-y-1 sm:grid-cols-2 text-sm text-gray-700 dark:text-gray-300">
                                 <p className="font-medium">Teléfono:</p>
                                 <p>{usuario.phone}</p>
                                 <p className="font-medium">Teléfono alternativo:</p>
@@ -272,7 +272,29 @@ export default function UsuarioDetalle() {
                         <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay creditos pendientes de inicio.</p>
                     ) : (
                         <div className="mt-4 space-y-4">
-                            <div className="overflow-x-auto">
+                            <div className="grid gap-3 sm:hidden">
+                                {upcomingStarts.map((item) => (
+                                    <article
+                                        key={item.creditId}
+                                        className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                                    >
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                            {item.client?.name || "Cliente"}
+                                        </p>
+                                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+                                            <span className="font-medium">Producto</span>
+                                            <span className="text-right">{item.product || "Credito"}</span>
+                                            <span className="font-medium">Monto</span>
+                                            <span className="text-right">${Number(item.amount || 0).toLocaleString("es-AR")}</span>
+                                            <span className="font-medium">Inicio cobro</span>
+                                            <span className="text-right">{item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "-"}</span>
+                                            <span className="font-medium">Proxima visita</span>
+                                            <span className="text-right">{item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "-"}</span>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                            <div className="hidden overflow-x-auto sm:block">
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-gray-500 dark:text-gray-400">

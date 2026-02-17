@@ -142,6 +142,81 @@ export default function Clientes() {
             </div>
 
             {/* Tabla */}
+            <div className="grid gap-3 sm:hidden">
+                {rows.map((c) => {
+                    const status = (c.status || "ACTIVE").toUpperCase();
+                    const isActive = status === "ACTIVE";
+                    const reliability = (c.reliability || "").toUpperCase();
+                    const confianzaLabel = reliabilityLabelMap[reliability] ?? (reliability || "—");
+                    return (
+                        <article
+                            key={c.id}
+                            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                    {c.name}
+                                </h3>
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                    {confianzaLabel}
+                                </span>
+                            </div>
+
+                            <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                                <p>{c.phone || "—"}</p>
+                                {c.alternatePhone ? <p>Alt: {c.alternatePhone}</p> : null}
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-1 gap-2">
+                                <button
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                                    onClick={() => navigate(`/clientes/${c.id}/editar`)}
+                                >
+                                    <HiPencilAlt className="h-4 w-4" />
+                                    Editar
+                                </button>
+                                <button
+                                    className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition ${isActive
+                                        ? "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
+                                        : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/50 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
+                                        }`}
+                                    onClick={async () => {
+                                        const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
+                                        if (!ok) return;
+                                        try {
+                                            await dispatch(removeClient(c.id)).unwrap();
+                                            navigate("/clientes", { replace: true });
+                                        } catch (error) {
+                                            console.error("No se pudo eliminar el cliente", error);
+                                        }
+                                    }}
+                                >
+                                    {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
+                                    {isActive ? "Eliminar" : "Activar"}
+                                </button>
+                                <button
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
+                                    onClick={() => navigate(`/clientes/${c.id}`)}
+                                >
+                                    <HiEye className="h-4 w-4" />
+                                    Ver
+                                </button>
+                            </div>
+                        </article>
+                    );
+                })}
+                {!rows.length && !loading && (
+                    <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        No hay clientes con esos filtros.
+                    </div>
+                )}
+                {loading && (
+                    <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        Cargando...
+                    </div>
+                )}
+            </div>
+
             <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl dark:border-slate-700 dark:bg-slate-900/80 sm:block">
                 <table className="w-full text-left text-sm">
                     <thead className="sticky top-0 z-10 bg-white/70 text-slate-500 backdrop-blur-lg dark:bg-slate-900/70 dark:text-slate-200">

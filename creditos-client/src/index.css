@@ -19,6 +19,64 @@ body {
   margin: 0;
 }
 
+/* Tema oscuro global para toda la app (admin + cobrador) dentro del layout autenticado */
+.app-shell {
+  background: linear-gradient(180deg, #08122f 0%, #0b1f55 100%);
+}
+
+.app-shell .bg-white,
+.app-shell .bg-white\/90,
+.app-shell .bg-gray-50,
+.app-shell .bg-gray-100,
+.app-shell .bg-slate-50,
+.app-shell .from-slate-50,
+.app-shell .to-slate-100 {
+  background-color: rgba(15, 23, 42, 0.82) !important;
+  background-image: none !important;
+}
+
+.app-shell .border-gray-200,
+.app-shell .border-gray-300,
+.app-shell .border-slate-200,
+.app-shell .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+.app-shell .text-gray-900,
+.app-shell .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+
+.app-shell .text-gray-800,
+.app-shell .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.app-shell .text-gray-700,
+.app-shell .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.app-shell .text-gray-600,
+.app-shell .text-gray-500,
+.app-shell .text-slate-600,
+.app-shell .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+.app-shell input::placeholder,
+.app-shell textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
 @keyframes slide-up {
   from {
     opacity: 0;

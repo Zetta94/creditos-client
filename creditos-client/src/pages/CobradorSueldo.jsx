@@ -150,18 +150,18 @@ export default function SueldoCobrador() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 p-3 sm:p-6 dark:from-slate-900 dark:to-slate-950">
+        <div className="min-h-screen bg-gradient-to-b from-[#08122f] to-[#0b1f55] p-3 sm:p-6">
             <div className="mx-auto w-full max-w-6xl">
-            <div className="mb-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 sm:p-5">
+            <div className="mb-4 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                    <h1 className="text-2xl font-bold text-slate-100">
                         Sueldo semanal de {cobrador.name}
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <p className="text-sm text-slate-400">
                         Tipo de salario: {salaryTypeLabel}
                     </p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <p className="text-sm text-slate-400">
                         Dia de cobro: <span className="font-semibold">SABADO</span>
                     </p>
                 </div>
@@ -178,13 +178,13 @@ export default function SueldoCobrador() {
             </div>
 
             {!esSabado && (
-                <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+                <div className="mb-4 rounded-xl border border-amber-700 bg-amber-950/30 p-3 text-sm text-amber-200">
                     El resumen para pago al administrador solo se genera los sabados.
                 </div>
             )}
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm text-slate-500 dark:text-slate-400">Sueldo semanal</h3>
                         <HiCurrencyDollar className="h-5 w-5 text-blue-500" />
@@ -194,7 +194,7 @@ export default function SueldoCobrador() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm text-slate-500 dark:text-slate-400">Comision semanal</h3>
                         <HiTrendingUp className="h-5 w-5 text-green-500" />
@@ -207,7 +207,7 @@ export default function SueldoCobrador() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm text-slate-500 dark:text-slate-400">Total cobrado semana</h3>
                         <HiCalendar className="h-5 w-5 text-purple-500" />
@@ -217,7 +217,7 @@ export default function SueldoCobrador() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm text-slate-500 dark:text-slate-400">Total a pagar (sabado)</h3>
                         <HiCalendar className="h-5 w-5 text-emerald-500" />
@@ -236,7 +236,7 @@ export default function SueldoCobrador() {
                 </div>
             )}
 
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+            <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm sm:p-5">
                 <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
                     Detalle semanal por credito creado (comision unica por credito/producto)
                 </h2>
@@ -310,7 +310,7 @@ export default function SueldoCobrador() {
                 )}
             </div>
 
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+            <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm sm:p-5">
                 <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
                     Resumenes anteriores de pago
                 </h2>

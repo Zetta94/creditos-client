@@ -78,11 +78,11 @@ export default function ReportesCobrador() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-3 py-4 dark:from-slate-900 dark:to-slate-950 sm:px-4 sm:py-6">
+        <div className="min-h-screen bg-gradient-to-b from-[#08122f] to-[#0b1f55] px-3 py-4 sm:px-4 sm:py-6">
             <div className="mx-auto max-w-6xl space-y-4">
-            <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 sm:p-5">
+            <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                <h1 className="text-2xl font-bold text-slate-100">
                     Mis reportes
                 </h1>
 
@@ -90,7 +90,7 @@ export default function ReportesCobrador() {
                     <select
                         value={filtroMes}
                         onChange={(e) => setFiltroMes(e.target.value)}
-                        className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-slate-200"
                     >
                         <option value="todos">Todos los meses</option>
                         {mesesDisponibles.map((mes) => (
@@ -104,7 +104,7 @@ export default function ReportesCobrador() {
                         type="date"
                         value={filtroDia}
                         onChange={(e) => setFiltroDia(e.target.value)}
-                        className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-slate-200"
                     />
 
                     <button
@@ -112,7 +112,7 @@ export default function ReportesCobrador() {
                             setFiltroMes("todos");
                             setFiltroDia("");
                         }}
-                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                        className="rounded-xl border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700"
                     >
                         Limpiar filtros
                     </button>
@@ -120,9 +120,9 @@ export default function ReportesCobrador() {
             </div>
             </div>
 
-            <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-900">
+            <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/80 shadow-sm">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                    <thead className="bg-gray-100 dark:bg-gray-800/80">
+                    <thead className="bg-slate-800/90">
                         <tr>
                             <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
                                 Fecha
@@ -192,12 +192,12 @@ export default function ReportesCobrador() {
 
             <div className="sm:hidden space-y-3">
                 {reportesPaginados.length === 0 ? (
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-sm text-slate-300">
                         No hay reportes para los filtros seleccionados.
                     </div>
                 ) : (
                     reportesPaginados.map((r) => (
-                        <div key={r.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                        <div key={r.id} className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm">
                             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                                 {new Date(r.fechaDeReporte).toLocaleDateString("es-AR", {
                                     weekday: "short",

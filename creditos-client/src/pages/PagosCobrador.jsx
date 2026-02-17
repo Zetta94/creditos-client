@@ -145,13 +145,13 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-3 py-4 dark:from-slate-900 dark:to-slate-950 sm:px-4 sm:py-6">
+        <div className="min-h-screen bg-gradient-to-b from-[#08122f] to-[#0b1f55] px-3 py-4 sm:px-4 sm:py-6">
             <div className="mx-auto max-w-5xl space-y-4">
-                <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-100">
                         Cobros del dia
                     </h1>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-slate-300">
                         Solo se muestran clientes habilitados para hoy.
                     </p>
                 </div>
@@ -163,7 +163,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                             onClick={() => setTipo(f)}
                             className={`w-full rounded-xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${tipo === f
                                 ? "bg-blue-600 text-white shadow-sm"
-                                : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                                : "bg-slate-900/80 text-slate-200 hover:bg-slate-700"
                                 }`}
                         >
                             {f === "todos" ? "Todos" : `${f[0].toUpperCase()}${f.slice(1)}`}
@@ -171,9 +171,9 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                     ))}
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/80 shadow-sm">
+                <div className="border-b border-slate-700 p-4">
+                    <h2 className="text-base sm:text-lg font-semibold text-slate-100">
                         Cobros a realizar hoy ({clientesHoy.length})
                     </h2>
                 </div>
