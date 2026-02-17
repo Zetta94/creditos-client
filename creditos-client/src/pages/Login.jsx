@@ -20,19 +20,20 @@ export default function Login() {
     setLocalError("");
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
 
-    if (!normalizedEmail || !password) {
-      setLocalError("CompletÃ¡ email y contraseÃ±a.");
+    if (!normalizedEmail || !normalizedPassword) {
+      setLocalError("Completá email y contraseña.");
       return;
     }
 
     try {
-      const result = await dispatch(login({ email: normalizedEmail, password })).unwrap();
+      const result = await dispatch(login({ email: normalizedEmail, password: normalizedPassword })).unwrap();
       const role = result.user?.role;
       const isCobrador = role === "cobrador" || role === "employee";
       navigate(isCobrador ? "/cobrador/dashboard" : "/", { replace: true });
     } catch (errMsg) {
-      setLocalError(typeof errMsg === "string" ? errMsg : "Email o contraseÃ±a incorrectos.");
+      setLocalError(typeof errMsg === "string" ? errMsg : "Email o contraseña incorrectos.");
     }
   }
 
@@ -47,10 +48,10 @@ export default function Login() {
             alt="Logo"
           />
           <h1 className="text-xl font-semibold text-gray-100">
-            Dashboard CrÃ©ditos
+            Dashboard Créditos
           </h1>
           <p className="text-sm text-gray-300">
-            IngresÃ¡ para continuar
+            Ingresá para continuar
           </p>
         </div>
 
@@ -88,7 +89,7 @@ export default function Login() {
               htmlFor="password"
               className="mb-1 block text-sm font-medium text-slate-200"
             >
-              ContraseÃ±a
+              Contraseña
             </label>
             <div className="relative">
               <HiLockClosed className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -133,13 +134,13 @@ export default function Login() {
               onClick={() => navigate("/forgot-password")}
               className="w-full rounded-lg border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
-              Â¿Olvidaste la contraseÃ±a?
+              ¿Olvidaste la contraseña?
             </button>
           </div>
         </form>
 
         <p className="mt-6 text-center text-xs text-gray-400">
-          Â© {new Date().getFullYear()} El Imperio â€” Todos los derechos reservados
+          © {new Date().getFullYear()} El Imperio — Todos los derechos reservados
         </p>
       </div>
     </div>
