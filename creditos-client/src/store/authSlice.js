@@ -6,6 +6,11 @@ const normalizeUser = (user) => (user ? { ...user, role: normalizeRole(user.role
 
 export const login = createAsyncThunk("auth/login", async (creds, thunkAPI) => {
   try {
+    // Evita que un token viejo interfiera con un nuevo login tras cambios del servidor.
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
     const { data } = await loginService(creds);
     const normalizedUser = normalizeUser(data.user);
     const roleLower = normalizedUser?.role || "";

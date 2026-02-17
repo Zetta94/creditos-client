@@ -1,7 +1,8 @@
 
 import { useEffect, useMemo, useState } from "react";
-import { HiCalendar, HiCash, HiCheckCircle, HiSwitchHorizontal, HiTrendingUp, HiUserGroup } from "react-icons/hi";
+import { HiCash, HiCheckCircle, HiSwitchHorizontal, HiTrendingUp, HiUserGroup } from "react-icons/hi";
 import { fetchMyReports } from "../services/reportsService";
+import Pagination from "../components/Pagination";
 
 export default function ReportesCobrador() {
     const [reportes, setReportes] = useState([]);
@@ -10,6 +11,8 @@ export default function ReportesCobrador() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [reportesFiltrados, setReportesFiltrados] = useState([]);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
         setLoading(true);
@@ -54,6 +57,16 @@ export default function ReportesCobrador() {
         setReportesFiltrados(filtrados);
     }, [filtroMes, filtroDia, reportes]);
 
+    useEffect(() => {
+        setPage(1);
+    }, [filtroMes, filtroDia, reportes.length]);
+
+    const totalItems = reportesFiltrados.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const pageStart = (safePage - 1) * pageSize;
+    const reportesPaginados = reportesFiltrados.slice(pageStart, pageStart + pageSize);
+
     if (loading) {
         return <div className="p-6 text-center text-gray-500">Cargando reportes...</div>;
     }
@@ -65,18 +78,19 @@ export default function ReportesCobrador() {
     }
 
     return (
-        <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-3 py-4 dark:from-slate-900 dark:to-slate-950 sm:px-4 sm:py-6">
+            <div className="mx-auto max-w-6xl space-y-4">
+            <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                     Mis reportes
                 </h1>
 
-                {/* Filtros */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
                     <select
                         value={filtroMes}
                         onChange={(e) => setFiltroMes(e.target.value)}
-                        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                     >
                         <option value="todos">Todos los meses</option>
                         {mesesDisponibles.map((mes) => (
@@ -90,7 +104,7 @@ export default function ReportesCobrador() {
                         type="date"
                         value={filtroDia}
                         onChange={(e) => setFiltroDia(e.target.value)}
-                        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                     />
 
                     <button
@@ -98,15 +112,15 @@ export default function ReportesCobrador() {
                             setFiltroMes("todos");
                             setFiltroDia("");
                         }}
-                        className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                         Limpiar filtros
                     </button>
                 </div>
             </div>
+            </div>
 
-            {/* Tabla */}
-            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-900">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead className="bg-gray-100 dark:bg-gray-800/80">
                         <tr>
@@ -131,7 +145,7 @@ export default function ReportesCobrador() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {reportesFiltrados.length === 0 ? (
+                        {reportesPaginados.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan="6"
@@ -141,7 +155,7 @@ export default function ReportesCobrador() {
                                 </td>
                             </tr>
                         ) : (
-                            reportesFiltrados.map((r) => (
+                            reportesPaginados.map((r) => (
                                 <tr
                                     key={r.id}
                                     className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition"
@@ -176,9 +190,48 @@ export default function ReportesCobrador() {
                 </table>
             </div>
 
-            {/* Resumen general */}
+            <div className="sm:hidden space-y-3">
+                {reportesPaginados.length === 0 ? (
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm text-slate-500 dark:text-slate-400">
+                        No hay reportes para los filtros seleccionados.
+                    </div>
+                ) : (
+                    reportesPaginados.map((r) => (
+                        <div key={r.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                {new Date(r.fechaDeReporte).toLocaleDateString("es-AR", {
+                                    weekday: "short",
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                })}
+                            </p>
+                            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Clientes visitados: <span className="font-medium">{r.clientsVisited}</span></p>
+                            <p className="text-xs text-green-600 dark:text-green-400">Efectivo: ${Number(r.efectivo || 0).toLocaleString("es-AR")}</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">MP: ${Number(r.mercadopago || 0).toLocaleString("es-AR")}</p>
+                            <p className="text-xs text-purple-600 dark:text-purple-400">Transferencia: ${Number(r.transferencia || 0).toLocaleString("es-AR")}</p>
+                            <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">Total: ${Number(r.total || 0).toLocaleString("es-AR")}</p>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <div className="mt-4">
+                <Pagination
+                    page={safePage}
+                    pageSize={pageSize}
+                    totalItems={totalItems}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }}
+                />
+            </div>
+
             {reportesFiltrados.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mt-6">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 mt-6">
                     <Card
                         icon={<HiCash className="h-6 w-6 text-green-500" />}
                         label="Total efectivo"
@@ -217,17 +270,20 @@ export default function ReportesCobrador() {
                 </div>
             )}
         </div>
+        </div>
     );
 }
 
 /* ===== Tarjeta resumen ===== */
 function Card({ icon, label, value }) {
     return (
-        <div className="flex items-center justify-between sm:justify-start sm:gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md dark:border-gray-700 dark:bg-gray-800 transition">
-            <div className="shrink-0">{icon}</div>
-            <div className="text-right sm:text-left">
-                <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-                <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
+        <div className="flex min-h-[96px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-4 transition">
+            <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+                <div className="shrink-0">{icon}</div>
+            </div>
+            <div className="mt-2 text-right sm:text-left">
+                <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
                     {value}
                 </p>
             </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+﻿import { useMemo, useState, useEffect } from "react";
 import { HiUsers, HiCurrencyDollar, HiExclamation, HiCash } from "react-icons/hi";
 import {
     PieChart,
@@ -15,11 +15,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { fetchDashboardResumen } from "../services/dashboardService";
 import { fetchMessages } from "../services/messagesService";
+import MessageCard from "../components/messages/MessageCard";
 
 const ingresosPorDia = [
     { fecha: "Lun", monto: 22000 },
     { fecha: "Mar", monto: 27500 },
-    { fecha: "Mié", monto: 31000 },
+    { fecha: "MiÃ©", monto: 31000 },
     { fecha: "Jue", monto: 28000 },
     { fecha: "Vie", monto: 36000 },
 ];
@@ -32,59 +33,6 @@ const clientesPorConfianza = [
 ];
 
 const COLORS = ["#10b981", "#3b82f6", "#fbbf24", "#ef4444"];
-
-const MESSAGE_THEMES = {
-    IMPAGO: {
-        container: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300",
-        badgeColor: "#dc2626",
-        badgeLabel: "Impago",
-        title: "Cliente con impago",
-    },
-    VENCIMIENTO: {
-        container: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-        badgeColor: "#d97706",
-        badgeLabel: "Vencimiento",
-        title: "Pago próximo a vencer",
-    },
-    PAGO: {
-        container: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-        badgeColor: "#16a34a",
-        badgeLabel: "Pago",
-        title: "Pago registrado",
-    },
-    TRAYECTO_INICIADO: {
-        container: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-        badgeColor: "#2563eb",
-        badgeLabel: "Trayecto iniciado",
-        title: "Inicio de trayecto",
-    },
-    TRAYECTO_FINALIZADO: {
-        container: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300",
-        badgeColor: "#059669",
-        badgeLabel: "Trayecto finalizado",
-        title: "Fin de trayecto",
-    },
-};
-
-function getMessageTheme(tipo = "") {
-    return (
-        MESSAGE_THEMES[tipo] || {
-            container: "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-300",
-            badgeColor: "#6b7280",
-            badgeLabel: "Mensaje",
-            title: "Mensaje",
-        }
-    );
-}
-
-function formatMessageDate(value) {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    const datePart = date.toLocaleDateString("es-AR");
-    const timePart = date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
-    return `${datePart} ${timePart}`;
-}
 
 function KpiCard({ icon, label, value }) {
     return (
@@ -100,7 +48,7 @@ function KpiCard({ icon, label, value }) {
 
 export default function HomeDashboard() {
     const navigate = useNavigate();
-    const [range, setRange] = useState("Semana"); // estética: selector simple
+    const [range, setRange] = useState("Semana"); // estÃ©tica: selector simple
     const [resumen, setResumen] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -125,7 +73,11 @@ export default function HomeDashboard() {
         fetchMessages()
             .then(res => {
                 if (!active) return;
-                const data = Array.isArray(res.data) ? res.data : [];
+                const data = Array.isArray(res.data?.data)
+                    ? res.data.data
+                    : Array.isArray(res.data)
+                        ? res.data
+                        : [];
                 setMessages(data.slice(0, 6));
                 setMessagesError(null);
             })
@@ -169,7 +121,7 @@ export default function HomeDashboard() {
                         onClick={() => navigate("/creditos/nuevo")}
                         className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:ring-2 focus:ring-blue-400"
                     >
-                        + Nuevo crédito
+                        + Nuevo crÃ©dito
                     </button>
                     <button
                         onClick={() => navigate("/clientes/nuevo")}
@@ -182,7 +134,7 @@ export default function HomeDashboard() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <KpiCard
                     icon={<HiCash className="h-8 w-8 text-green-500" />}
-                    label="Créditos activos"
+                    label="CrÃ©ditos activos"
                     value={resumen.creditosActivos}
                 />
                 <KpiCard
@@ -237,7 +189,7 @@ export default function HomeDashboard() {
                 </div>
 
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <h2 className="mb-3 text-lg font-semibold">Distribución de clientes</h2>
+                    <h2 className="mb-3 text-lg font-semibold">DistribuciÃ³n de clientes</h2>
                     <div className="h-[260px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -301,38 +253,15 @@ export default function HomeDashboard() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">No hay mensajes urgentes.</p>
                 ) : (
                     <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        {messages.map((m) => {
-                            const theme = getMessageTheme(m.tipo);
-                            return (
-                                <li
-                                    key={m.id}
-                                    className={[
-                                        "flex items-start justify-between gap-3 rounded-lg border p-3",
-                                        theme.container,
-                                    ].join(" ")}
-                                >
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {theme.title}
-                                        </p>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">{m.contenido}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {formatMessageDate(m.fecha)}
-                                            {m.client?.name ? ` • Cliente: ${m.client.name}` : ""}
-                                        </p>
-                                    </div>
-                                    <span
-                                        className="rounded px-2 py-1 text-xs font-medium uppercase text-white"
-                                        style={{ backgroundColor: theme.badgeColor }}
-                                    >
-                                        {theme.badgeLabel}
-                                    </span>
-                                </li>
-                            );
-                        })}
+                        {messages.map((m) => (
+                            <li key={m.id}>
+                                <MessageCard message={m} />
+                            </li>
+                        ))}
                     </ul>
                 )}
             </div>
         </div>
     );
 }
+

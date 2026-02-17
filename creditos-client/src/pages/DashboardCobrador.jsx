@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import {
     HiPlay,
     HiStop,
@@ -32,11 +32,6 @@ export default function DashboardCobrador() {
     });
     const [loadingResumen, setLoadingResumen] = useState(true);
     const [errorResumen, setErrorResumen] = useState(null);
-    const [notas] = useState([
-        "Recordar pasar por Av. Libertad 1023 antes de las 15hs.",
-        "Cliente Laura Gómez pidió reenviar comprobante MP.",
-        "Verificar dirección de Carlos Díaz (domicilio cambiado).",
-    ]);
 
     const applyResumenData = useCallback((data) => {
         setResumen({
@@ -109,7 +104,7 @@ export default function DashboardCobrador() {
                 const reportes = Array.isArray(res?.data?.data) ? res.data.data : [];
                 const hoy = new Date();
                 hoy.setHours(0, 0, 0, 0);
-                const existeHoy = reportes.find(r => {
+                const existeHoy = reportes.find((r) => {
                     const fecha = new Date(r.fechaDeReporte);
                     fecha.setHours(0, 0, 0, 0);
                     return fecha.getTime() === hoy.getTime() && !r.finalized;
@@ -129,23 +124,22 @@ export default function DashboardCobrador() {
         checkTrayecto();
         return () => { mounted = false; };
     }, [dispatch]);
+
     async function confirmarInicio() {
         setToast({
-            message: "¿Deseás iniciar el trayecto del día?",
+            message: "Deseas iniciar el trayecto del dia?",
             type: "info",
             confirm: true,
             onConfirm: async () => {
                 try {
                     setLoadingTrayecto(true);
-                    const res = await import("../services/reportsService").then(m => m.startReport());
+                    await import("../services/reportsService").then((m) => m.startReport());
                     setTrayectoActivoState(true);
                     dispatch(setTrayectoActivoAction(true));
                     setToast({ message: "Trayecto iniciado correctamente.", type: "success" });
-                    console.log("🟢 Trayecto iniciado.", res?.data || "");
                     await reloadResumen({ showLoader: false }).catch(() => undefined);
                 } catch (err) {
                     setToast({ message: "Error iniciando trayecto.", type: "error" });
-                    console.error(err);
                 } finally {
                     setLoadingTrayecto(false);
                 }
@@ -155,21 +149,19 @@ export default function DashboardCobrador() {
 
     async function confirmarFinalizacion() {
         setToast({
-            message: "¿Deseás finalizar el día y enviar el resumen?",
+            message: "Deseas finalizar el dia y enviar el resumen?",
             type: "error",
             confirm: true,
             onConfirm: async () => {
                 try {
                     setLoadingTrayecto(true);
-                    const res = await import("../services/reportsService").then(m => m.finalizeReport());
+                    await import("../services/reportsService").then((m) => m.finalizeReport());
                     setTrayectoActivoState(false);
                     dispatch(setTrayectoActivoAction(false));
-                    setToast({ message: "Reporte finalizado. El administrador podrá verlo en Usuarios > Reportes.", type: "info" });
-                    console.log("🔴 Día finalizado. Resumen finalizado:", res?.data || "");
+                    setToast({ message: "Reporte finalizado. El administrador podra verlo en Usuarios > Reportes.", type: "info" });
                     await reloadResumen({ showLoader: false }).catch(() => undefined);
                 } catch (err) {
                     setToast({ message: "Error enviando resumen.", type: "error" });
-                    console.error(err);
                 } finally {
                     setLoadingTrayecto(false);
                 }
@@ -187,117 +179,67 @@ export default function DashboardCobrador() {
     const formatNumber = (value) => new Intl.NumberFormat("es-AR").format(value ?? 0);
 
     return (
-        <main className="p-4 sm:p-6 lg:p-8 space-y-8">
-            <h1 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-                Panel del Cobrador
-            </h1>
+        <main className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-3 py-4 sm:px-6 sm:py-6 dark:from-slate-900 dark:to-slate-950">
+            <div className="mx-auto w-full max-w-6xl space-y-5">
+                <section className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 sm:p-5">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Jornada</p>
+                            <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">Panel del Cobrador</h1>
+                        </div>
+                        <div className="w-full md:w-auto">
+                            {loadingTrayecto ? (
+                                <button disabled className="flex w-full md:w-auto items-center justify-center gap-2 rounded-xl bg-gray-400 px-6 py-3 text-sm sm:text-base font-medium text-white opacity-60 cursor-not-allowed">
+                                    Cargando estado...
+                                </button>
+                            ) : !trayectoActivo ? (
+                                <button
+                                    onClick={confirmarInicio}
+                                    className="flex w-full md:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm sm:text-base font-medium text-white hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition"
+                                >
+                                    <HiPlay className="h-5 w-5" /> Iniciar trayecto
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={confirmarFinalizacion}
+                                    className="flex w-full md:w-auto items-center justify-center gap-2 rounded-xl bg-rose-600 px-6 py-3 text-sm sm:text-base font-medium text-white hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300 transition"
+                                >
+                                    <HiStop className="h-5 w-5" /> Finalizar dia
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </section>
 
-            {/* ===== INDICADORES ===== */}
-            {errorResumen ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
-                    {errorResumen}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                    <Indicador
-                        icon={<HiCreditCard className="h-6 w-6 text-blue-500" />}
-                        label="Cobrado por MP"
-                        valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.mercadopago)}
-                    />
-                    <Indicador
-                        icon={<HiCash className="h-6 w-6 text-green-500" />}
-                        label="Cobrado en Efectivo"
-                        valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.efectivo)}
-                    />
-                    <Indicador
-                        icon={<HiClipboardList className="h-6 w-6 text-yellow-500" />}
-                        label="Pagos diarios"
-                        valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosDiarios)}
-                    />
-                    <Indicador
-                        icon={<HiCalendar className="h-6 w-6 text-purple-500" />}
-                        label="Pagos semanales"
-                        valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosSemanales)}
-                    />
-                    <Indicador
-                        icon={<HiCalendar className="h-6 w-6 text-indigo-500" />}
-                        label="Pagos quincenales"
-                        valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosQuincenales)}
-                    />
-                    <Indicador
-                        icon={<HiCalendar className="h-6 w-6 text-red-500" />}
-                        label="Pagos mensuales"
-                        valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosMensuales)}
-                    />
-                </div>
-            )}
-
-            {!loadingResumen && !errorResumen && (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <DatoResumen label="Total cobrado hoy" value={formatCurrency(resumen.totalCobrado)} />
-                    <DatoResumen label="Clientes visitados" value={formatNumber(resumen.clientesVisitados)} />
-                    <DatoResumen label="Asignaciones activas" value={formatNumber(resumen.asignaciones)} />
-                    <DatoResumen
-                        label="Estado del trayecto"
-                        value={
-                            resumen.trayectoActivo
-                                ? "En curso"
-                                : resumen.reporteGenerado
-                                    ? "Finalizado"
-                                    : "Pendiente"
-                        }
-                    />
-                </div>
-            )}
-
-            {/* ===== BOTONES ===== */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
-                {loadingTrayecto ? (
-                    <button disabled className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-gray-400 px-6 py-3 text-sm sm:text-base font-medium text-white opacity-60 cursor-not-allowed">
-                        Cargando estado...
-                    </button>
-                ) : !trayectoActivo ? (
-                    <button
-                        onClick={confirmarInicio}
-                        className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-sm sm:text-base font-medium text-white hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
-                    >
-                        <HiPlay className="h-5 w-5" /> Iniciar trayecto
-                    </button>
+                {errorResumen ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+                        {errorResumen}
+                    </div>
                 ) : (
-                    <button
-                        onClick={confirmarFinalizacion}
-                        className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-3 text-sm sm:text-base font-medium text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
-                    >
-                        <HiStop className="h-5 w-5" /> Finalizar día
-                    </button>
+                    <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                        <Indicador icon={<HiCreditCard className="h-5 w-5 text-blue-500" />} label="Cobrado por MP" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.mercadopago)} />
+                        <Indicador icon={<HiCash className="h-5 w-5 text-emerald-500" />} label="Cobrado en Efectivo" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.efectivo)} />
+                        <Indicador icon={<HiClipboardList className="h-5 w-5 text-amber-500" />} label="Pagos diarios" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosDiarios)} />
+                        <Indicador icon={<HiCalendar className="h-5 w-5 text-violet-500" />} label="Pagos semanales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosSemanales)} />
+                        <Indicador icon={<HiCalendar className="h-5 w-5 text-indigo-500" />} label="Pagos quincenales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosQuincenales)} />
+                        <Indicador icon={<HiCalendar className="h-5 w-5 text-rose-500" />} label="Pagos mensuales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosMensuales)} />
+                    </div>
                 )}
+
+                {!loadingResumen && !errorResumen && (
+                    <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-4">
+                        <DatoResumen label="Total cobrado hoy" value={formatCurrency(resumen.totalCobrado)} />
+                        <DatoResumen label="Clientes visitados" value={formatNumber(resumen.clientesVisitados)} />
+                        <DatoResumen label="Asignaciones activas" value={formatNumber(resumen.asignaciones)} />
+                        <DatoResumen
+                            label="Estado del trayecto"
+                            value={resumen.trayectoActivo ? "En curso" : resumen.reporteGenerado ? "Finalizado" : "Pendiente"}
+                        />
+                    </div>
+                )}
+
             </div>
 
-            {/* ===== NOTAS ADICIONALES ===== */}
-            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                    Notas adicionales
-                </h2>
-
-                {notas.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No hay notas pendientes.
-                    </p>
-                ) : (
-                    <ul className="space-y-2">
-                        {notas.map((nota, i) => (
-                            <li
-                                key={i}
-                                className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-300"
-                            >
-                                • {nota}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-
-            {/* ===== TOAST ===== */}
             {toast && (
                 <Toast
                     message={toast.message}
@@ -312,26 +254,24 @@ export default function DashboardCobrador() {
     );
 }
 
-/* ===== Subcomponente: Indicador ===== */
 function Indicador({ icon, label, valor }) {
     return (
-        <div className="flex items-center justify-between sm:justify-start sm:gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md dark:border-gray-700 dark:bg-gray-800 transition">
-            <div className="shrink-0">{icon}</div>
-            <div className="text-right sm:text-left">
-                <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-                <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    {valor}
-                </p>
+        <div className="flex min-h-[96px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-4">
+            <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+                <div className="shrink-0">{icon}</div>
             </div>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100 sm:text-lg">{valor}</p>
         </div>
     );
 }
 
 function DatoResumen({ label, value }) {
     return (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
-            <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</p>
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-4">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{label}</p>
+            <p className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100 sm:text-lg">{value}</p>
         </div>
     );
 }
+

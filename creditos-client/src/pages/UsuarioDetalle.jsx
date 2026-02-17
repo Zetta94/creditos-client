@@ -6,6 +6,8 @@ import { fetchUser } from "../services/usersService";
 import { fetchCredits } from "../services/creditsService";
 import { fetchPayments } from "../services/paymentsService";
 import { fetchClients } from "../services/clientsService";
+import { fetchUpcomingStarts } from "../services/assignmentsService";
+import Pagination from "../components/Pagination";
 
 export default function UsuarioDetalle() {
     const { id } = useParams();
@@ -15,6 +17,11 @@ export default function UsuarioDetalle() {
     const [creditos, setCreditos] = useState([]);
     const [pagos, setPagos] = useState([]);
     const [clientes, setClientes] = useState([]);
+    const [upcomingStarts, setUpcomingStarts] = useState([]);
+    const [upcomingMeta, setUpcomingMeta] = useState({ page: 1, pageSize: 8, totalItems: 0, totalPages: 1 });
+    const [upcomingPage, setUpcomingPage] = useState(1);
+    const [upcomingPageSize, setUpcomingPageSize] = useState(8);
+    const [loadingUpcoming, setLoadingUpcoming] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -23,8 +30,8 @@ export default function UsuarioDetalle() {
         const load = async () => {
             setLoading(true);
             try {
-                const [u, cr, pa, cl] = await Promise.all([
-                    fetchUser(id).then(r => r.data),
+                const u = await fetchUser(id).then(r => r.data);
+                const [cr, pa, cl] = await Promise.all([
                     fetchCredits({ page: 1, pageSize: 2000 }).then(r => r.data?.data ?? []),
                     fetchPayments({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
                     fetchClients({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
@@ -51,6 +58,39 @@ export default function UsuarioDetalle() {
         };
         load();
     }, [id]);
+
+    useEffect(() => {
+        setUpcomingPage(1);
+    }, [id]);
+
+    useEffect(() => {
+        const role = (usuario?.role || "").toUpperCase();
+        const isCollector = role === "COBRADOR" || role === "EMPLOYEE";
+        if (!id || !isCollector) {
+            setUpcomingStarts([]);
+            setUpcomingMeta({ page: 1, pageSize: upcomingPageSize, totalItems: 0, totalPages: 1 });
+            return;
+        }
+
+        const loadUpcoming = async () => {
+            setLoadingUpcoming(true);
+            try {
+                const res = await fetchUpcomingStarts({
+                    cobradorId: id,
+                    page: upcomingPage,
+                    pageSize: upcomingPageSize
+                });
+                const data = Array.isArray(res?.data?.data) ? res.data.data : [];
+                const meta = res?.data?.meta || { page: upcomingPage, pageSize: upcomingPageSize, totalItems: data.length, totalPages: 1 };
+                setUpcomingStarts(data);
+                setUpcomingMeta(meta);
+            } finally {
+                setLoadingUpcoming(false);
+            }
+        };
+
+        loadUpcoming();
+    }, [id, usuario?.role, upcomingPage, upcomingPageSize]);
 
     const cobrosUsuario = useMemo(() => {
         return pagos
@@ -217,6 +257,60 @@ export default function UsuarioDetalle() {
                     <OrdenarClientes cobradorId={usuario.id} />
                 </div>
             ) : null}
+
+            {(roleDisplay === "COBRADOR" || roleDisplay === "EMPLOYEE") && (
+                <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4 sm:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        Creditos asignados aun no iniciados
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Esta seccion es visible para administracion y muestra los creditos de este cobrador que inician en el futuro.
+                    </p>
+                    {loadingUpcoming ? (
+                        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Cargando creditos pendientes de inicio...</p>
+                    ) : upcomingStarts.length === 0 ? (
+                        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay creditos pendientes de inicio.</p>
+                    ) : (
+                        <div className="mt-4 space-y-4">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-gray-500 dark:text-gray-400">
+                                            <th className="px-3 py-2">Cliente</th>
+                                            <th className="px-3 py-2">Producto</th>
+                                            <th className="px-3 py-2">Monto</th>
+                                            <th className="px-3 py-2">Inicio cobro</th>
+                                            <th className="px-3 py-2">Proxima visita</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {upcomingStarts.map((item) => (
+                                            <tr key={item.creditId} className="border-b border-gray-100 dark:border-gray-800">
+                                                <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{item.client?.name || "Cliente"}</td>
+                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{item.product || "Credito"}</td>
+                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">${Number(item.amount || 0).toLocaleString("es-AR")}</td>
+                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "-"}</td>
+                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "-"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <Pagination
+                                page={upcomingMeta.page ?? upcomingPage}
+                                pageSize={upcomingMeta.pageSize ?? upcomingPageSize}
+                                totalItems={upcomingMeta.totalItems ?? upcomingStarts.length}
+                                totalPages={upcomingMeta.totalPages ?? 1}
+                                onPageChange={setUpcomingPage}
+                                onPageSizeChange={(size) => {
+                                    setUpcomingPageSize(size);
+                                    setUpcomingPage(1);
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
 
 
         </div>

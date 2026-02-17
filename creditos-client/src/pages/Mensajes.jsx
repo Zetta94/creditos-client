@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-    HiExclamation,
-    HiCheckCircle,
-    HiClock,
     HiFilter,
-    HiFlag,
-    HiLocationMarker,
     HiX,
 } from "react-icons/hi";
 import { fetchMessages } from "../services/messagesService";
 import Pagination from "../components/Pagination";
+import MessageCard from "../components/messages/MessageCard";
 
 const TYPE_OPTIONS = [
     { value: "TODOS", label: "Todos" },
@@ -20,53 +16,6 @@ const TYPE_OPTIONS = [
     { value: "TRAYECTO_FINALIZADO", label: "Trayectos finalizados" },
 ];
 
-const PALETTE = {
-    neutral: {
-        bg: "bg-white dark:bg-gray-800",
-        border: "border-gray-200 dark:border-gray-700",
-        text: "text-gray-800 dark:text-gray-100",
-        chip: "bg-blue-600",
-        icon: "text-gray-500 dark:text-gray-300",
-    },
-    warning: {
-        bg: "bg-amber-50 dark:bg-amber-900/30",
-        border: "border-amber-200 dark:border-amber-800",
-        text: "text-amber-800 dark:text-amber-200",
-        chip: "bg-amber-600",
-        icon: "text-amber-500 dark:text-amber-300",
-    },
-    danger: {
-        bg: "bg-red-50 dark:bg-red-900/30",
-        border: "border-red-200 dark:border-red-800",
-        text: "text-red-800 dark:text-red-200",
-        chip: "bg-red-600",
-        icon: "text-red-500 dark:text-red-300",
-    },
-    info: {
-        bg: "bg-blue-50 dark:bg-blue-900/30",
-        border: "border-blue-200 dark:border-blue-800",
-        text: "text-blue-800 dark:text-blue-200",
-        chip: "bg-blue-600",
-        icon: "text-blue-500 dark:text-blue-300",
-    },
-    success: {
-        bg: "bg-emerald-50 dark:bg-emerald-900/30",
-        border: "border-emerald-200 dark:border-emerald-800",
-        text: "text-emerald-800 dark:text-emerald-200",
-        chip: "bg-emerald-600",
-        icon: "text-emerald-500 dark:text-emerald-300",
-    },
-};
-
-const MESSAGE_META = {
-    PAGO: { palette: "success", icon: HiCheckCircle },
-    VENCIMIENTO: { palette: "warning", icon: HiClock },
-    IMPAGO: { palette: "danger", icon: HiExclamation },
-    TRAYECTO_INICIADO: { palette: "info", icon: HiLocationMarker },
-    TRAYECTO_FINALIZADO: { palette: "success", icon: HiFlag },
-    DEFAULT: { palette: "neutral", icon: HiExclamation },
-};
-
 function normalizarMensajes(items) {
     return (Array.isArray(items) ? items : []).map((item) => {
         const fechaDate = item.fecha ? new Date(item.fecha) : null;
@@ -76,14 +25,6 @@ function normalizarMensajes(items) {
             fechaDate: fechaDate instanceof Date && !Number.isNaN(fechaDate.getTime()) ? fechaDate : null,
         };
     });
-}
-
-function formatDateTime(value) {
-    if (!value) return "";
-    return `${value.toLocaleDateString("es-AR")} ${value.toLocaleTimeString("es-AR", {
-        hour: "2-digit",
-        minute: "2-digit",
-    })}`;
 }
 
 export default function Mensajes() {
@@ -285,35 +226,5 @@ function Filters({ filtros, setFiltros }) {
 }
 
 function MensajeItem({ m }) {
-    const meta = MESSAGE_META[m.tipo] || MESSAGE_META.DEFAULT;
-    const palette = PALETTE[meta.palette] || PALETTE.neutral;
-    const Icon = meta.icon;
-
-    return (
-        <div
-            className={`flex items-start justify-between gap-3 rounded-xl border p-4 ${palette.bg} ${palette.border} ${palette.text}`}
-        >
-            <div className="flex min-w-0 items-start gap-3">
-                <div className={`mt-0.5 ${palette.icon}`}>
-                    <Icon className="h-6 w-6" />
-                </div>
-
-                <div className="min-w-0">
-                    <p className="text-sm">
-                        {m.contenido}
-                    </p>
-                    {m.clienteNombre && (
-                        <p className="mt-1 text-xs opacity-75">Cliente: {m.clienteNombre}</p>
-                    )}
-                    <p className="mt-0.5 text-xs opacity-70">{formatDateTime(m.fechaDate)}</p>
-                </div>
-            </div>
-
-            {m.importante && (
-                <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold uppercase text-white ${palette.chip}`}>
-                    Importante
-                </span>
-            )}
-        </div>
-    );
+    return <MessageCard message={m} />;
 }

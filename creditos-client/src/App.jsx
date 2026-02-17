@@ -38,10 +38,16 @@ import PagosCobrador from "./pages/PagosCobrador.jsx";
 import OrdenClientes from "./pages/OrdenarClientes.jsx";
 import AsignarClientes from "./pages/AsignarClientes.jsx";
 import SueldoCobrador from "./pages/CobradorSueldo.jsx";
-import ComisionesCobrador from "./pages/CobradorComisiones.jsx";
 import RegistrarPago from "./pages/RegistrarPago.jsx";
 import CobradorReportes from "./pages/CobradorReportes.jsx";
 import CobradorTrayectoGuard from "./components/CobradorTrayectoGuard.jsx";
+
+function RoleIndexRedirect() {
+  const role = (useSelector((state) => state.auth.user?.role) || localStorage.getItem("role") || "").toLowerCase();
+  const isCollector = role === "cobrador" || role === "employee";
+  if (isCollector) return <Navigate to="/cobrador/dashboard" replace />;
+  return <HomeDashboard />;
+}
 
 function AppRouter() {
   const dispatch = useDispatch();
@@ -98,47 +104,71 @@ function AppRouter() {
         }
       >
         {/* --- ADMIN --- */}
-        <Route index element={<HomeDashboard />} />
-        <Route path="clientes" element={<Clientes />} />
-        <Route path="clientes/nuevo" element={<AgregarCliente />} />
-        <Route path="clientes/:id" element={<DetalleCliente />} />
-        <Route path="clientes/:id/editar" element={<EditarCliente />} />
-        <Route path="usuarios" element={<Usuarios />} />
-        <Route path="usuarios/nuevo" element={<UsuarioNuevo />} />
-        <Route path="usuarios/:id" element={<UsuarioDetalle />} />
-        <Route path="usuarios/:id/editar" element={<UsuarioEditar />} />
-        <Route path="usuarios/:id/reportes" element={<UsuarioReportes />} />
-        <Route path="reportes/:reportId" element={<ReporteDetalle />} />
-        <Route path="mensajes" element={<Mensajes />} />
-        <Route path="creditos" element={<Creditos />} />
-        <Route path="creditos/nuevo" element={<CreditoNuevo />} />
-        <Route path="creditos/:id" element={<CreditoDetalle />} />
-        <Route path="creditos/:id/cancelar" element={<CancelarCredito />} />
-        <Route path="finanzas/detalle" element={<FinancialDetail />} />
-        <Route path="ordenar-clientes" element={<OrdenClientes cobradorId={userId} />} />
-        <Route path="asignar-clientes" element={<AsignarClientes cobradorId={userId} clientesIniciales={[]} />} />
+        <Route index element={<RoleIndexRedirect />} />
+        <Route path="clientes" element={<ProtectedRoute allowedRoles={["admin"]}><Clientes /></ProtectedRoute>} />
+        <Route path="clientes/nuevo" element={<ProtectedRoute allowedRoles={["admin"]}><AgregarCliente /></ProtectedRoute>} />
+        <Route path="clientes/:id" element={<ProtectedRoute allowedRoles={["admin"]}><DetalleCliente /></ProtectedRoute>} />
+        <Route path="clientes/:id/editar" element={<ProtectedRoute allowedRoles={["admin"]}><EditarCliente /></ProtectedRoute>} />
+        <Route path="usuarios" element={<ProtectedRoute allowedRoles={["admin"]}><Usuarios /></ProtectedRoute>} />
+        <Route path="usuarios/nuevo" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioNuevo /></ProtectedRoute>} />
+        <Route path="usuarios/:id" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioDetalle /></ProtectedRoute>} />
+        <Route path="usuarios/:id/editar" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioEditar /></ProtectedRoute>} />
+        <Route path="usuarios/:id/reportes" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioReportes /></ProtectedRoute>} />
+        <Route path="reportes/:reportId" element={<ProtectedRoute allowedRoles={["admin"]}><ReporteDetalle /></ProtectedRoute>} />
+        <Route path="mensajes" element={<ProtectedRoute allowedRoles={["admin"]}><Mensajes /></ProtectedRoute>} />
+        <Route path="creditos" element={<ProtectedRoute allowedRoles={["admin"]}><Creditos /></ProtectedRoute>} />
+        <Route path="creditos/nuevo" element={<ProtectedRoute allowedRoles={["admin"]}><CreditoNuevo /></ProtectedRoute>} />
+        <Route path="creditos/:id" element={<ProtectedRoute allowedRoles={["admin"]}><CreditoDetalle /></ProtectedRoute>} />
+        <Route path="creditos/:id/cancelar" element={<ProtectedRoute allowedRoles={["admin"]}><CancelarCredito /></ProtectedRoute>} />
+        <Route path="finanzas/detalle" element={<ProtectedRoute allowedRoles={["admin"]}><FinancialDetail /></ProtectedRoute>} />
+        <Route path="ordenar-clientes" element={<ProtectedRoute allowedRoles={["admin"]}><OrdenClientes cobradorId={userId} /></ProtectedRoute>} />
+        <Route path="asignar-clientes" element={<ProtectedRoute allowedRoles={["admin"]}><AsignarClientes cobradorId={userId} clientesIniciales={[]} /></ProtectedRoute>} />
 
         {/* --- COBRADOR --- */}
-        <Route path="cobrador/dashboard" element={<DashboardCobrador />} />
+        <Route
+          path="cobrador/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["cobrador"]}>
+              <DashboardCobrador />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="cobrador/pagos"
           element={
-            <CobradorTrayectoGuard>
-              <PagosCobrador cobradorId={userId} />
-            </CobradorTrayectoGuard>
+            <ProtectedRoute allowedRoles={["cobrador"]}>
+              <CobradorTrayectoGuard>
+                <PagosCobrador cobradorId={userId} />
+              </CobradorTrayectoGuard>
+            </ProtectedRoute>
           }
         />
-        <Route path="cobrador/sueldo" element={<SueldoCobrador />} />
-        <Route path="cobrador/comisiones" element={<ComisionesCobrador />} />
+        <Route
+          path="cobrador/sueldo"
+          element={
+            <ProtectedRoute allowedRoles={["cobrador"]}>
+              <SueldoCobrador />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="cobrador/pagos/:creditoId"
           element={
-            <CobradorTrayectoGuard>
-              <RegistrarPago />
-            </CobradorTrayectoGuard>
+            <ProtectedRoute allowedRoles={["cobrador"]}>
+              <CobradorTrayectoGuard>
+                <RegistrarPago />
+              </CobradorTrayectoGuard>
+            </ProtectedRoute>
           }
         />
-        <Route path="cobrador/reportes" element={<CobradorReportes cobradorId={userId} />} />
+        <Route
+          path="cobrador/reportes"
+          element={
+            <ProtectedRoute allowedRoles={["cobrador"]}>
+              <CobradorReportes cobradorId={userId} />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* === REDIRECCION POR DEFECTO === */}
