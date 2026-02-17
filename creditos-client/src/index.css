@@ -77,6 +77,26 @@ body {
   color: #94a3b8 !important;
 }
 
+@media (max-width: 768px) {
+  .app-shell button.bg-white,
+  .app-shell button.bg-gray-100,
+  .app-shell button.bg-gray-200,
+  .app-shell button.bg-slate-100,
+  .app-shell button.bg-slate-200 {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+  }
+
+  .app-shell button.bg-white:hover,
+  .app-shell button.bg-gray-100:hover,
+  .app-shell button.bg-gray-200:hover,
+  .app-shell button.bg-slate-100:hover,
+  .app-shell button.bg-slate-200:hover {
+    background-color: #334155 !important;
+  }
+}
+
 @keyframes slide-up {
   from {
     opacity: 0;

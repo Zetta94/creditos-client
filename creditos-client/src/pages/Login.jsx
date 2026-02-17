@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { HiMail, HiLockClosed, HiEye, HiEyeOff } from "react-icons/hi";
+import logoMinimal from "../assets/LogoMinimalista.png";
 import { login } from "../store/authSlice";
 
 export default function Login() {
@@ -42,8 +43,8 @@ export default function Login() {
         {/* Marca / logo */}
         <div className="mb-6 text-center">
           <img
-            className="mx-auto mb-3 h-16 w-16 rounded-2xl shadow-lg ring-1 ring-blue-400/60"
-            src="/imperio-app-icon.svg"
+            className="mx-auto mb-3 h-16 w-16 rounded-2xl border border-slate-500/70 bg-slate-900/70 p-1 shadow-xl ring-1 ring-blue-400/50"
+            src={logoMinimal}
             alt="El Imperio"
           />
           <h1 className="text-xl font-semibold text-gray-100">
@@ -145,4 +146,5 @@ export default function Login() {
     </div>
   );
 }
+
 

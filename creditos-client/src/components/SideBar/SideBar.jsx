@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
+import logo3 from "../../assets/logoListo.png";
 import { useLocation, useNavigate } from "react-router-dom";
 import { HiMenu, HiChevronDown } from "react-icons/hi";
 import SidebarAdmin from "./SideBarAdmin.jsx";
@@ -83,7 +84,7 @@ export default function SideBar() {
               onClick={handleLogoClick}
               className="ml-4 me-6 flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
             >
-              <img src="/imperio-app-icon.svg" className="h-9 w-9 rounded-xl" alt="El Imperio" />
+              <img src={logo3} className="h-10 w-auto rounded-md border border-slate-600/60 bg-slate-900/50 p-1" alt="El Imperio" />
               <div className="hidden sm:flex flex-col leading-none text-left">
                 <span className="text-[10px] uppercase tracking-[0.18em] text-slate-300">El Imperio</span>
                 <span className="text-sm font-semibold text-white">Dashboard</span>
@@ -159,3 +160,5 @@ export default function SideBar() {
     </>
   );
 }
+
+
