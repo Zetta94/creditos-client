@@ -29,6 +29,7 @@ import Mensajes from "./pages/Mensajes.jsx";
 import Creditos from "./pages/Creditos.jsx";
 import CreditoNuevo from "./pages/CreditoNuevo.jsx";
 import CreditoDetalle from "./pages/CreditoDetalle.jsx";
+import CreditoEditar from "./pages/CreditoEditar.jsx";
 import CancelarCredito from "./pages/CreditoCancelar.jsx";
 import FinancialDetail from "./pages/FinancialDetail.jsx";
 
@@ -119,6 +120,7 @@ function AppRouter() {
         <Route path="creditos" element={<ProtectedRoute allowedRoles={["admin"]}><Creditos /></ProtectedRoute>} />
         <Route path="creditos/nuevo" element={<ProtectedRoute allowedRoles={["admin"]}><CreditoNuevo /></ProtectedRoute>} />
         <Route path="creditos/:id" element={<ProtectedRoute allowedRoles={["admin"]}><CreditoDetalle /></ProtectedRoute>} />
+        <Route path="creditos/:id/editar" element={<ProtectedRoute allowedRoles={["admin"]}><CreditoEditar /></ProtectedRoute>} />
         <Route path="creditos/:id/cancelar" element={<ProtectedRoute allowedRoles={["admin"]}><CancelarCredito /></ProtectedRoute>} />
         <Route path="finanzas/detalle" element={<ProtectedRoute allowedRoles={["admin"]}><FinancialDetail /></ProtectedRoute>} />
         <Route path="ordenar-clientes" element={<ProtectedRoute allowedRoles={["admin"]}><OrdenClientes cobradorId={userId} /></ProtectedRoute>} />
@@ -186,3 +188,5 @@ export default function App() {
     </Provider>
   );
 }
+
+

@@ -21,6 +21,7 @@ export default function RegistrarPago() {
 
     const [pagos, setPagos] = useState([{ metodo: "efectivo", monto: "", id: Date.now() }]);
     const [nota, setNota] = useState("");
+    const [cuotasPagadasHoy, setCuotasPagadasHoy] = useState(1);
 
     const pendingInfo = location.state?.pendingInfo;
     const pendingAmount = pendingInfo?.pendingAmount;
@@ -28,6 +29,13 @@ export default function RegistrarPago() {
     const pendingDates = Array.isArray(pendingInfo?.pendingDates)
         ? pendingInfo.pendingDates.map((d) => new Date(d).toLocaleDateString("es-AR"))
         : null;
+    const totalInstallments = Number(credito?.totalInstallments || 0);
+    const paidInstallments = Number(credito?.paidInstallments || 0);
+    const installmentAmount = Number(credito?.installmentAmount || 0);
+    const remainingInstallments = Math.max(0, totalInstallments - paidInstallments);
+    const canSelectInstallments = totalInstallments > 0 && installmentAmount > 0;
+    const maxInstallmentsToPay = canSelectInstallments ? Math.max(1, remainingInstallments) : 1;
+    const suggestedAmount = canSelectInstallments ? installmentAmount * cuotasPagadasHoy : 0;
 
     useEffect(() => {
         if (creditoId) {
@@ -40,6 +48,20 @@ export default function RegistrarPago() {
             dispatch(loadClient(credito.clientId));
         }
     }, [credito?.clientId, credito?.client, dispatch]);
+
+    useEffect(() => {
+        if (!canSelectInstallments) return;
+
+        const pendingCount = Number(pendingOccurrences || 0);
+        const preferredCount = pendingCount > 0 ? pendingCount : 1;
+        const normalizedCount = Math.min(maxInstallmentsToPay, Math.max(1, Math.floor(preferredCount)));
+        setCuotasPagadasHoy(normalizedCount);
+
+        setPagos((prev) => {
+            if (prev.length !== 1) return prev;
+            return [{ ...prev[0], monto: String(installmentAmount * normalizedCount) }];
+        });
+    }, [canSelectInstallments, installmentAmount, maxInstallmentsToPay, pendingOccurrences]);
 
     if (loadingCredit) {
         return (
@@ -72,13 +94,30 @@ export default function RegistrarPago() {
         setPagos((prev) => prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)));
     }
 
+    function actualizarCuotasPagadas(valor) {
+        const numeric = Number(valor);
+        const normalized = Number.isFinite(numeric)
+            ? Math.min(maxInstallmentsToPay, Math.max(1, Math.floor(numeric)))
+            : 1;
+        setCuotasPagadasHoy(normalized);
+
+        setPagos((prev) => {
+            if (!canSelectInstallments || prev.length !== 1) return prev;
+            return [{ ...prev[0], monto: String(installmentAmount * normalized) }];
+        });
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         const pagosValidos = pagos
             .map((p) => ({ ...p, monto: Number(p.monto) }))
             .filter((p) => p.metodo && p.monto > 0);
         if (pagosValidos.length === 0) {
-            toast.error("Debes ingresar al menos un pago válido 🧾");
+            toast.error("Debes ingresar al menos un pago valido");
+            return;
+        }
+        if (canSelectInstallments && cuotasPagadasHoy < 1) {
+            toast.error("Ingresa al menos 1 cuota");
             return;
         }
 
@@ -93,6 +132,7 @@ export default function RegistrarPago() {
             await dispatch(addPayment({
                 creditId: creditoId,
                 payments: breakdown,
+                installmentCount: canSelectInstallments ? cuotasPagadasHoy : undefined,
                 date: new Date().toISOString(),
                 note: nota
             })).unwrap();
@@ -156,6 +196,25 @@ export default function RegistrarPago() {
                 <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                     Detalle de pagos
                 </h2>
+
+                {canSelectInstallments && (
+                    <div className="rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
+                        <label className="block text-xs font-medium text-blue-700 dark:text-blue-200 mb-1">
+                            Cuotas pagadas en esta cobranza
+                        </label>
+                        <input
+                            type="number"
+                            min={1}
+                            max={maxInstallmentsToPay}
+                            value={cuotasPagadasHoy}
+                            onChange={(e) => actualizarCuotasPagadas(e.target.value)}
+                            className="w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 dark:border-blue-500/40 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                        <p className="mt-1 text-xs text-blue-700 dark:text-blue-200">
+                            Restantes: {remainingInstallments} cuotas. Monto sugerido: ${suggestedAmount.toLocaleString("es-AR")}
+                        </p>
+                    </div>
+                )}
 
                 {pagos.map((p) => (
                     <div key={p.id} className="flex flex-col sm:flex-row sm:items-end gap-3 border-b pb-4 last:border-none">

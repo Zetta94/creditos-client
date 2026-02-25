@@ -847,6 +847,13 @@ export default function CreditoDetalle() {
                 >
                     Volver
                 </button>
+                <button
+                    onClick={() => navigate(`/creditos/${id}/editar`)}
+                    className="w-full sm:w-auto rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                    Editar crédito
+                </button>
+                
                 {!creditoFinalizado && (
                     <button
                         onClick={() => navigate(`/creditos/${id}/cancelar`)}
@@ -909,3 +916,4 @@ function KpiCard({ label, value }) {
         </div>
     );
 }
+

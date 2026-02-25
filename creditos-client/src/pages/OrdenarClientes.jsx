@@ -11,12 +11,24 @@ const TOMORROW_BASE_ORDER = 2000;
 
 const toDateKey = (value) => {
     if (!value) return null;
+    if (typeof value === "string") {
+        const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (match) return match[1];
+    }
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
+};
+
+const parseDateKeyToDate = (dateKey) => {
+    if (!dateKey) return null;
+    const date = new Date(`${dateKey}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
 };
 
 const moveItem = (list, fromIndex, toIndex) => {
@@ -43,10 +55,11 @@ const addMonths = (value, amount) => {
 };
 
 const computeProjectedVisitDate = (nextVisitDate, tipoPago) => {
-    if (!nextVisitDate) return null;
-    const base = new Date(nextVisitDate);
-    if (Number.isNaN(base.getTime())) return null;
-    base.setHours(0, 0, 0, 0);
+    const baseKey = toDateKey(nextVisitDate);
+    if (!baseKey) return null;
+
+    const base = parseDateKeyToDate(baseKey);
+    if (!base) return null;
 
     const tipo = String(tipoPago || "").toUpperCase();
     if (tipo === "SEMANAL") return addDays(base, 7);
@@ -285,3 +298,5 @@ export default function OrdenClientes({ cobradorId }) {
         </div>
     );
 }
+
+

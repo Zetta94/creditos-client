@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";
 import { toast } from "react-hot-toast";
-import { fetchAssignmentsEnriched, postponeAssignment } from "../services/assignmentsService";
+import { fetchAssignmentsEnriched, rescheduleAssignment } from "../services/assignmentsService";
 
 const isCreditFinalized = (credit) => {
     if (!credit) return true;
@@ -133,9 +133,33 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     async function reprogramarCliente(assignmentId, nombre) {
         if (!assignmentId) return;
         try {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const defaultDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+
+            const promisedDateInput = window.prompt(
+                `Indica la fecha prometida para ${nombre} (YYYY-MM-DD):`,
+                defaultDate
+            );
+            if (!promisedDateInput) return;
+
+            const promisedDate = new Date(`${promisedDateInput}T00:00:00`);
+            if (Number.isNaN(promisedDate.getTime())) {
+                toast.error("Fecha invalida. Usa formato YYYY-MM-DD.");
+                return;
+            }
+
+            const reasonInput = window.prompt(
+                "Motivo (opcional):",
+                "Cliente no pudo pagar hoy"
+            );
+
             setPostponiendo(assignmentId);
-            await postponeAssignment(assignmentId);
-            toast.success(`Reprogramado ${nombre} para el proximo dia.`);
+            await rescheduleAssignment(assignmentId, {
+                promisedDate: promisedDate.toISOString(),
+                reason: reasonInput?.trim() || undefined
+            });
+            toast.success(`Reprogramado ${nombre} para ${promisedDate.toLocaleDateString("es-AR")}.`);
             await cargarClientes(tipo);
         } catch {
             toast.error("No se pudo reprogramar al cliente.");

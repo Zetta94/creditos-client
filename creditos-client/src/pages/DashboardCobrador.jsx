@@ -20,6 +20,7 @@ export default function DashboardCobrador() {
     const [resumen, setResumen] = useState({
         mercadopago: 0,
         efectivo: 0,
+        transferencia: 0,
         pagosDiarios: 0,
         pagosSemanales: 0,
         pagosQuincenales: 0,
@@ -37,11 +38,12 @@ export default function DashboardCobrador() {
         setResumen({
             mercadopago: data.mercadopago ?? 0,
             efectivo: data.efectivo ?? 0,
+            transferencia: data.transferencia ?? 0,
             pagosDiarios: data.pagosDiarios ?? 0,
             pagosSemanales: data.pagosSemanales ?? 0,
             pagosQuincenales: data.pagosQuincenales ?? 0,
             pagosMensuales: data.pagosMensuales ?? 0,
-            totalCobrado: data.totalCobrado ?? ((data.mercadopago ?? 0) + (data.efectivo ?? 0)),
+            totalCobrado: data.totalCobrado ?? ((data.mercadopago ?? 0) + (data.efectivo ?? 0) + (data.transferencia ?? 0)),
             clientesVisitados: data.clientesVisitados ?? 0,
             asignaciones: data.asignaciones ?? 0,
             reporteGenerado: Boolean(data.reporteGenerado),
@@ -113,11 +115,17 @@ export default function DashboardCobrador() {
                     const estaActivo = Boolean(existeHoy);
                     setTrayectoActivoState(estaActivo);
                     dispatch(setTrayectoActivoAction(estaActivo));
+                    setResumen((prev) => ({
+                        ...prev,
+                        trayectoActivo: estaActivo,
+                        reporteGenerado: estaActivo ? false : prev.reporteGenerado
+                    }));
                 }
             } catch (err) {
                 if (mounted) {
                     setTrayectoActivoState(false);
                     dispatch(setTrayectoActivoAction(false));
+                    setResumen((prev) => ({ ...prev, trayectoActivo: false }));
                 }
             }
         }
@@ -216,9 +224,10 @@ export default function DashboardCobrador() {
                         {errorResumen}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                    <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
                         <Indicador icon={<HiCreditCard className="h-5 w-5 text-blue-500" />} label="Cobrado por MP" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.mercadopago)} />
                         <Indicador icon={<HiCash className="h-5 w-5 text-emerald-500" />} label="Cobrado en Efectivo" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.efectivo)} />
+                        <Indicador icon={<HiCreditCard className="h-5 w-5 text-cyan-400" />} label="Transferencias" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.transferencia)} />
                         <Indicador icon={<HiClipboardList className="h-5 w-5 text-amber-500" />} label="Pagos diarios" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosDiarios)} />
                         <Indicador icon={<HiCalendar className="h-5 w-5 text-violet-500" />} label="Pagos semanales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosSemanales)} />
                         <Indicador icon={<HiCalendar className="h-5 w-5 text-indigo-500" />} label="Pagos quincenales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosQuincenales)} />
@@ -230,7 +239,7 @@ export default function DashboardCobrador() {
                     <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-4">
                         <DatoResumen label="Total cobrado hoy" value={formatCurrency(resumen.totalCobrado)} />
                         <DatoResumen label="Clientes visitados" value={formatNumber(resumen.clientesVisitados)} />
-                        <DatoResumen label="Asignaciones activas" value={formatNumber(resumen.asignaciones)} />
+                        <DatoResumen label="Creditos por cobrar hoy" value={formatNumber(resumen.asignaciones)} />
                         <DatoResumen
                             label="Estado del trayecto"
                             value={resumen.trayectoActivo ? "En curso" : resumen.reporteGenerado ? "Finalizado" : "Pendiente"}
