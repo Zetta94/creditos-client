@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { loadCredit } from "../store/creditsSlice";
-import { loadClients } from "../store/clientsSlice";
+import { loadClient } from "../store/clientsSlice";
 import { addPayment } from "../store/paymentsSlice";
 import { HiArrowLeft, HiTrash, HiPlus } from "react-icons/hi";
 
@@ -14,10 +14,10 @@ export default function RegistrarPago() {
     const dispatch = useDispatch();
 
     const { current: credito, loading: loadingCredit } = useSelector(state => state.credits) || { current: null, loading: false };
-    const { list: clientes } = useSelector(state => state.clients) || { list: [] };
+    const { current: clienteStore } = useSelector(state => state.clients) || { current: null };
     const { loading: savingPayment } = useSelector(state => state.payments) || { loading: false };
 
-    const cliente = clientes.find((c) => c.id === credito?.clientId);
+    const cliente = credito?.client || (clienteStore?.id === credito?.clientId ? clienteStore : null);
 
     const [pagos, setPagos] = useState([{ metodo: "efectivo", monto: "", id: Date.now() }]);
     const [nota, setNota] = useState("");
@@ -32,9 +32,14 @@ export default function RegistrarPago() {
     useEffect(() => {
         if (creditoId) {
             dispatch(loadCredit(creditoId));
-            dispatch(loadClients());
         }
     }, [creditoId, dispatch]);
+
+    useEffect(() => {
+        if (credito?.clientId && !credito?.client) {
+            dispatch(loadClient(credito.clientId));
+        }
+    }, [credito?.clientId, credito?.client, dispatch]);
 
     if (loadingCredit) {
         return (
