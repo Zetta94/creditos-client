@@ -34,7 +34,14 @@ export default function CancelarCredito() {
 
     // Definir hooks y variables derivadas SIEMPRE antes de cualquier return condicional
     const cliente = credito?.client;
-    const montoOriginal = credito?.amount || 0;
+    const montoOriginal = Number(credito?.amount || 0);
+    const installmentAmount = Number(credito?.installmentAmount || 0);
+    const totalInstallments = Number(credito?.totalInstallments || 0);
+    const montoObjetivo = totalInstallments > 0 && installmentAmount > 0
+        ? installmentAmount * totalInstallments
+        : montoOriginal;
+    const montoYaCobrado = Number(credito?.receivedAmount || 0);
+    const saldoPendienteActual = Math.max(montoObjetivo - montoYaCobrado, 0);
     const totalRecibido = useMemo(() => {
         switch (form.metodo) {
             case "mixto": {
@@ -51,7 +58,7 @@ export default function CancelarCredito() {
                 return Number(form.montoRecibido) || 0;
         }
     }, [form.metodo, form.efectivo, form.mercadopago, form.montoRecibido, form.otrosMonto]);
-    const descuento = Math.max(0, montoOriginal - totalRecibido);
+    const descuento = Math.max(0, saldoPendienteActual - totalRecibido);
 
     const handleBack = () => {
         if (window.history.length > 2) {
@@ -132,6 +139,14 @@ export default function CancelarCredito() {
                 <p className="text-gray-700 dark:text-gray-300">
                     <strong>Monto original:</strong>{" "}
                     ${montoOriginal.toLocaleString("es-AR")}
+                </p>
+                <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Monto ya cobrado:</strong>{" "}
+                    ${montoYaCobrado.toLocaleString("es-AR")}
+                </p>
+                <p className="text-amber-600 dark:text-amber-400 font-semibold">
+                    Monto faltante por cobrar: $
+                    {saldoPendienteActual.toLocaleString("es-AR")}
                 </p>
                 {descuento > 0 && (
                     <p className="text-red-500 font-medium">
@@ -266,6 +281,10 @@ export default function CancelarCredito() {
                         {totalRecibido > 0
                             ? `$${totalRecibido.toLocaleString("es-AR")}`
                             : "—"}
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                        Saldo restante tras cancelacion: $
+                        {Math.max(saldoPendienteActual - totalRecibido, 0).toLocaleString("es-AR")}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         Descuento aplicado: $
