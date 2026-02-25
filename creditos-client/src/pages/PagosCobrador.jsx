@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";
-import { toast } from "react-hot-toast";
-import { fetchAssignmentsEnriched, rescheduleAssignment } from "../services/assignmentsService";
+import { fetchAssignmentsEnriched } from "../services/assignmentsService";
 
 const isCreditFinalized = (credit) => {
     if (!credit) return true;
@@ -28,7 +27,6 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     const [clientesHoy, setClientesHoy] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [postponiendo, setPostponiendo] = useState(null);
     const navigate = useNavigate();
 
     const toLocalDateKey = (value) => {
@@ -151,44 +149,6 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
         }
     }
 
-    async function reprogramarCliente(assignmentId, nombre) {
-        if (!assignmentId) return;
-        try {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const defaultDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-
-            const promisedDateInput = window.prompt(
-                `Indica la fecha prometida para ${nombre} (YYYY-MM-DD):`,
-                defaultDate
-            );
-            if (!promisedDateInput) return;
-
-            const promisedDate = new Date(`${promisedDateInput}T00:00:00`);
-            if (Number.isNaN(promisedDate.getTime())) {
-                toast.error("Fecha invalida. Usa formato YYYY-MM-DD.");
-                return;
-            }
-
-            const reasonInput = window.prompt(
-                "Motivo (opcional):",
-                "Cliente no pudo pagar hoy"
-            );
-
-            setPostponiendo(assignmentId);
-            await rescheduleAssignment(assignmentId, {
-                promisedDate: promisedDate.toISOString(),
-                reason: reasonInput?.trim() || undefined
-            });
-            toast.success(`Reprogramado ${nombre} para ${promisedDate.toLocaleDateString("es-AR")}.`);
-            await cargarClientes(tipo, page, search);
-        } catch {
-            toast.error("No se pudo reprogramar al cliente.");
-        } finally {
-            setPostponiendo(null);
-        }
-    }
-
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#08122f] to-[#0b1f55] px-3 py-4 sm:px-4 sm:py-6">
             <div className="mx-auto max-w-5xl space-y-4">
@@ -303,11 +263,15 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                     {!c.paidToday && (
                                         <button
                                             type="button"
-                                            onClick={() => reprogramarCliente(c.assignmentId, c.name)}
-                                            disabled={postponiendo === c.assignmentId}
+                                            onClick={() => navigate(`/cobrador/pagos/${c.creditoId}/reprogramar`, {
+                                                state: {
+                                                    assignmentId: c.assignmentId,
+                                                    clientName: c.name
+                                                }
+                                            })}
                                             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 w-full sm:w-auto"
                                         >
-                                            {postponiendo === c.assignmentId ? "Reprogramando..." : "No pude cobrar"}
+                                            No pude cobrar
                                         </button>
                                     )}
                                 </div>

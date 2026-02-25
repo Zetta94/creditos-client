@@ -41,6 +41,7 @@ import AsignarClientes from "./pages/AsignarClientes.jsx";
 import SueldoCobrador from "./pages/CobradorSueldo.jsx";
 import RegistrarPago from "./pages/RegistrarPago.jsx";
 import CobradorReportes from "./pages/CobradorReportes.jsx";
+import ReprogramarCobro from "./pages/ReprogramarCobro.jsx";
 import CobradorTrayectoGuard from "./components/CobradorTrayectoGuard.jsx";
 
 function RoleIndexRedirect() {
@@ -159,6 +160,16 @@ function AppRouter() {
             <ProtectedRoute allowedRoles={["cobrador"]}>
               <CobradorTrayectoGuard>
                 <RegistrarPago />
+              </CobradorTrayectoGuard>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="cobrador/pagos/:creditoId/reprogramar"
+          element={
+            <ProtectedRoute allowedRoles={["cobrador"]}>
+              <CobradorTrayectoGuard>
+                <ReprogramarCobro />
               </CobradorTrayectoGuard>
             </ProtectedRoute>
           }

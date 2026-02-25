@@ -29,12 +29,18 @@ const toDateInput = (value) => {
     return `${y}-${m}-${d}`;
 };
 
-const computeDueDate = (startDate, totalInstallments, type) => {
+const computeDueDate = (startDate, totalInstallments, paidInstallments, type) => {
     if (!startDate || !totalInstallments || Number(totalInstallments) <= 0) return "";
 
-    const due = new Date(`${startDate}T00:00:00`);
-    if (Number.isNaN(due.getTime())) return "";
-    const periods = Math.max(1, Number(totalInstallments) || 0);
+    const start = new Date(`${startDate}T00:00:00`);
+    if (Number.isNaN(start.getTime())) return "";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const base = start.getTime() > today.getTime() ? start : today;
+    const due = new Date(base);
+    const total = Math.max(0, Number(totalInstallments) || 0);
+    const paid = Math.max(0, Number(paidInstallments) || 0);
+    const periods = Math.max(0, total - paid);
 
     switch (type) {
         case "ONE_TIME":
@@ -136,7 +142,12 @@ export default function CreditoEditar() {
             const nextInstallment = totalInstallments > 0
                 ? (normalizedPaidInstallments >= totalInstallments ? "" : String(normalizedPaidInstallments + 1))
                 : "";
-            const dueDate = computeDueDate(prev.startDate, totalInstallments, prev.type);
+            const dueDate = computeDueDate(
+                prev.startDate,
+                totalInstallments,
+                normalizedPaidInstallments,
+                prev.type
+            );
             const status = totalInstallments > 0 && normalizedPaidInstallments >= totalInstallments
                 ? "PAID"
                 : prev.status === "PAID"

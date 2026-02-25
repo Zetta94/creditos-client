@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchClient } from "../services/clientsService";
 import { fetchCredits } from "../services/creditsService";
@@ -32,7 +32,7 @@ export default function ClienteDetalle() {
             } catch (err) {
                 console.error("No se pudo cargar el detalle de cliente", err);
                 if (!active) return;
-                setError("No se pudo cargar la información del cliente.");
+                setError("No se pudo cargar la informaciÃ³n del cliente.");
                 setCliente(null);
                 setCreditos([]);
             } finally {
@@ -111,9 +111,9 @@ export default function ClienteDetalle() {
                     <p className="text-sm text-gray-300">
                         {cliente.phone}
                         {cliente.alternatePhone && (
-                            <span> • Alt: {cliente.alternatePhone}</span>
+                            <span> â€¢ Alt: {cliente.alternatePhone}</span>
                         )}
-                        {" "}• DNI: {cliente.document}
+                        {" "}â€¢ DNI: {cliente.document}
                     </p>
                     <p className="text-sm text-gray-400 flex items-center gap-2">
                         <span>Estado:</span>
@@ -125,7 +125,7 @@ export default function ClienteDetalle() {
                         </p>
                     )}
                     <p className="text-sm text-gray-400">
-                        {cliente.address} — {cliente.city}, {cliente.province}
+                        {cliente.address} â€” {cliente.city}, {cliente.province}
                     </p>
                     <p className="text-sm text-gray-400">
                         Confianza:{" "}
@@ -138,7 +138,7 @@ export default function ClienteDetalle() {
                         onClick={() => navigate(`/clientes/${cliente.id}/editar`)}
                         className="w-full rounded-lg bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 sm:w-auto"
                     >
-                        Editar
+                        Editar cliente
                     </button>
                     <button
                         onClick={handleBack}
@@ -149,15 +149,15 @@ export default function ClienteDetalle() {
                 </div>
             </div>
 
-            {/* Créditos */}
+            {/* CrÃ©ditos */}
             <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-lg font-semibold">Créditos del cliente</h2>
+                    <h2 className="text-lg font-semibold">CrÃ©ditos del cliente</h2>
                     <button
                         onClick={() => navigate("/creditos/nuevo")}
                         className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-auto"
                     >
-                        + Nuevo crédito
+                        + Nuevo crÃ©dito
                     </button>
                 </div>
 
@@ -193,7 +193,7 @@ export default function ClienteDetalle() {
                             {creditosOrdenados.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                        Sin créditos para este cliente.
+                                        Sin crÃ©ditos para este cliente.
                                     </td>
                                 </tr>
                             ) : (
@@ -234,7 +234,7 @@ export default function ClienteDetalle() {
                                                 onClick={() => navigate(`/creditos/${cr.id}`)}
                                                 className="rounded-md bg-sky-600 px-3 py-2 text-white hover:bg-sky-500"
                                             >
-                                                Ver crédito
+                                                Ver crÃ©dito
                                             </button>
                                         </td>
                                     </tr>
@@ -339,7 +339,7 @@ function CreditoCard({ cr, onView }) {
                     onClick={onView}
                     className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500"
                 >
-                    Ver crédito
+                    Ver crÃ©dito
                 </button>
             </div>
         </div>
@@ -349,7 +349,9 @@ function CreditoCard({ cr, onView }) {
 function CardEmpty() {
     return (
         <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            Sin créditos para este cliente.
+            Sin crÃ©ditos para este cliente.
         </div>
     );
 }
+
+
