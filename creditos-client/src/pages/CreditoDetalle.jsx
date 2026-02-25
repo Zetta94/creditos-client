@@ -21,13 +21,13 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
     currency: "ARS",
     minimumFractionDigits: 0
 });
-const COMPANY_NAME = "El Imperio CrÃ©ditos";
+const COMPANY_NAME = "El Imperio Créditos";
 const CREDIT_TYPE_LABELS = {
     DAILY: "Diario",
     WEEKLY: "Semanal",
     QUINCENAL: "Quincenal",
     MONTHLY: "Mensual",
-    ONE_TIME: "Pago Ãºnico"
+    ONE_TIME: "Pago único"
 };
 
 const CLIENT_RELIABILITY_LABELS = {
@@ -87,7 +87,7 @@ export default function CreditoDetalle() {
                 setError(null);
             })
             .catch(() => {
-                setError("No se pudo cargar el crÃ©dito");
+                setError("No se pudo cargar el crédito");
             })
             .finally(() => setLoading(false));
     }, [id]);
@@ -103,7 +103,7 @@ export default function CreditoDetalle() {
     }, [credito?.payments?.length, pageSize]);
 
     if (loading) {
-        return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando crÃ©dito...</div>;
+        return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando crédito...</div>;
     }
     const handleGoBack = () => {
         if (window.history.length > 2) {
@@ -116,7 +116,7 @@ export default function CreditoDetalle() {
     if (error || !credito) {
         return (
             <div className="mx-auto max-w-5xl px-4 py-6 text-red-400">
-                {error || "CrÃ©dito no encontrado."}
+                {error || "Crédito no encontrado."}
                 <button
                     onClick={handleGoBack}
                     className="ml-4 rounded-md bg-gray-700 px-3 py-2 hover:bg-gray-600 text-white"
@@ -166,8 +166,8 @@ export default function CreditoDetalle() {
         : baseAmount;
     let saldoPendiente = Math.max(saldoObjetivo - totalPagado, 0);
     const cuotasRestantes = cuotasTotales ? Math.max(cuotasTotales - cuotasPagadas, 0) : null;
-    const startDateLabel = credito.startDate ? new Date(credito.startDate).toLocaleDateString("es-AR") : "â€”";
-    const dueDateLabel = credito.dueDate ? new Date(credito.dueDate).toLocaleDateString("es-AR") : "â€”";
+    const startDateLabel = credito.startDate ? new Date(credito.startDate).toLocaleDateString("es-AR") : "—";
+    const dueDateLabel = credito.dueDate ? new Date(credito.dueDate).toLocaleDateString("es-AR") : "—";
     const expenses = Array.isArray(credito.expenses) ? credito.expenses : [];
     const specialCredit = credito?.specialCredit || null;
     const specialCreditName = typeof specialCredit?.name === "string" && specialCredit.name.trim().length > 0
@@ -176,10 +176,10 @@ export default function CreditoDetalle() {
     const hasSpecialCredit = Boolean(specialCreditName);
     const totalExpenses = expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
     const hasExpenses = expenses.length > 0;
-    const creditTypeLabel = CREDIT_TYPE_LABELS[credito.type] ?? credito.type ?? "â€”";
+    const creditTypeLabel = CREDIT_TYPE_LABELS[credito.type] ?? credito.type ?? "—";
     const receivedAmount = Number(credito.receivedAmount) || 0;
     const rawNextInstallment = Number(credito.nextInstallmentToCharge) || 0;
-    const nextInstallmentLabel = rawNextInstallment > 0 ? `Cuota ${rawNextInstallment}` : "â€”";
+    const nextInstallmentLabel = rawNextInstallment > 0 ? `Cuota ${rawNextInstallment}` : "—";
     const toNumberOrNull = (value) => {
         if (value === null || value === undefined) return null;
         const numeric = Number(value);
@@ -253,20 +253,25 @@ export default function CreditoDetalle() {
         if (Number.isNaN(baseDate.getTime())) return credito.dueDate ? new Date(credito.dueDate) : null;
 
         const nextIndex = Math.max(rawNextInstallment, 1) - 1;
-        const date = new Date(baseDate);
+        const hasRegisteredPayments = Array.isArray(pagosCredito) && pagosCredito.length > 0;
+        const hasManualAdvance = !hasRegisteredPayments && (Number(credito.receivedAmount || 0) > 0 || Number(credito.paidInstallments || 0) > 0);
+        const date = new Date(hasManualAdvance ? new Date() : baseDate);
+        if (hasManualAdvance) {
+            date.setHours(0, 0, 0, 0);
+        }
 
         switch (credito.type) {
             case "DAILY":
-                date.setDate(date.getDate() + nextIndex);
+                date.setDate(date.getDate() + (hasManualAdvance ? 1 : nextIndex));
                 break;
             case "WEEKLY":
-                date.setDate(date.getDate() + nextIndex * 7);
+                date.setDate(date.getDate() + (hasManualAdvance ? 7 : nextIndex * 7));
                 break;
             case "QUINCENAL":
-                date.setDate(date.getDate() + nextIndex * 15);
+                date.setDate(date.getDate() + (hasManualAdvance ? 15 : nextIndex * 15));
                 break;
             case "MONTHLY":
-                date.setMonth(date.getMonth() + nextIndex);
+                date.setMonth(date.getMonth() + (hasManualAdvance ? 1 : nextIndex));
                 break;
             case "ONE_TIME":
                 if (credito.dueDate) {
@@ -293,7 +298,7 @@ export default function CreditoDetalle() {
         ? nextInstallmentDate.toLocaleDateString("es-AR")
         : credito.dueDate
             ? new Date(credito.dueDate).toLocaleDateString("es-AR")
-            : "â€”";
+            : "—";
 
     const commissionFieldNames = [
         "commissionAmount",
@@ -383,7 +388,7 @@ export default function CreditoDetalle() {
 
     const commissionRecipientsLabel = commissionRecipientsUnique.join(", ");
     const commissionDisplay = hasCommission
-        ? `${currencyFormatter.format(commissionAmount)}${commissionRecipientsLabel ? ` Â· ${commissionRecipientsLabel}` : ""}`
+        ? `${currencyFormatter.format(commissionAmount)}${commissionRecipientsLabel ? ` · ${commissionRecipientsLabel}` : ""}`
         : null;
 
     const handleDownloadPdf = () => {
@@ -401,7 +406,7 @@ export default function CreditoDetalle() {
 
         const formatCurrency = (value) => {
             const numericValue = Number(value);
-            if (!Number.isFinite(numericValue)) return "â€”";
+            if (!Number.isFinite(numericValue)) return "—";
             return currencyFormatter.format(Math.max(numericValue, 0));
         };
 
@@ -410,7 +415,7 @@ export default function CreditoDetalle() {
         cursorY += 8;
 
         doc.setFontSize(14);
-        doc.text("Resumen de crÃ©dito", leftMargin, cursorY);
+        doc.text("Resumen de crédito", leftMargin, cursorY);
         cursorY += 7;
 
         doc.setFontSize(12);
@@ -421,7 +426,7 @@ export default function CreditoDetalle() {
             cursorY += 6;
         }
         if (cliente?.address) {
-            doc.text(`DirecciÃ³n: ${cliente.address}`, leftMargin, cursorY);
+            doc.text(`Dirección: ${cliente.address}`, leftMargin, cursorY);
             cursorY += 6;
         }
         doc.text(`Cobrador: ${cobrador?.name || "-"}`, leftMargin, cursorY);
@@ -430,11 +435,11 @@ export default function CreditoDetalle() {
         cursorY += 8;
 
         const summaryRows = [
-            ["Tipo de crÃ©dito", creditTypeLabel]
+            ["Tipo de crédito", creditTypeLabel]
         ];
 
         if (hasSpecialCredit) {
-            summaryRows.push(["CrÃ©dito especial", specialCreditName]);
+            summaryRows.push(["Crédito especial", specialCreditName]);
         }
 
         if (clientReliabilityLabel) {
@@ -468,22 +473,22 @@ export default function CreditoDetalle() {
         summaryRows.push(["Saldo pendiente", formatCurrency(saldoPendiente)]);
         summaryRows.push(["Monto recibido", formatCurrency(receivedAmount)]);
 
-        if (nextInstallmentLabel && nextInstallmentLabel !== "â€”") {
-            summaryRows.push(["PrÃ³xima cuota", nextInstallmentLabel]);
+        if (nextInstallmentLabel && nextInstallmentLabel !== "—") {
+            summaryRows.push(["Próxima cuota", nextInstallmentLabel]);
         }
 
-        if (nextInstallmentDateLabel && nextInstallmentDateLabel !== "â€”") {
-            summaryRows.push(["PrÃ³xima cuota (fecha)", nextInstallmentDateLabel]);
+        if (nextInstallmentDateLabel && nextInstallmentDateLabel !== "—") {
+            summaryRows.push(["Próxima cuota (fecha)", nextInstallmentDateLabel]);
         }
 
         summaryRows.push(["Total gastos", formatCurrency(totalExpenses)]);
         summaryRows.push(["Neto post gastos", formatCurrency(netAfterExpenses)]);
 
         summaryRows.push([
-            "ComisiÃ³n",
+            "Comisión",
             hasCommission
-                ? `${formatCurrency(commissionAmount)}${commissionRecipientsLabel ? ` Â· ${commissionRecipientsLabel}` : ""}`
-                : "â€”"
+                ? `${formatCurrency(commissionAmount)}${commissionRecipientsLabel ? ` · ${commissionRecipientsLabel}` : ""}`
+                : "—"
         ]);
 
         summaryRows.push([
@@ -516,11 +521,11 @@ export default function CreditoDetalle() {
         if (hasExpenses) {
             autoTable(doc, {
                 startY: cursorY,
-                head: [["Gasto", "Monto", "CategorÃ­a"]],
+                head: [["Gasto", "Monto", "Categoría"]],
                 body: expenses.map((expense) => [
                     expense.description,
                     formatCurrency(expense.amount),
-                    expense?.specialCredit?.name || "â€”"
+                    expense?.specialCredit?.name || "—"
                 ]),
                 styles: { fontSize: 10 },
                 headStyles: { fillColor: [16, 185, 129] },
@@ -560,7 +565,7 @@ export default function CreditoDetalle() {
                     {/* IZQUIERDA */}
                     <div className="space-y-1.5">
                         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                            CrÃ©dito de{" "}
+                            Crédito de{" "}
                             <span className="text-blue-700 dark:text-blue-400">
                                 {cliente?.name || "Cliente desconocido"}
                             </span>
@@ -578,14 +583,14 @@ export default function CreditoDetalle() {
 
                         {hasSpecialCredit && (
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium text-gray-800 dark:text-gray-200">CrÃ©dito especial:</span>{" "}
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Crédito especial:</span>{" "}
                                 {specialCreditName}
                             </p>
                         )}
 
                         {hasCommission && (
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium text-gray-800 dark:text-gray-200">ComisiÃ³n:</span>{" "}
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Comisión:</span>{" "}
                                 {commissionDisplay}
                             </p>
                         )}
@@ -644,16 +649,16 @@ export default function CreditoDetalle() {
                         {progreso}% pagado
                     </p>
                 </div>
-                <KpiCard label="Tipo de crÃ©dito" value={creditTypeLabel} />
+                <KpiCard label="Tipo de crédito" value={creditTypeLabel} />
                 {hasSpecialCredit && (
-                    <KpiCard label="CrÃ©dito especial" value={specialCreditName} />
+                    <KpiCard label="Crédito especial" value={specialCreditName} />
                 )}
                 <KpiCard label="Monto recibido" value={currencyFormatter.format(receivedAmount)} />
                 <KpiCard
-                    label="PrÃ³xima cuota"
+                    label="Próxima cuota"
                     value={
-                        nextInstallmentLabel !== "â€”"
-                            ? `${nextInstallmentLabel}${nextInstallmentDateLabel ? ` Â· ${nextInstallmentDateLabel}` : ""}`
+                        nextInstallmentLabel !== "—"
+                            ? `${nextInstallmentLabel}${nextInstallmentDateLabel ? ` · ${nextInstallmentDateLabel}` : ""}`
                             : nextInstallmentDateLabel
                     }
                 />
@@ -668,7 +673,7 @@ export default function CreditoDetalle() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             {hasExpenses
                                 ? `Registramos ${expenses.length} gasto${expenses.length > 1 ? "s" : ""}${expenseTypeSummary.length ? ` (${expenseTypeSummary.join(", ")})` : ""}.`
-                                : "Este crÃ©dito no tiene gastos registrados."}
+                                : "Este crédito no tiene gastos registrados."}
                         </p>
                     </div>
                     {hasExpenses && (
@@ -685,7 +690,7 @@ export default function CreditoDetalle() {
                                 <tr>
                                     <th className="px-4 py-2 font-medium">Gasto</th>
                                     <th className="px-4 py-2 font-medium">Monto</th>
-                                    <th className="px-4 py-2 font-medium">CategorÃ­a</th>
+                                    <th className="px-4 py-2 font-medium">Categoría</th>
                                     <th className="px-4 py-2 font-medium">Fecha</th>
                                 </tr>
                             </thead>
@@ -693,8 +698,8 @@ export default function CreditoDetalle() {
                                 {expenses.map((expense) => {
                                     const incurredLabel = expense?.incurredOn
                                         ? new Date(expense.incurredOn).toLocaleDateString("es-AR")
-                                        : "â€”";
-                                    const categoryLabel = expense?.specialCredit?.name || "â€”";
+                                        : "—";
+                                    const categoryLabel = expense?.specialCredit?.name || "—";
                                     return (
                                         <tr key={expense.id ?? expense.tempId} className="bg-white dark:bg-gray-900">
                                             <td className="px-4 py-2 text-gray-800 dark:text-gray-100">{expense.description}</td>
@@ -715,7 +720,7 @@ export default function CreditoDetalle() {
                     </div>
                 ) : (
                     <p className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                        AgregÃ¡ gastos desde la pantalla de alta para verlos reflejados aquÃ­.
+                        Agregá gastos desde la pantalla de alta para verlos reflejados aquí.
                     </p>
                 )}
             </section>
@@ -801,7 +806,7 @@ export default function CreditoDetalle() {
                                 Anterior
                             </button>
                             <span>
-                                PÃ¡gina {currentPage} de {totalPages}
+                                Página {currentPage} de {totalPages}
                             </span>
                             <button
                                 type="button"
@@ -817,7 +822,7 @@ export default function CreditoDetalle() {
                     )}
                 </div>
 
-                {/* === GrÃ¡fico === */}
+                {/* === Gráfico === */}
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     <h2 className="mb-3 text-lg font-semibold">Pagos por fecha</h2>
                     <div className="h-[260px] w-full">
@@ -859,7 +864,7 @@ export default function CreditoDetalle() {
                         onClick={() => navigate(`/creditos/${id}/cancelar`)}
                         className="w-full sm:w-auto rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400"
                     >
-                        Cancelar crÃ©dito
+                        Cancelar crédito
                     </button>
                 )}
             </div>
@@ -916,5 +921,8 @@ function KpiCard({ label, value }) {
         </div>
     );
 }
+
+
+
 
 
