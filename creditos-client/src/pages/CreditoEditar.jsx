@@ -29,6 +29,34 @@ const toDateInput = (value) => {
     return `${y}-${m}-${d}`;
 };
 
+const computeDueDate = (startDate, totalInstallments, type) => {
+    if (!startDate || !totalInstallments || Number(totalInstallments) <= 0) return "";
+
+    const due = new Date(`${startDate}T00:00:00`);
+    if (Number.isNaN(due.getTime())) return "";
+    const periods = Math.max(1, Number(totalInstallments) || 0);
+
+    switch (type) {
+        case "ONE_TIME":
+            break;
+        case "DAILY":
+            due.setDate(due.getDate() + periods);
+            break;
+        case "WEEKLY":
+            due.setDate(due.getDate() + periods * 7);
+            break;
+        case "QUINCENAL":
+            due.setDate(due.getDate() + periods * 15);
+            break;
+        case "MONTHLY":
+        default:
+            due.setMonth(due.getMonth() + periods);
+            break;
+    }
+
+    return toDateInput(due);
+};
+
 export default function CreditoEditar() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -92,6 +120,49 @@ export default function CreditoEditar() {
         const { name, value } = event.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
+
+    useEffect(() => {
+        setForm((prev) => {
+            const installmentAmount = Number(prev.installmentAmount || 0);
+            const totalInstallments = Number(prev.totalInstallments || 0);
+            const paidInstallmentsRaw = Number(prev.paidInstallments || 0);
+            const normalizedPaidInstallments = totalInstallments > 0
+                ? Math.min(Math.max(0, paidInstallmentsRaw), totalInstallments)
+                : Math.max(0, paidInstallmentsRaw);
+
+            const receivedAmount = installmentAmount > 0
+                ? installmentAmount * normalizedPaidInstallments
+                : 0;
+            const nextInstallment = totalInstallments > 0
+                ? (normalizedPaidInstallments >= totalInstallments ? "" : String(normalizedPaidInstallments + 1))
+                : "";
+            const dueDate = computeDueDate(prev.startDate, totalInstallments, prev.type);
+            const status = totalInstallments > 0 && normalizedPaidInstallments >= totalInstallments
+                ? "PAID"
+                : prev.status === "PAID"
+                    ? "PENDING"
+                    : prev.status;
+
+            if (
+                String(prev.paidInstallments ?? "") === String(normalizedPaidInstallments) &&
+                String(prev.receivedAmount ?? "") === String(receivedAmount) &&
+                String(prev.nextInstallmentToCharge ?? "") === String(nextInstallment) &&
+                String(prev.dueDate ?? "") === String(dueDate) &&
+                String(prev.status ?? "") === String(status)
+            ) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                paidInstallments: String(normalizedPaidInstallments),
+                receivedAmount: String(receivedAmount),
+                nextInstallmentToCharge: nextInstallment,
+                dueDate,
+                status
+            };
+        });
+    }, [form.installmentAmount, form.totalInstallments, form.paidInstallments, form.startDate, form.type]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -212,10 +283,10 @@ export default function CreditoEditar() {
                     <Field label="Monto de cuota" name="installmentAmount" type="number" value={form.installmentAmount} onChange={handleChange} />
                     <Field label="Cuotas totales" name="totalInstallments" type="number" value={form.totalInstallments} onChange={handleChange} />
                     <Field label="Cuotas pagadas" name="paidInstallments" type="number" value={form.paidInstallments} onChange={handleChange} />
-                    <Field label="Monto recibido" name="receivedAmount" type="number" value={form.receivedAmount} onChange={handleChange} />
-                    <Field label="Proxima cuota a cobrar" name="nextInstallmentToCharge" type="number" value={form.nextInstallmentToCharge} onChange={handleChange} />
+                    <Field label="Monto recibido" name="receivedAmount" type="number" value={form.receivedAmount} readOnly />
+                    <Field label="Proxima cuota a cobrar" name="nextInstallmentToCharge" type="number" value={form.nextInstallmentToCharge} readOnly />
                     <Field label="Fecha inicio" name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
-                    <Field label="Fecha vencimiento" name="dueDate" type="date" value={form.dueDate} onChange={handleChange} />
+                    <Field label="Fecha vencimiento" name="dueDate" type="date" value={form.dueDate} readOnly />
                 </div>
 
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

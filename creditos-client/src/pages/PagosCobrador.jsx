@@ -21,6 +21,10 @@ const isCreditFinalized = (credit) => {
 
 export default function ClientesAsignadosCobrador({ cobradorId }) {
     const [tipo, setTipo] = useState("todos");
+    const [searchInput, setSearchInput] = useState("");
+    const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState({ page: 1, pageSize: 20, totalItems: 0, totalPages: 1 });
     const [clientesHoy, setClientesHoy] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -38,10 +42,18 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     };
 
     useEffect(() => {
-        cargarClientes(tipo);
-    }, [tipo, cobradorId]);
+        const timeout = setTimeout(() => {
+            setSearch(searchInput.trim());
+            setPage(1);
+        }, 300);
+        return () => clearTimeout(timeout);
+    }, [searchInput]);
 
-    async function cargarClientes(filtro) {
+    useEffect(() => {
+        cargarClientes(tipo, page, search);
+    }, [tipo, cobradorId, page, search]);
+
+    async function cargarClientes(filtro, currentPage = 1, searchText = "") {
         setLoading(true);
         try {
             const hoy = new Date();
@@ -55,9 +67,11 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
 
             const params = { cobradorId: id };
             if (filtro && filtro !== "todos") params.tipo = filtro.toUpperCase();
+            if (searchText) params.q = searchText;
 
-            const response = await fetchAssignmentsEnriched({ page: 1, pageSize: 500, dueOnly: true, ...params });
+            const response = await fetchAssignmentsEnriched({ page: currentPage, pageSize: 20, dueOnly: true, ...params });
             const enriched = response.data?.data ?? [];
+            const responseMeta = response.data?.meta ?? {};
             const clientesDisponibles = [];
             const hoyKey = toLocalDateKey(hoy);
 
@@ -120,11 +134,18 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
             }
 
             setClientesHoy(clientesDisponibles);
+            setMeta({
+                page: responseMeta.page ?? currentPage,
+                pageSize: responseMeta.pageSize ?? 20,
+                totalItems: responseMeta.totalItems ?? clientesDisponibles.length,
+                totalPages: responseMeta.totalPages ?? 1
+            });
             setError(null);
         } catch (err) {
             const status = err?.response?.status;
             setError(status === 403 ? "No tenes permisos para ver estas asignaciones." : "Ocurrio un error al cargar los clientes.");
             setClientesHoy([]);
+            setMeta({ page: 1, pageSize: 20, totalItems: 0, totalPages: 1 });
         } finally {
             setLoading(false);
         }
@@ -160,7 +181,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 reason: reasonInput?.trim() || undefined
             });
             toast.success(`Reprogramado ${nombre} para ${promisedDate.toLocaleDateString("es-AR")}.`);
-            await cargarClientes(tipo);
+            await cargarClientes(tipo, page, search);
         } catch {
             toast.error("No se pudo reprogramar al cliente.");
         } finally {
@@ -184,7 +205,10 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                     {["todos", "diario", "semanal", "mensual"].map((f) => (
                         <button
                             key={f}
-                            onClick={() => setTipo(f)}
+                            onClick={() => {
+                                setTipo(f);
+                                setPage(1);
+                            }}
                             className={`w-full rounded-xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${tipo === f
                                 ? "bg-blue-600 text-white shadow-sm"
                                 : "bg-slate-900/80 text-slate-200 hover:bg-slate-700"
@@ -195,10 +219,23 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                     ))}
                 </div>
 
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Buscar cliente para cobrar hoy
+                    </label>
+                    <input
+                        type="text"
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        placeholder="Nombre, documento o telefono"
+                        className="w-full rounded-xl border border-slate-600 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
+                    />
+                </div>
+
                 <div className="rounded-2xl border border-slate-700 bg-slate-900/80 shadow-sm">
                 <div className="border-b border-slate-700 p-4">
                     <h2 className="text-base sm:text-lg font-semibold text-slate-100">
-                        Cobros a realizar hoy ({clientesHoy.length})
+                        Cobros a realizar hoy ({meta.totalItems})
                     </h2>
                 </div>
 
@@ -277,6 +314,29 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                             </li>
                         ))}
                     </ul>
+                )}
+                {!loading && !error && meta.totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-slate-700 px-4 py-3 text-sm text-slate-300">
+                        <button
+                            type="button"
+                            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                            disabled={meta.page <= 1}
+                            className={`rounded-lg px-3 py-1.5 ${meta.page <= 1 ? "cursor-not-allowed bg-slate-700 text-slate-500" : "bg-slate-700 hover:bg-slate-600 text-white"}`}
+                        >
+                            Anterior
+                        </button>
+                        <span>
+                            Pagina {meta.page} de {meta.totalPages}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setPage((prev) => Math.min(meta.totalPages, prev + 1))}
+                            disabled={meta.page >= meta.totalPages}
+                            className={`rounded-lg px-3 py-1.5 ${meta.page >= meta.totalPages ? "cursor-not-allowed bg-slate-700 text-slate-500" : "bg-slate-700 hover:bg-slate-600 text-white"}`}
+                        >
+                            Siguiente
+                        </button>
+                    </div>
                 )}
             </div>
             </div>
