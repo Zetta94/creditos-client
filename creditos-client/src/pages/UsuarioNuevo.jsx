@@ -63,6 +63,7 @@ export default function UsuarioNuevo() {
 
         try {
             await dispatch(addUser(payload)).unwrap();
+            toast.success("Usuario creado con éxito");
             navigate("/usuarios");
         } catch (error) {
             console.error("Error al crear usuario:", error);

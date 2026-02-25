@@ -99,9 +99,10 @@ export default function RegistrarPago() {
 
             toast.success(`Pago total registrado: $${totalRegistrado.toLocaleString("es-AR")}`, {
                 icon: "💰",
+                duration: 1800
             });
 
-            setTimeout(() => navigate(-1), 1500);
+            setTimeout(() => navigate("/cobrador/pagos"), 1800);
         } catch (error) {
             console.error("Error al registrar pago:", error);
         }

@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { HiCheck, HiXMark } from "react-icons/hi2";
+import toast from "react-hot-toast";
 import { fetchUser, updateUser } from "../services/usersService";
 
 export default function UsuarioEditar() {
@@ -75,6 +76,7 @@ export default function UsuarioEditar() {
         try {
             console.log("Payload update user", payload);
             await updateUser(id, payload);
+            toast.success("Usuario actualizado con éxito");
             navigate(`/usuarios/${id}`);
         } catch (err) {
             console.error("Error al guardar usuario", err);
@@ -82,7 +84,7 @@ export default function UsuarioEditar() {
                 ? JSON.stringify(err.response.data.details, null, 2)
                 : err.response?.data?.error;
             const msg = detail || "No se pudo guardar el usuario. Revisa los datos y permisos.";
-            alert(msg);
+            toast.error(msg);
         }
     }
 

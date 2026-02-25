@@ -26,6 +26,35 @@ const moveItem = (list, fromIndex, toIndex) => {
     return cloned;
 };
 
+const addDays = (value, amount) => {
+    const date = new Date(value);
+    date.setDate(date.getDate() + amount);
+    return date;
+};
+
+const addMonths = (value, amount) => {
+    const date = new Date(value);
+    const day = date.getDate();
+    date.setDate(1);
+    date.setMonth(date.getMonth() + amount);
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    date.setDate(Math.min(day, lastDay));
+    return date;
+};
+
+const computeProjectedVisitDate = (nextVisitDate, tipoPago) => {
+    if (!nextVisitDate) return null;
+    const base = new Date(nextVisitDate);
+    if (Number.isNaN(base.getTime())) return null;
+    base.setHours(0, 0, 0, 0);
+
+    const tipo = String(tipoPago || "").toUpperCase();
+    if (tipo === "SEMANAL") return addDays(base, 7);
+    if (tipo === "QUINCENAL") return addDays(base, 15);
+    if (tipo === "MENSUAL" || tipo === "MENSUALIDAD" || tipo === "MES") return addMonths(base, 1);
+    return addDays(base, 1);
+};
+
 function AssignmentOrderList({
     title,
     subtitle,
@@ -55,7 +84,7 @@ function AssignmentOrderList({
             </div>
 
             {items.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Sin asignaciones para este dia.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Sin asignaciones para este día.</p>
             ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId={droppableId}>
@@ -81,7 +110,7 @@ function AssignmentOrderList({
                                                             {index + 1}. {item.nombre}
                                                         </p>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                            {item.tipoPago?.toUpperCase()} - Proxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
+                                                            {item.tipoPago?.toUpperCase()} - Próxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
                                                         </p>
                                                     </div>
                                                     <span className="text-xs text-gray-500 dark:text-gray-400">Orden actual: {item.orden}</span>
@@ -140,7 +169,11 @@ export default function OrdenClientes({ cobradorId }) {
             .sort((a, b) => a.orden - b.orden);
 
         const manana = source
-            .filter((a) => toDateKey(a.nextVisitDate) === tomorrowKey)
+            .filter((a) => {
+                const scheduledKey = toDateKey(a.nextVisitDate);
+                const projectedKey = toDateKey(computeProjectedVisitDate(a.nextVisitDate, a.tipoPago));
+                return scheduledKey === tomorrowKey || projectedKey === tomorrowKey;
+            })
             .sort((a, b) => a.orden - b.orden);
 
         return { listaHoy: hoy, listaManana: manana };
@@ -193,10 +226,10 @@ export default function OrdenClientes({ cobradorId }) {
             if (payload.length) {
                 await reorderAssignmentsService(payload);
                 await dispatch(loadAssignments({ cobradorId }));
-                toast.success("Orden de manana guardado");
+                toast.success("Orden de mañana guardado");
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Error al guardar orden de manana");
+            toast.error(error.response?.data?.message || "Error al guardar orden de mañana");
         } finally {
             setGuardandoManana(false);
         }
@@ -210,7 +243,7 @@ export default function OrdenClientes({ cobradorId }) {
                         Ordenar clientes asignados
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        El orden se administra por separado para hoy y manana.
+                        El orden se administra por separado para hoy y mañana.
                     </p>
                 </div>
 
@@ -222,7 +255,7 @@ export default function OrdenClientes({ cobradorId }) {
                         }`}
                 >
                     <HiArrowsUpDown className="inline-block mr-1" />
-                    {editando ? "Salir de edicion" : "Editar orden"}
+                    {editando ? "Salir de edición" : "Editar orden"}
                 </button>
             </div>
 
@@ -239,8 +272,8 @@ export default function OrdenClientes({ cobradorId }) {
                 />
 
                 <AssignmentOrderList
-                    title="Ruta de manana"
-                    subtitle="Clientes que se visitan manana"
+                    title="Ruta de mañana"
+                    subtitle="Clientes que se visitan mañana"
                     droppableId="manana"
                     items={clientesManana}
                     editable={editando}

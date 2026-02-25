@@ -18,11 +18,14 @@ export default function Login() {
   const [installing, setInstalling] = React.useState(false);
   const [isStandalone, setIsStandalone] = React.useState(false);
   const [installTarget, setInstallTarget] = React.useState(null);
+  const [isIOS, setIsIOS] = React.useState(false);
 
   React.useEffect(() => {
     const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone;
     setIsStandalone(Boolean(standalone));
     const ua = navigator.userAgent || "";
+    const iOS = /iPhone|iPad|iPod/i.test(ua);
+    setIsIOS(iOS);
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
     setInstallTarget(isMobile ? "mobile" : "desktop");
 
@@ -195,6 +198,12 @@ export default function Login() {
                 ? "Descargar app para celular"
                 : "Descargar app para escritorio"}
           </button>
+        )}
+
+        {!isStandalone && isIOS && !installPrompt && (
+          <div className="mt-3 w-full rounded-lg border border-cyan-500/60 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+            Para instalar en iPhone: Safari {" > "} Compartir {" > "} Agregar a pantalla de inicio.
+          </div>
         )}
 
         <p className="mt-6 text-center text-xs text-gray-400">

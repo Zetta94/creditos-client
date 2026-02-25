@@ -77,9 +77,12 @@ export default function ClienteEditar() {
         };
         try {
             await dispatch(saveClient({ id, payload })).unwrap();
+            toast.success("Cliente actualizado con éxito");
             navigate("/clientes", { replace: true });
         } catch (err) {
             console.error("Error al guardar cliente", err);
+            const msg = typeof err === "string" ? err : err?.message || "No se pudo actualizar el cliente";
+            toast.error(msg);
         }
     };
 

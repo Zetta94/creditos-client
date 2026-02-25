@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
     HiPencilAlt,
     HiEye,
@@ -85,6 +86,20 @@ export default function Clientes() {
             return activo === "todos" || (activo === "si" ? isActive : !isActive);
         });
     }, [list, activo]);
+
+    const handleDeleteClient = async (id) => {
+        const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
+        if (!ok) return;
+        try {
+            await dispatch(removeClient(id)).unwrap();
+            toast.success("Cliente eliminado con éxito");
+            navigate("/clientes", { replace: true });
+        } catch (error) {
+            console.error("No se pudo eliminar el cliente", error);
+            const msg = typeof error === "string" ? error : error?.message || "No se pudo eliminar el cliente";
+            toast.error(msg);
+        }
+    };
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -180,16 +195,7 @@ export default function Clientes() {
                                         ? "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
                                         : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/50 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
                                         }`}
-                                    onClick={async () => {
-                                        const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
-                                        if (!ok) return;
-                                        try {
-                                            await dispatch(removeClient(c.id)).unwrap();
-                                            navigate("/clientes", { replace: true });
-                                        } catch (error) {
-                                            console.error("No se pudo eliminar el cliente", error);
-                                        }
-                                    }}
+                                    onClick={() => handleDeleteClient(c.id)}
                                 >
                                     {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
                                     {isActive ? "Eliminar" : "Activar"}
@@ -259,16 +265,7 @@ export default function Clientes() {
                                                     ? "border-rose-200 bg-white/80 text-rose-600 hover:border-rose-300 hover:bg-rose-50 focus:ring-rose-200 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
                                                     : "border-emerald-200 bg-white/80 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 focus:ring-emerald-200 dark:border-emerald-500/50 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
                                                     }`}
-                                                onClick={async () => {
-                                                    const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
-                                                    if (!ok) return;
-                                                    try {
-                                                        await dispatch(removeClient(c.id)).unwrap();
-                                                        navigate("/clientes", { replace: true });
-                                                    } catch (error) {
-                                                        console.error("No se pudo eliminar el cliente", error);
-                                                    }
-                                                }}
+                                                onClick={() => handleDeleteClient(c.id)}
                                             >
                                                 {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
                                                 {isActive ? "Eliminar" : "Activar"}

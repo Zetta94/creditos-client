@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
+import toast from "react-hot-toast";
 import { fetchCredit, updateCredit } from "../services/creditsService";
 
 
@@ -76,22 +77,22 @@ export default function CancelarCredito() {
         const otrosDescripcion = (form.otrosDescripcion || "").trim();
 
         if (!form.metodo) {
-            alert("Elegí un método de cancelación");
+            toast.error("Elegí un método de cancelación");
             return;
         }
 
         if (form.metodo === "producto" && !producto) {
-            alert("Indicá qué producto se entregó.");
+            toast.error("Indicá qué producto se entregó.");
             return;
         }
 
         if (form.metodo === "otros") {
             if (!otrosDescripcion) {
-                alert("Detallá qué se entregó en la cancelación.");
+                toast.error("Detallá qué se entregó en la cancelación.");
                 return;
             }
             if (form.otrosMonto && Number(form.otrosMonto) < 0) {
-                alert("El monto reconocido no puede ser negativo.");
+                toast.error("El monto reconocido no puede ser negativo.");
                 return;
             }
         }
@@ -110,12 +111,11 @@ export default function CancelarCredito() {
         };
         try {
             await updateCredit(id, { status: "PAID", ...data });
-            alert(
-                `Crédito cancelado correctamente ✅\nTotal recibido: $${totalRecibido.toLocaleString("es-AR")}`
-            );
+            toast.success(`Crédito cancelado correctamente. Total recibido: $${totalRecibido.toLocaleString("es-AR")}`);
             navigate("/creditos");
-        } catch {
-            alert("Error al cancelar el crédito");
+        } catch (error) {
+            const msg = error?.response?.data?.message || "Error al cancelar el crédito";
+            toast.error(msg);
         }
     };
 

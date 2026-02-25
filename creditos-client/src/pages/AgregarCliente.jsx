@@ -54,9 +54,12 @@ export default function AgregarCliente() {
 
         try {
             await dispatch(addClient(payload)).unwrap();
+            toast.success("Cliente creado con éxito");
             navigate("/clientes");
         } catch (error) {
             console.error("Error al agregar cliente:", error);
+            const msg = typeof error === "string" ? error : error?.message || "No se pudo crear el cliente";
+            toast.error(msg);
         }
     };
 
