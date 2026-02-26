@@ -56,8 +56,23 @@ export default function Creditos() {
                 const monto = Number(cr.amount) || 0;
                 const totalInstallments = Number(cr.totalInstallments || 0);
                 const paidInstallments = Number(cr.paidInstallments || 0);
+                const isClosed = String(cr.status || "").toUpperCase() === "PAID";
+                const installmentAmount = Number(cr.installmentAmount || 0);
+                const targetTotal = totalInstallments > 0 && installmentAmount > 0
+                    ? installmentAmount * totalInstallments
+                    : monto;
+                const receivedAmount = Number(cr.receivedAmount || 0);
+                const isCanceled = isClosed && (
+                    (totalInstallments > 0 && paidInstallments < totalInstallments) ||
+                    (targetTotal > 0 && receivedAmount < targetTotal)
+                );
+                const shownPaidInstallments = isClosed && totalInstallments > 0
+                    ? totalInstallments
+                    : paidInstallments;
                 const safeTotal = totalInstallments > 0 ? totalInstallments : 1;
-                const progress = Math.min(100, Math.max(0, (paidInstallments / safeTotal) * 100));
+                const progress = isClosed
+                    ? 100
+                    : Math.min(100, Math.max(0, (shownPaidInstallments / safeTotal) * 100));
                 const key = cr.id || `temp-${cr.clientId || ""}-${cr.startDate || index}`;
                 return {
                     id: cr.id,
@@ -68,11 +83,12 @@ export default function Creditos() {
                     telefonoAlternativo: cr.client?.alternatePhone || "",
                     monto,
                     cuotas: totalInstallments,
-                    pagadas: paidInstallments,
+                    pagadas: shownPaidInstallments,
                     estado: cr.status,
+                    estadoVisual: isCanceled ? "CANCELED" : cr.status,
                     fechaInicio: cr.startDate,
                     progress,
-                    progressLabel: `${paidInstallments}/${totalInstallments || 0}`
+                    progressLabel: `${shownPaidInstallments}/${totalInstallments || 0}`
                 };
             }),
         [creditos]
@@ -202,7 +218,7 @@ export default function Creditos() {
                                         </div>
                                     </td>
                                     <td className="border-x border-slate-100 px-5 py-4 text-center align-middle first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <EstadoPill estado={c.estado} />
+                                        <EstadoPill estado={c.estadoVisual || c.estado} />
                                     </td>
                                     <td className="border-x border-slate-100 px-5 py-4 text-center align-middle first:border-l-0 last:border-r-0 dark:border-slate-800">
                                         <div className="flex justify-center gap-2 text-sm">
@@ -320,6 +336,8 @@ function estadoClasses(estado) {
             "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
         PAID:
             "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700",
+        CANCELED:
+            "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700",
         OVERDUE:
             "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800",
     }[estado];
@@ -331,6 +349,8 @@ function EstadoPill({ estado }) {
             ? "Pendiente"
             : estado === "PAID"
                 ? "Pagado"
+                : estado === "CANCELED"
+                    ? "Cancelado"
                 : "Vencido";
     return (
         <span
@@ -353,7 +373,7 @@ function CreditoCard({ data, onView, onCancel, canCancel = true }) {
                         Inicio: {data.fechaInicio}
                     </div>
                 </div>
-                <EstadoPill estado={data.estado} />
+                <EstadoPill estado={data.estadoVisual || data.estado} />
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
