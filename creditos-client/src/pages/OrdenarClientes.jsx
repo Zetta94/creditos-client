@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { loadAssignments } from "../store/assignmentsSlice";
 import { reorderAssignments as reorderAssignmentsService } from "../services/assignmentsService";
+import { fetchUsers } from "../services/usersService";
 
 const TODAY_BASE_ORDER = 1000;
 const TOMORROW_BASE_ORDER = 2000;
@@ -23,49 +24,11 @@ const toDateKey = (value) => {
     return `${y}-${m}-${d}`;
 };
 
-const parseDateKeyToDate = (dateKey) => {
-    if (!dateKey) return null;
-    const date = new Date(`${dateKey}T12:00:00`);
-    if (Number.isNaN(date.getTime())) return null;
-    date.setHours(0, 0, 0, 0);
-    return date;
-};
-
 const moveItem = (list, fromIndex, toIndex) => {
     const cloned = Array.from(list);
     const [moved] = cloned.splice(fromIndex, 1);
     cloned.splice(toIndex, 0, moved);
     return cloned;
-};
-
-const addDays = (value, amount) => {
-    const date = new Date(value);
-    date.setDate(date.getDate() + amount);
-    return date;
-};
-
-const addMonths = (value, amount) => {
-    const date = new Date(value);
-    const day = date.getDate();
-    date.setDate(1);
-    date.setMonth(date.getMonth() + amount);
-    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    date.setDate(Math.min(day, lastDay));
-    return date;
-};
-
-const computeProjectedVisitDate = (nextVisitDate, tipoPago) => {
-    const baseKey = toDateKey(nextVisitDate);
-    if (!baseKey) return null;
-
-    const base = parseDateKeyToDate(baseKey);
-    if (!base) return null;
-
-    const tipo = String(tipoPago || "").toUpperCase();
-    if (tipo === "SEMANAL") return addDays(base, 7);
-    if (tipo === "QUINCENAL") return addDays(base, 15);
-    if (tipo === "MENSUAL" || tipo === "MENSUALIDAD" || tipo === "MES") return addMonths(base, 1);
-    return addDays(base, 1);
 };
 
 function AssignmentOrderList({
@@ -97,7 +60,7 @@ function AssignmentOrderList({
             </div>
 
             {items.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Sin asignaciones para este día.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Sin asignaciones para este dia.</p>
             ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId={droppableId}>
@@ -123,7 +86,7 @@ function AssignmentOrderList({
                                                             {index + 1}. {item.nombre}
                                                         </p>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                            {item.tipoPago?.toUpperCase()} - Próxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
+                                                            {item.tipoPago?.toUpperCase()} - Proxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
                                                         </p>
                                                     </div>
                                                     <span className="text-xs text-gray-500 dark:text-gray-400">Orden actual: {item.orden}</span>
@@ -146,17 +109,58 @@ export default function OrdenClientes({ cobradorId }) {
     const dispatch = useDispatch();
     const { list: allAssignments } = useSelector((state) => state.assignments || { list: [] });
 
+    const [collectors, setCollectors] = useState([]);
+    const [loadingCollectors, setLoadingCollectors] = useState(false);
+    const [selectedCobradorId, setSelectedCobradorId] = useState(cobradorId || "");
+
     const [editando, setEditando] = useState(false);
     const [guardandoHoy, setGuardandoHoy] = useState(false);
     const [guardandoManana, setGuardandoManana] = useState(false);
+    const [guardandoTodos, setGuardandoTodos] = useState(false);
+
     const [clientesHoy, setClientesHoy] = useState([]);
     const [clientesManana, setClientesManana] = useState([]);
+    const [clientesTodos, setClientesTodos] = useState([]);
 
     useEffect(() => {
-        dispatch(loadAssignments({ cobradorId }));
-    }, [dispatch, cobradorId]);
+        let active = true;
+        const run = async () => {
+            try {
+                setLoadingCollectors(true);
+                const response = await fetchUsers({ page: 1, pageSize: 500 });
+                const users = Array.isArray(response?.data?.data) ? response.data.data : [];
+                const available = users.filter((user) => {
+                    const role = String(user?.role || "").toUpperCase();
+                    return role === "COBRADOR" || role === "EMPLOYEE";
+                });
+                if (!active) return;
+                setCollectors(available);
+                setSelectedCobradorId((prev) => {
+                    if (prev && available.some((item) => item.id === prev)) return prev;
+                    return available[0]?.id || "";
+                });
+            } catch {
+                if (!active) return;
+                setCollectors([]);
+                setSelectedCobradorId("");
+                toast.error("No se pudo cargar la lista de cobradores");
+            } finally {
+                if (active) setLoadingCollectors(false);
+            }
+        };
 
-    const { listaHoy, listaManana } = useMemo(() => {
+        run();
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!selectedCobradorId) return;
+        dispatch(loadAssignments({ cobradorId: selectedCobradorId, pageSize: 1000 }));
+    }, [dispatch, selectedCobradorId]);
+
+    const { listaHoy, listaManana, listaTodos } = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
@@ -166,7 +170,7 @@ export default function OrdenClientes({ cobradorId }) {
         const tomorrowKey = toDateKey(tomorrow);
 
         const source = allAssignments
-            .filter((a) => a.user?.id === cobradorId)
+            .filter((a) => a.user?.id === selectedCobradorId)
             .map((a) => ({
                 assignmentId: a.id,
                 id: a.client?.id,
@@ -182,15 +186,13 @@ export default function OrdenClientes({ cobradorId }) {
             .sort((a, b) => a.orden - b.orden);
 
         const manana = source
-            .filter((a) => {
-                const scheduledKey = toDateKey(a.nextVisitDate);
-                const projectedKey = toDateKey(computeProjectedVisitDate(a.nextVisitDate, a.tipoPago));
-                return scheduledKey === tomorrowKey || projectedKey === tomorrowKey;
-            })
+            .filter((a) => toDateKey(a.nextVisitDate) === tomorrowKey)
             .sort((a, b) => a.orden - b.orden);
 
-        return { listaHoy: hoy, listaManana: manana };
-    }, [allAssignments, cobradorId]);
+        const todos = [...source].sort((a, b) => a.orden - b.orden);
+
+        return { listaHoy: hoy, listaManana: manana, listaTodos: todos };
+    }, [allAssignments, selectedCobradorId]);
 
     useEffect(() => {
         setClientesHoy(listaHoy);
@@ -199,6 +201,10 @@ export default function OrdenClientes({ cobradorId }) {
     useEffect(() => {
         setClientesManana(listaManana);
     }, [listaManana]);
+
+    useEffect(() => {
+        setClientesTodos(listaTodos);
+    }, [listaTodos]);
 
     const onDragEndHoy = (result) => {
         if (!result.destination) return;
@@ -210,6 +216,15 @@ export default function OrdenClientes({ cobradorId }) {
         setClientesManana((prev) => moveItem(prev, result.source.index, result.destination.index));
     };
 
+    const onDragEndTodos = (result) => {
+        if (!result.destination) return;
+        setClientesTodos((prev) => moveItem(prev, result.source.index, result.destination.index));
+    };
+
+    const refreshAssignments = async () => {
+        await dispatch(loadAssignments({ cobradorId: selectedCobradorId, pageSize: 1000 }));
+    };
+
     const guardarHoy = async () => {
         try {
             setGuardandoHoy(true);
@@ -219,7 +234,7 @@ export default function OrdenClientes({ cobradorId }) {
             }));
             if (payload.length) {
                 await reorderAssignmentsService(payload);
-                await dispatch(loadAssignments({ cobradorId }));
+                await refreshAssignments();
                 toast.success("Orden de hoy guardado");
             }
         } catch (error) {
@@ -238,13 +253,32 @@ export default function OrdenClientes({ cobradorId }) {
             }));
             if (payload.length) {
                 await reorderAssignmentsService(payload);
-                await dispatch(loadAssignments({ cobradorId }));
-                toast.success("Orden de mañana guardado");
+                await refreshAssignments();
+                toast.success("Orden de manana guardado");
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Error al guardar orden de mañana");
+            toast.error(error.response?.data?.message || "Error al guardar orden de manana");
         } finally {
             setGuardandoManana(false);
+        }
+    };
+
+    const guardarTodos = async () => {
+        try {
+            setGuardandoTodos(true);
+            const payload = clientesTodos.map((c, idx) => ({
+                id: c.assignmentId,
+                orden: idx + 1,
+            }));
+            if (payload.length) {
+                await reorderAssignmentsService(payload);
+                await refreshAssignments();
+                toast.success("Orden general guardado");
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Error al guardar orden general");
+        } finally {
+            setGuardandoTodos(false);
         }
     };
 
@@ -256,7 +290,10 @@ export default function OrdenClientes({ cobradorId }) {
                         Ordenar clientes asignados
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        El orden se administra por separado para hoy y mañana.
+                        El orden se administra por separado para hoy y manana.
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Total asignados del cobrador: {clientesTodos.length}
                     </p>
                 </div>
 
@@ -268,8 +305,28 @@ export default function OrdenClientes({ cobradorId }) {
                         }`}
                 >
                     <HiArrowsUpDown className="inline-block mr-1" />
-                    {editando ? "Salir de edición" : "Editar orden"}
+                    {editando ? "Salir de edicion" : "Editar orden"}
                 </button>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4">
+                <label className="text-xs text-gray-500 dark:text-gray-400">Cobrador</label>
+                <select
+                    value={selectedCobradorId}
+                    onChange={(event) => setSelectedCobradorId(event.target.value)}
+                    disabled={loadingCollectors || collectors.length === 0}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                >
+                    {collectors.length === 0 ? (
+                        <option value="">{loadingCollectors ? "Cargando cobradores..." : "Sin cobradores disponibles"}</option>
+                    ) : (
+                        collectors.map((collector) => (
+                            <option key={collector.id} value={collector.id}>
+                                {collector.name}
+                            </option>
+                        ))
+                    )}
+                </select>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -285,8 +342,8 @@ export default function OrdenClientes({ cobradorId }) {
                 />
 
                 <AssignmentOrderList
-                    title="Ruta de mañana"
-                    subtitle="Clientes que se visitan mañana"
+                    title="Ruta de manana"
+                    subtitle="Clientes que se visitan manana"
                     droppableId="manana"
                     items={clientesManana}
                     editable={editando}
@@ -295,8 +352,17 @@ export default function OrdenClientes({ cobradorId }) {
                     onSave={guardarManana}
                 />
             </div>
+
+            <AssignmentOrderList
+                title="Ruta completa"
+                subtitle="Todos los clientes asignados al cobrador seleccionado"
+                droppableId="todos"
+                items={clientesTodos}
+                editable={editando}
+                saving={guardandoTodos}
+                onDragEnd={onDragEndTodos}
+                onSave={guardarTodos}
+            />
         </div>
     );
 }
-
-
