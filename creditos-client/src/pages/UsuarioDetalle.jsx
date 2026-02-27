@@ -107,9 +107,29 @@ export default function UsuarioDetalle() {
             });
     }, [pagos, creditos, clientes, id]);
 
-    const totalCobrado = cobrosUsuario.reduce((acc, c) => acc + c.monto, 0);
-    const creditosCargados = creditos.filter((c) => c.userId === id).length;
-    const pagosRecibidos = cobrosUsuario.length;
+    const inicioSemana = useMemo(() => {
+        const now = new Date();
+        const start = new Date(now);
+        const day = start.getDay();
+        const diff = day === 0 ? 6 : day - 1;
+        start.setDate(start.getDate() - diff);
+        start.setHours(0, 0, 0, 0);
+        return start;
+    }, []);
+
+    const cobrosSemana = cobrosUsuario
+        .filter((c) => {
+            const fechaPago = new Date(c.fecha);
+            return !Number.isNaN(fechaPago.getTime()) && fechaPago >= inicioSemana;
+        });
+
+    const totalCobradoSemana = cobrosSemana.reduce((acc, c) => acc + c.monto, 0);
+    const creditosCargados = creditos.filter((c) => {
+        if (c.userId !== id) return false;
+        const fechaCredito = new Date(c.createdAt || c.startDate);
+        return !Number.isNaN(fechaCredito.getTime()) && fechaCredito >= inicioSemana;
+    }).length;
+    const pagosRecibidos = cobrosSemana.length;
 
     if (loading) {
         return (
@@ -158,7 +178,7 @@ export default function UsuarioDetalle() {
             </div>
             {/* === DATOS PERSONALES === */}
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-6 dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex flex-col lg:flex-row justify-between items-start gap-8 p-6 rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 transition">
+                <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
                     {/* === Columna izquierda: Info del usuario === */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 w-full lg:w-1/2">
                         {/* Avatar / Inicial */}
@@ -218,11 +238,11 @@ export default function UsuarioDetalle() {
                     {/* === Columna derecha: KPIs y botón === */}
                     <div className="w-full lg:w-1/2 flex flex-col gap-4">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <Kpi label="Créditos cargados" value={creditosCargados} />
-                            <Kpi label="Pagos recibidos" value={pagosRecibidos} />
+                            <Kpi label="Créditos cargados (semana)" value={creditosCargados} />
+                            <Kpi label="Pagos recibidos (semana)" value={pagosRecibidos} />
                             <Kpi
-                                label="Total cobrado"
-                                value={totalCobrado.toLocaleString("es-AR", {
+                                label="Total cobrado (semana)"
+                                value={totalCobradoSemana.toLocaleString("es-AR", {
                                     style: "currency",
                                     currency: "ARS",
                                     maximumFractionDigits: 0,

@@ -29,8 +29,7 @@ export default function Creditos() {
 
     useEffect(() => {
         setPage(meta?.page ?? 1);
-        setPageSize(meta?.pageSize ?? 10);
-    }, [meta?.page, meta?.pageSize]);
+    }, [meta?.page]);
 
     // Cargar créditos al montar
     useEffect(() => {
@@ -251,8 +250,8 @@ export default function Creditos() {
 
             <div className="mt-6">
                 <Pagination
-                    page={meta?.page ?? page}
-                    pageSize={meta?.pageSize ?? pageSize}
+                    page={page}
+                    pageSize={pageSize}
                     totalItems={meta?.totalItems ?? creditos.length}
                     totalPages={meta?.totalPages ?? 1}
                     onPageChange={setPage}

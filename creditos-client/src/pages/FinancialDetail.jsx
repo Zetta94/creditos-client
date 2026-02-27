@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { fetchDashboardFinancialDetail } from "../services/dashboardService";
+import Pagination from "../components/Pagination";
 
 const FINANCIAL_PERIODS = [
     { key: "week", label: "Semana", description: "Semanal" },
@@ -766,6 +767,8 @@ export default function FinancialDetail() {
     const [detailData, setDetailData] = useState(null);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detailError, setDetailError] = useState(null);
+    const [paymentsPage, setPaymentsPage] = useState(1);
+    const [paymentsPageSize, setPaymentsPageSize] = useState(20);
 
     const buildDetailParams = useCallback(() => {
         const params = { period: detailPeriod };
@@ -821,6 +824,10 @@ export default function FinancialDetail() {
         loadDetail();
     }, [loadDetail]);
 
+    useEffect(() => {
+        setPaymentsPage(1);
+    }, [detailPeriod, detailWeekDate, detailMonth, detailYear, detailData]);
+
     const detailSelectionLabel = useMemo(() => {
         if (detailPeriod === "week") {
             const formatted = formatDateLocale(detailWeekDate);
@@ -845,6 +852,12 @@ export default function FinancialDetail() {
     const detailNetProfit = detailTotals?.netProfit ?? 0;
     const detailNetProfitClass = detailNetProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
     const detailOperationalExpenses = detailTotals?.operationalExpenses ?? 0;
+    const detailPayments = detailData?.payments ?? [];
+    const paymentsTotalItems = detailPayments.length;
+    const paymentsTotalPages = Math.max(1, Math.ceil(paymentsTotalItems / paymentsPageSize));
+    const safePaymentsPage = Math.min(paymentsPage, paymentsTotalPages);
+    const paymentStartIndex = (safePaymentsPage - 1) * paymentsPageSize;
+    const paginatedPayments = detailPayments.slice(paymentStartIndex, paymentStartIndex + paymentsPageSize);
 
     const currencyFormatter = useMemo(() => new Intl.NumberFormat("es-AR", {
         style: "currency",
@@ -1201,7 +1214,7 @@ export default function FinancialDetail() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200 bg-white text-sm dark:divide-gray-800 dark:bg-gray-900 dark:text-gray-100">
-                                            {detailData.payments.map((payment) => (
+                                            {paginatedPayments.map((payment) => (
                                                 <tr key={payment.id}>
                                                     <td className="px-4 py-2">{formatDateTimeLocale(payment.date)}</td>
                                                     <td className="px-4 py-2">{payment.client?.name ?? "-"}</td>
@@ -1212,6 +1225,20 @@ export default function FinancialDetail() {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                                <div className="mt-3">
+                                    <Pagination
+                                        page={safePaymentsPage}
+                                        pageSize={paymentsPageSize}
+                                        totalItems={paymentsTotalItems}
+                                        totalPages={paymentsTotalPages}
+                                        onPageChange={setPaymentsPage}
+                                        onPageSizeChange={(size) => {
+                                            setPaymentsPageSize(size);
+                                            setPaymentsPage(1);
+                                        }}
+                                        pageSizeOptions={[10, 20, 50, 100]}
+                                    />
                                 </div>
                             </div>
                         ) : null}

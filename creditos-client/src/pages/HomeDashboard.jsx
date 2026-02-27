@@ -17,21 +17,6 @@ import { fetchDashboardResumen } from "../services/dashboardService";
 import { fetchMessages } from "../services/messagesService";
 import MessageCard from "../components/messages/MessageCard";
 
-const ingresosPorDia = [
-    { fecha: "Lun", monto: 22000 },
-    { fecha: "Mar", monto: 27500 },
-    { fecha: "Mié", monto: 31000 },
-    { fecha: "Jue", monto: 28000 },
-    { fecha: "Vie", monto: 36000 },
-];
-
-const clientesPorConfianza = [
-    { tipo: "Alta", valor: 40 },
-    { tipo: "Media", valor: 30 },
-    { tipo: "Baja", valor: 10 },
-    { tipo: "Morosos", valor: 20 },
-];
-
 const COLORS = ["#10b981", "#3b82f6", "#fbbf24", "#ef4444"];
 
 function KpiCard({ icon, label, value }) {
@@ -48,7 +33,7 @@ function KpiCard({ icon, label, value }) {
 
 export default function HomeDashboard() {
     const navigate = useNavigate();
-    const [range, setRange] = useState("Semana"); // estética: selector simple
+    const [range, setRange] = useState("Semana");
     const [resumen, setResumen] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -95,10 +80,17 @@ export default function HomeDashboard() {
         };
     }, []);
 
+    const clientesPorConfianza = useMemo(() => resumen?.clientesPorConfianza ?? [], [resumen]);
     const totalClientes = useMemo(
-        () => clientesPorConfianza.reduce((acc, c) => acc + c.valor, 0),
-        []
+        () => clientesPorConfianza.reduce((acc, c) => acc + Number(c.valor || 0), 0),
+        [clientesPorConfianza]
     );
+    const ingresosData = useMemo(() => {
+        if (!resumen?.ingresos) return [];
+        if (range === "Hoy") return resumen.ingresos.hoy ?? [];
+        if (range === "Mes") return resumen.ingresos.mes ?? [];
+        return resumen.ingresos.semana ?? [];
+    }, [resumen, range]);
 
     if (loading) return <div className="text-center py-10 text-gray-500">Cargando resumen...</div>;
     if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
@@ -177,7 +169,7 @@ export default function HomeDashboard() {
                     </div>
                     <div className="h-[260px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={ingresosPorDia}>
+                            <LineChart data={ingresosData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                                 <XAxis dataKey="fecha" stroke="#aaa" />
                                 <YAxis stroke="#aaa" />
@@ -201,7 +193,7 @@ export default function HomeDashboard() {
                                     cy="50%"
                                     outerRadius={80}
                                     label={({ tipo, valor }) =>
-                                        `${tipo}: ${Math.round((valor / totalClientes) * 100)}%`
+                                        `${tipo}: ${totalClientes > 0 ? Math.round((Number(valor || 0) / totalClientes) * 100) : 0}%`
                                     }
                                 >
                                     {clientesPorConfianza.map((_, i) => (
@@ -220,7 +212,7 @@ export default function HomeDashboard() {
                                     style={{ backgroundColor: COLORS[i % COLORS.length] }}
                                 />
                                 <span className="text-gray-700 dark:text-gray-200">
-                                    {c.tipo} ({Math.round((c.valor / totalClientes) * 100)}%)
+                                    {c.tipo} ({totalClientes > 0 ? Math.round((Number(c.valor || 0) / totalClientes) * 100) : 0}%)
                                 </span>
                             </li>
                         ))}

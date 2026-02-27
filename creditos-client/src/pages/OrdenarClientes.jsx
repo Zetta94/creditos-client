@@ -8,7 +8,6 @@ import { reorderAssignments as reorderAssignmentsService } from "../services/ass
 import { fetchUsers } from "../services/usersService";
 
 const TODAY_BASE_ORDER = 1000;
-const TOMORROW_BASE_ORDER = 2000;
 
 const toDateKey = (value) => {
     if (!value) return null;
@@ -31,6 +30,14 @@ const moveItem = (list, fromIndex, toIndex) => {
     return cloned;
 };
 
+const moveItemToPosition = (list, assignmentId, targetPosition) => {
+    const fromIndex = list.findIndex((item) => item.assignmentId === assignmentId);
+    if (fromIndex < 0) return list;
+    const safeTargetIndex = Math.max(0, Math.min(list.length - 1, targetPosition - 1));
+    if (fromIndex === safeTargetIndex) return list;
+    return moveItem(list, fromIndex, safeTargetIndex);
+};
+
 function AssignmentOrderList({
     title,
     subtitle,
@@ -40,7 +47,17 @@ function AssignmentOrderList({
     saving,
     onDragEnd,
     onSave,
+    onMoveToPosition,
 }) {
+    const [positionByItemId, setPositionByItemId] = useState({});
+    const [search, setSearch] = useState("");
+
+    const searchValue = search.trim().toLowerCase();
+    const displayedItems = searchValue
+        ? items.filter((item) => String(item.nombre || "").toLowerCase().includes(searchValue))
+        : items;
+    const dragEnabled = editable && !searchValue;
+
     return (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4">
             <div className="mb-3 flex items-start justify-between gap-3">
@@ -59,19 +76,33 @@ function AssignmentOrderList({
                 )}
             </div>
 
-            {items.length === 0 ? (
+            <div className="mb-3">
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Buscar cliente..."
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Mostrando {displayedItems.length} de {items.length} clientes.
+                    {searchValue ? " Para arrastrar, limpia la búsqueda." : ""}
+                </p>
+            </div>
+
+            {displayedItems.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">Sin asignaciones para este dia.</p>
             ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId={droppableId}>
                         {(provided) => (
                             <ul ref={provided.innerRef} {...provided.droppableProps} className="space-y-2">
-                                {items.map((item, index) => (
+                                {displayedItems.map((item, index) => (
                                     <Draggable
                                         key={`${droppableId}-${item.assignmentId}`}
                                         draggableId={`${droppableId}-${item.assignmentId}`}
                                         index={index}
-                                        isDragDisabled={!editable}
+                                        isDragDisabled={!dragEnabled}
                                     >
                                         {(dragProvided, snapshot) => (
                                             <li
@@ -91,6 +122,49 @@ function AssignmentOrderList({
                                                     </div>
                                                     <span className="text-xs text-gray-500 dark:text-gray-400">Orden actual: {item.orden}</span>
                                                 </div>
+                                                {editable && (
+                                                    <div className="mt-2 flex items-center gap-2">
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            max={items.length}
+                                                            value={positionByItemId[item.assignmentId] ?? ""}
+                                                            onChange={(event) =>
+                                                                setPositionByItemId((prev) => ({
+                                                                    ...prev,
+                                                                    [item.assignmentId]: event.target.value
+                                                                }))
+                                                            }
+                                                            onKeyDown={(event) => {
+                                                                if (event.key !== "Enter") return;
+                                                                const rawValue = Number(positionByItemId[item.assignmentId]);
+                                                                if (!Number.isFinite(rawValue)) return;
+                                                                onMoveToPosition(item.assignmentId, rawValue);
+                                                                setPositionByItemId((prev) => ({
+                                                                    ...prev,
+                                                                    [item.assignmentId]: ""
+                                                                }));
+                                                            }}
+                                                            placeholder="Mover a..."
+                                                            className="w-28 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const rawValue = Number(positionByItemId[item.assignmentId]);
+                                                                if (!Number.isFinite(rawValue)) return;
+                                                                onMoveToPosition(item.assignmentId, rawValue);
+                                                                setPositionByItemId((prev) => ({
+                                                                    ...prev,
+                                                                    [item.assignmentId]: ""
+                                                                }));
+                                                            }}
+                                                            className="rounded-md bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600"
+                                                        >
+                                                            Ir
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </li>
                                         )}
                                     </Draggable>
@@ -115,12 +189,8 @@ export default function OrdenClientes({ cobradorId }) {
 
     const [editando, setEditando] = useState(false);
     const [guardandoHoy, setGuardandoHoy] = useState(false);
-    const [guardandoManana, setGuardandoManana] = useState(false);
-    const [guardandoTodos, setGuardandoTodos] = useState(false);
 
     const [clientesHoy, setClientesHoy] = useState([]);
-    const [clientesManana, setClientesManana] = useState([]);
-    const [clientesTodos, setClientesTodos] = useState([]);
 
     useEffect(() => {
         let active = true;
@@ -160,14 +230,11 @@ export default function OrdenClientes({ cobradorId }) {
         dispatch(loadAssignments({ cobradorId: selectedCobradorId, pageSize: 1000 }));
     }, [dispatch, selectedCobradorId]);
 
-    const { listaHoy, listaManana, listaTodos } = useMemo(() => {
+    const { listaHoy } = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
 
         const todayKey = toDateKey(today);
-        const tomorrowKey = toDateKey(tomorrow);
 
         const source = allAssignments
             .filter((a) => a.user?.id === selectedCobradorId)
@@ -185,40 +252,20 @@ export default function OrdenClientes({ cobradorId }) {
             .filter((a) => toDateKey(a.nextVisitDate) === todayKey)
             .sort((a, b) => a.orden - b.orden);
 
-        const manana = source
-            .filter((a) => toDateKey(a.nextVisitDate) === tomorrowKey)
-            .sort((a, b) => a.orden - b.orden);
-
-        const todos = [...source].sort((a, b) => a.orden - b.orden);
-
-        return { listaHoy: hoy, listaManana: manana, listaTodos: todos };
+        return { listaHoy: hoy };
     }, [allAssignments, selectedCobradorId]);
 
     useEffect(() => {
         setClientesHoy(listaHoy);
     }, [listaHoy]);
 
-    useEffect(() => {
-        setClientesManana(listaManana);
-    }, [listaManana]);
-
-    useEffect(() => {
-        setClientesTodos(listaTodos);
-    }, [listaTodos]);
-
     const onDragEndHoy = (result) => {
         if (!result.destination) return;
         setClientesHoy((prev) => moveItem(prev, result.source.index, result.destination.index));
     };
 
-    const onDragEndManana = (result) => {
-        if (!result.destination) return;
-        setClientesManana((prev) => moveItem(prev, result.source.index, result.destination.index));
-    };
-
-    const onDragEndTodos = (result) => {
-        if (!result.destination) return;
-        setClientesTodos((prev) => moveItem(prev, result.source.index, result.destination.index));
+    const moverHoyAPosicion = (assignmentId, position) => {
+        setClientesHoy((prev) => moveItemToPosition(prev, assignmentId, position));
     };
 
     const refreshAssignments = async () => {
@@ -244,44 +291,6 @@ export default function OrdenClientes({ cobradorId }) {
         }
     };
 
-    const guardarManana = async () => {
-        try {
-            setGuardandoManana(true);
-            const payload = clientesManana.map((c, idx) => ({
-                id: c.assignmentId,
-                orden: TOMORROW_BASE_ORDER + idx + 1,
-            }));
-            if (payload.length) {
-                await reorderAssignmentsService(payload);
-                await refreshAssignments();
-                toast.success("Orden de manana guardado");
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || "Error al guardar orden de manana");
-        } finally {
-            setGuardandoManana(false);
-        }
-    };
-
-    const guardarTodos = async () => {
-        try {
-            setGuardandoTodos(true);
-            const payload = clientesTodos.map((c, idx) => ({
-                id: c.assignmentId,
-                orden: idx + 1,
-            }));
-            if (payload.length) {
-                await reorderAssignmentsService(payload);
-                await refreshAssignments();
-                toast.success("Orden general guardado");
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || "Error al guardar orden general");
-        } finally {
-            setGuardandoTodos(false);
-        }
-    };
-
     return (
         <div className="p-4 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -290,10 +299,10 @@ export default function OrdenClientes({ cobradorId }) {
                         Ordenar clientes asignados
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        El orden se administra por separado para hoy y manana.
+                        Ordena la ruta completa de hoy.
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Total asignados del cobrador: {clientesTodos.length}
+                        Total asignados del cobrador para hoy: {clientesHoy.length}
                     </p>
                 </div>
 
@@ -329,39 +338,16 @@ export default function OrdenClientes({ cobradorId }) {
                 </select>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <AssignmentOrderList
-                    title="Ruta de hoy"
-                    subtitle="Solo clientes con visita programada para hoy"
-                    droppableId="hoy"
-                    items={clientesHoy}
-                    editable={editando}
-                    saving={guardandoHoy}
-                    onDragEnd={onDragEndHoy}
-                    onSave={guardarHoy}
-                />
-
-                <AssignmentOrderList
-                    title="Ruta de manana"
-                    subtitle="Clientes que se visitan manana"
-                    droppableId="manana"
-                    items={clientesManana}
-                    editable={editando}
-                    saving={guardandoManana}
-                    onDragEnd={onDragEndManana}
-                    onSave={guardarManana}
-                />
-            </div>
-
             <AssignmentOrderList
-                title="Ruta completa"
-                subtitle="Todos los clientes asignados al cobrador seleccionado"
-                droppableId="todos"
-                items={clientesTodos}
+                title="Ruta de hoy"
+                subtitle="Todos los clientes con visita programada para hoy"
+                droppableId="hoy"
+                items={clientesHoy}
                 editable={editando}
-                saving={guardandoTodos}
-                onDragEnd={onDragEndTodos}
-                onSave={guardarTodos}
+                saving={guardandoHoy}
+                onDragEnd={onDragEndHoy}
+                onSave={guardarHoy}
+                onMoveToPosition={moverHoyAPosicion}
             />
         </div>
     );

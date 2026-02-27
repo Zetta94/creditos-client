@@ -3,7 +3,7 @@ import api from "../api";
 export const fetchCredits = (params = {}) => {
     const query = { ...params };
     if (!query.page) query.page = 1;
-    if (!query.pageSize) query.pageSize = 1000;
+    if (!query.pageSize) query.pageSize = 10;
     return api.get("/credits", { params: query });
 };
 export const fetchCredit = (id) => api.get(`/credits/${id}`);
