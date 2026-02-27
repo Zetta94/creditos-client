@@ -29,16 +29,6 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    const toLocalDateKey = (value) => {
-        if (!value) return null;
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return null;
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    };
-
     useEffect(() => {
         const timeout = setTimeout(() => {
             setSearch(searchInput.trim());
@@ -71,7 +61,6 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
             const enriched = response.data?.data ?? [];
             const responseMeta = response.data?.meta ?? {};
             const clientesDisponibles = [];
-            const hoyKey = toLocalDateKey(hoy);
 
             for (const asig of enriched) {
                 const cliente = asig.client;
@@ -98,13 +87,6 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 const pendingSince = asig.pendingSince || asig.nextVisitDate;
                 const pendingDatesFormatted = pendingDates.map((d) => new Date(d).toLocaleDateString("es-AR"));
 
-                const creditStartKey = toLocalDateKey(credit.startDate);
-                const nextVisitKey = toLocalDateKey(asig.nextVisitDate);
-                const habilitadoPorFechaInicio = !creditStartKey || creditStartKey <= hoyKey;
-                const habilitadoPorVisita = !nextVisitKey || nextVisitKey <= hoyKey;
-                const disponibleHoy = habilitadoPorFechaInicio && habilitadoPorVisita;
-                if (!disponibleHoy) continue;
-
                 const item = {
                     assignmentId: asig.id,
                     ...cliente,
@@ -125,7 +107,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                     pendingDatesFormatted,
                     pendingSince,
                     nextVisitDate: asig.nextVisitDate,
-                    disponibleHoy
+                    disponibleHoy: true
                 };
 
                 clientesDisponibles.push(item);
