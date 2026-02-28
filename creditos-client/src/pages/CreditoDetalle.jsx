@@ -106,11 +106,7 @@ export default function CreditoDetalle() {
         return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando crédito...</div>;
     }
     const handleGoBack = () => {
-        if (window.history.length > 2) {
-            navigate(-1);
-        } else {
-            navigate("/creditos");
-        }
+        navigate("/creditos");
     };
 
     if (error || !credito) {
