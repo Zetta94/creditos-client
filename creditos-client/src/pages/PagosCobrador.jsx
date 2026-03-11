@@ -217,6 +217,15 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 ) : clientesHoy.length === 0 ? (
                     <p className="p-4 text-gray-500 dark:text-gray-400">No hay pagos programados para hoy.</p>
                 ) : (
+                    <>
+                    <div className="hidden md:grid md:grid-cols-[2.1fr_0.9fr_1fr_1fr_1.1fr_1.2fr] md:items-center md:gap-3 border-b border-slate-700 bg-slate-900/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <span>Cliente</span>
+                        <span>Tipo</span>
+                        <span>Cuota</span>
+                        <span>Monto</span>
+                        <span>Estado</span>
+                        <span className="text-center">Acciones</span>
+                    </div>
                     <ul className="divide-y divide-slate-200 dark:divide-slate-700">
                         {clientesHoy.map((c) => (
                             <li key={c.creditoId} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
@@ -224,7 +233,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                 <div className="hidden md:grid md:grid-cols-[2.1fr_0.9fr_1fr_1fr_1.1fr_1.2fr] md:items-center md:gap-3">
                                     <div className="min-w-0">
                                         <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
-                                            {c.orden ? `${c.orden}. ` : ""}{c.name}
+                                            {c.name}
                                         </p>
                                         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                                             {c.address || "Sin direccion"}
@@ -262,7 +271,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                                 }
                                             })}
                                             disabled={c.paidToday}
-                                            className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
+                                            className={`inline-flex h-10 min-w-[110px] items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
                                         >
                                             {c.paidToday ? "Cobrado" : "Cobrar"}
                                             <HiArrowRight className="h-4 w-4" />
@@ -276,9 +285,9 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                                         clientName: c.name
                                                     }
                                                 })}
-                                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                                                className="inline-flex h-10 min-w-[110px] items-center justify-center rounded-lg border border-slate-500 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-100 transition hover:bg-slate-700"
                                             >
-                                                No pude
+                                                No pude cobrar
                                             </button>
                                         )}
                                     </div>
@@ -289,7 +298,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="font-semibold text-slate-900 dark:text-slate-100">
-                                                {c.orden ? `${c.orden}. ` : ""}{c.name}
+                                                {c.name}
                                             </p>
                                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                                 {c.address || "Sin direccion"}
@@ -332,7 +341,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                                 }
                                             })}
                                             disabled={c.paidToday}
-                                            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm focus:outline-none w-full ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
+                                            className={`flex h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none w-full ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
                                         >
                                             {c.paidToday ? "Ya cobrado" : "Cobrar"}
                                             <HiArrowRight className="h-4 w-4" />
@@ -346,7 +355,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                                         clientName: c.name
                                                     }
                                                 })}
-                                                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 w-full"
+                                                className="flex h-11 items-center justify-center rounded-xl border border-slate-500 bg-slate-800/60 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:bg-slate-700 w-full"
                                             >
                                                 No pude cobrar
                                             </button>
@@ -356,6 +365,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                             </li>
                         ))}
                     </ul>
+                    </>
                 )}
                 {!loading && !error && meta.totalPages > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-700 px-4 py-3 text-sm text-slate-300">
