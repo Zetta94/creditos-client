@@ -212,34 +212,50 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                         {clientesHoy.map((c) => (
                             <li key={c.creditoId} className="flex flex-col gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                                 <div>
-                                    <p className="font-semibold text-slate-900 dark:text-slate-100">
-                                        {c.orden ? `${c.orden}. ` : ""}{c.name}
-                                    </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        {c.address || "Sin direccion"}
-                                    </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                        Ultimo pago: <span className="font-medium text-slate-700 dark:text-slate-200">{c.lastPayment ? new Date(c.lastPayment).toLocaleDateString("es-AR") : "Sin pagos"}</span>
-                                    </p>
-                                    <div className="mt-2 rounded-xl bg-slate-50 p-2.5 text-xs sm:text-sm text-slate-600 dark:bg-slate-800/70 dark:text-slate-300 space-y-1">
-                                        <p>Tipo: {c.tipoPago ? `${c.tipoPago[0].toUpperCase()}${c.tipoPago.slice(1)}` : "-"}</p>
-                                        <p>Monto cuota: <span className="font-semibold text-slate-800 dark:text-slate-200">${Number(c.monto || 0).toLocaleString("es-AR")}</span></p>
-                                        <p>Cuota: <span className="font-semibold text-slate-700 dark:text-slate-200">{c.cuotaActual}/{c.totalCuotas}</span> ({c.cuotasRestantes} restantes)</p>
-                                        <p>Estado: <span className="capitalize">{String(c.estado || "").toLowerCase()}</span></p>
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="font-semibold text-slate-900 dark:text-slate-100">
+                                                {c.orden ? `${c.orden}. ` : ""}{c.name}
+                                            </p>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                {c.address || "Sin direccion"}
+                                            </p>
+                                        </div>
+                                        <span className="rounded-full border border-slate-600 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-300">
+                                            {String(c.tipoPago || "-")}
+                                        </span>
                                     </div>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate-300 sm:grid-cols-3">
+                                        <div className="rounded-lg bg-slate-800/70 px-3 py-2">
+                                            <p className="text-xs text-slate-400">Monto cuota</p>
+                                            <p className="font-semibold text-slate-100">${Number(c.monto || 0).toLocaleString("es-AR")}</p>
+                                        </div>
+                                        <div className="rounded-lg bg-slate-800/70 px-3 py-2">
+                                            <p className="text-xs text-slate-400">Cuota actual</p>
+                                            <p className="font-semibold text-slate-100">{c.cuotaActual}/{c.totalCuotas}</p>
+                                        </div>
+                                        <div className="rounded-lg bg-slate-800/70 px-3 py-2">
+                                            <p className="text-xs text-slate-400">Ultimo pago</p>
+                                            <p className="font-semibold text-slate-100">{c.lastPayment ? new Date(c.lastPayment).toLocaleDateString("es-AR") : "Sin pagos"}</p>
+                                        </div>
+                                    </div>
+
                                     <div className="mt-2 flex flex-wrap gap-2">
                                         {c.paidToday ? (
                                             <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Cobrado hoy</span>
                                         ) : c.venceHoy ? (
                                             <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Vence hoy</span>
                                         ) : null}
+                                        {String(c.estado || "").toUpperCase() === "OVERDUE" && (
+                                            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Atrasado</span>
+                                        )}
                                     </div>
-                                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
                                         <p>
-                                            Monto pendiente estimado: <span className="font-semibold">${Number(c.pendingAmount || 0).toLocaleString("es-AR")}</span>
-                                            {c.pendingOccurrences > 1 && ` (${c.pendingOccurrences} dias)`}
+                                            Pendiente estimado: <span className="font-semibold">${Number(c.pendingAmount || 0).toLocaleString("es-AR")}</span>
+                                            {c.pendingOccurrences > 1 && ` (${c.pendingOccurrences} cuotas)`}
                                         </p>
-                                        {c.pendingDatesFormatted?.length > 0 && <p>Correspondiente a: {c.pendingDatesFormatted.join(" - ")}</p>}
                                     </div>
                                 </div>
 

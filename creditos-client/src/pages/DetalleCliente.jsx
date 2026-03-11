@@ -2,6 +2,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchClient } from "../services/clientsService";
 import { fetchCredits } from "../services/creditsService";
+import { fetchAssignments } from "../services/assignmentsService";
 
 const CREDIT_TYPE_LABELS = {
     DAILY: "Diario",
@@ -16,6 +17,7 @@ export default function ClienteDetalle() {
     const navigate = useNavigate();
     const [cliente, setCliente] = useState(null);
     const [creditos, setCreditos] = useState([]);
+    const [assignmentsByCollector, setAssignmentsByCollector] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -25,9 +27,10 @@ export default function ClienteDetalle() {
             setLoading(true);
             setError(null);
             try {
-                const [clienteRes, creditosRes] = await Promise.all([
+                const [clienteRes, creditosRes, assignmentsRes] = await Promise.all([
                     fetchClient(id),
-                    fetchCredits({ page: 1, pageSize: 200, clientId: id })
+                    fetchCredits({ page: 1, pageSize: 200, clientId: id }),
+                    fetchAssignments({ page: 1, pageSize: 500 })
                 ]);
 
                 if (!active) return;
@@ -37,12 +40,22 @@ export default function ClienteDetalle() {
                     ? creditosRes.data.data.filter((cr) => cr.clientId === id)
                     : [];
                 setCreditos(contratos);
+
+                const assignments = Array.isArray(assignmentsRes.data?.data)
+                    ? assignmentsRes.data.data.filter((a) => a?.clienteId === id)
+                    : [];
+                const byCollector = assignments.reduce((acc, item) => {
+                    if (item?.cobradorId) acc[item.cobradorId] = item;
+                    return acc;
+                }, {});
+                setAssignmentsByCollector(byCollector);
             } catch (err) {
                 console.error("No se pudo cargar el detalle de cliente", err);
                 if (!active) return;
                 setError("No se pudo cargar la información del cliente.");
                 setCliente(null);
                 setCreditos([]);
+                setAssignmentsByCollector({});
             } finally {
                 if (active) setLoading(false);
             }
@@ -178,6 +191,7 @@ export default function ClienteDetalle() {
                             <CreditoCard
                                 key={cr.id}
                                 cr={cr}
+                                assignmentsByCollector={assignmentsByCollector}
                                 onView={() => navigate(`/creditos/${cr.id}`)}
                             />
                         ))
@@ -189,7 +203,7 @@ export default function ClienteDetalle() {
                     <table className="w-full table-fixed text-left text-sm">
                         <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
                             <tr>
-                                <th className="w-[16%] px-3 py-3 font-medium">Proximo cobro</th>
+                                <th className="w-[16%] px-3 py-3 font-medium">Proximo cobro (ruta)</th>
                                 <th className="w-[14%] px-3 py-3 font-medium">Tipo</th>
                                 <th className="w-[16%] px-3 py-3 font-medium">Monto</th>
                                 <th className="w-[10%] px-3 py-3 font-medium">Cuotas</th>
@@ -212,7 +226,12 @@ export default function ClienteDetalle() {
                                         className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
                                     >
                                         <td className="px-3 py-3 align-middle">
-                                            {formatNextInstallmentDate(cr)}
+                                            <div className="flex flex-col">
+                                                <span>{formatNextVisitDate(cr, assignmentsByCollector)}</span>
+                                                <span className="text-[11px] text-gray-400">
+                                                    {formatNextInstallmentLabel(cr)}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="px-3 py-3 align-middle">
                                             {CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "-"}
@@ -315,18 +334,20 @@ function Progress({ value }) {
     );
 }
 
-function CreditoCard({ cr, onView }) {
+function CreditoCard({ cr, assignmentsByCollector, onView }) {
     const amountLabel = formatCurrency(cr.amount);
     const installments = Number(cr.totalInstallments || 0);
     const paid = Number(cr.paidInstallments || 0);
     const progress = installments > 0 ? (paid / installments) * 100 : 0;
-    const nextInstallmentDate = formatNextInstallmentDate(cr);
+    const nextInstallmentDate = formatNextVisitDate(cr, assignmentsByCollector);
+    const nextInstallmentLabel = formatNextInstallmentLabel(cr);
     const creditType = CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "-";
     return (
         <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
-                    <div className="text-sm font-semibold">Proximo cobro: {nextInstallmentDate}</div>
+                    <div className="text-sm font-semibold">Proximo cobro (ruta): {nextInstallmentDate}</div>
+                    <div className="text-xs text-gray-400">{nextInstallmentLabel}</div>
                 </div>
                 <EstadoPill estado={cr.status} />
             </div>
@@ -365,39 +386,20 @@ function CardEmpty() {
     );
 }
 
-function formatNextInstallmentDate(credit) {
+function formatNextVisitDate(credit, assignmentsByCollector = {}) {
+    const collectorId = credit?.userId;
+    const assignment = collectorId ? assignmentsByCollector?.[collectorId] : null;
+    const nextVisitDate = assignment?.nextVisitDate ? new Date(assignment.nextVisitDate) : null;
+    if (!nextVisitDate || Number.isNaN(nextVisitDate.getTime())) return "-";
+    return nextVisitDate.toLocaleDateString("es-AR");
+}
+
+function formatNextInstallmentLabel(credit) {
     const nextInstallment = Number(credit?.nextInstallmentToCharge || 0);
-    const startDate = credit?.startDate ? new Date(credit.startDate) : null;
-    if (!startDate || Number.isNaN(startDate.getTime()) || nextInstallment <= 0) return "-";
-
-    const date = new Date(startDate);
-    date.setHours(0, 0, 0, 0);
-    const offset = Math.max(nextInstallment - 1, 0);
-    const creditType = String(credit?.type || "").toUpperCase();
-
-    switch (creditType) {
-        case "DAILY":
-            date.setDate(date.getDate() + offset);
-            break;
-        case "WEEKLY":
-            date.setDate(date.getDate() + (offset * 7));
-            break;
-        case "QUINCENAL":
-            date.setDate(date.getDate() + (offset * 15));
-            break;
-        case "MONTHLY":
-            date.setMonth(date.getMonth() + offset);
-            break;
-        case "ONE_TIME":
-        default:
-            if (credit?.dueDate) {
-                const due = new Date(credit.dueDate);
-                return Number.isNaN(due.getTime()) ? "-" : due.toLocaleDateString("es-AR");
-            }
-            break;
-    }
-
-    return date.toLocaleDateString("es-AR");
+    const totalInstallments = Number(credit?.totalInstallments || 0);
+    if (nextInstallment <= 0) return "Sin próxima cuota";
+    if (totalInstallments > 0) return `Cuota ${nextInstallment} de ${totalInstallments}`;
+    return `Cuota ${nextInstallment}`;
 }
 
 
