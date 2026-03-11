@@ -218,20 +218,20 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                     <p className="p-4 text-gray-500 dark:text-gray-400">No hay pagos programados para hoy.</p>
                 ) : (
                     <>
-                    <div className="hidden md:grid md:grid-cols-[2.1fr_0.9fr_1fr_1fr_1.1fr_1.2fr] md:items-center md:gap-3 border-b border-slate-700 bg-slate-900/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        <span>Cliente</span>
-                        <span>Tipo</span>
-                        <span>Cuota</span>
-                        <span>Monto</span>
-                        <span>Estado</span>
+                    <div className="hidden md:grid md:grid-cols-[2.3fr_0.9fr_1fr_1fr_1fr_1.4fr] md:items-center md:gap-4 border-b border-slate-700 bg-slate-900/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <span className="pl-1">Cliente</span>
+                        <span className="text-center">Tipo</span>
+                        <span className="text-center">Cuota</span>
+                        <span className="text-center">Monto</span>
+                        <span className="text-center">Estado</span>
                         <span className="text-center">Acciones</span>
                     </div>
                     <ul className="divide-y divide-slate-200 dark:divide-slate-700">
                         {clientesHoy.map((c) => (
                             <li key={c.creditoId} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                                 {/* Desktop row */}
-                                <div className="hidden md:grid md:grid-cols-[2.1fr_0.9fr_1fr_1fr_1.1fr_1.2fr] md:items-center md:gap-3">
-                                    <div className="min-w-0">
+                                <div className="hidden md:grid md:grid-cols-[2.3fr_0.9fr_1fr_1fr_1fr_1.4fr] md:items-center md:gap-4">
+                                    <div className="min-w-0 pl-1">
                                         <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
                                             {c.name}
                                         </p>
@@ -239,14 +239,14 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                             {c.address || "Sin direccion"}
                                         </p>
                                     </div>
-                                    <div className="text-sm text-slate-300 uppercase">{String(c.tipoPago || "-")}</div>
-                                    <div className="text-sm font-semibold text-slate-100">
+                                    <div className="text-center text-sm font-medium text-slate-300 uppercase">{String(c.tipoPago || "-")}</div>
+                                    <div className="text-center text-sm font-semibold text-slate-100">
                                         {c.cuotaActual}/{c.totalCuotas}
                                     </div>
-                                    <div className="text-sm font-semibold text-slate-100">
+                                    <div className="text-center text-sm font-semibold text-slate-100">
                                         ${Number(c.monto || 0).toLocaleString("es-AR")}
                                     </div>
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="flex justify-center">
                                         {c.paidToday ? (
                                             <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Cobrado</span>
                                         ) : c.venceHoy ? (
@@ -258,7 +258,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                             <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Atrasado</span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-center gap-2">
                                         <button
                                             onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, {
                                                 state: {
@@ -271,7 +271,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                                 }
                                             })}
                                             disabled={c.paidToday}
-                                            className={`inline-flex h-10 min-w-[110px] items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
+                                            className={`inline-flex h-10 min-w-[118px] items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${c.paidToday ? "bg-slate-500 text-white cursor-not-allowed" : "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-sm hover:from-blue-500 hover:to-cyan-400"}`}
                                         >
                                             {c.paidToday ? "Cobrado" : "Cobrar"}
                                             <HiArrowRight className="h-4 w-4" />
@@ -285,7 +285,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                                         clientName: c.name
                                                     }
                                                 })}
-                                                className="inline-flex h-10 min-w-[110px] items-center justify-center rounded-lg border border-slate-500 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-100 transition hover:bg-slate-700"
+                                                className="inline-flex h-10 min-w-[118px] items-center justify-center rounded-lg border border-amber-400/60 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20"
                                             >
                                                 No pude cobrar
                                             </button>
