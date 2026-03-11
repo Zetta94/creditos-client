@@ -53,6 +53,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
         setLoading(true);
         try {
             const hoy = new Date();
+            hoy.setHours(23, 59, 59, 999);
             const storedUser = localStorage.getItem("user");
             const currentUser = storedUser ? JSON.parse(storedUser) : null;
             const id = cobradorId || currentUser?.id;
@@ -62,12 +63,10 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
             }
 
             const params = { cobradorId: id };
-            if (filtro && filtro !== "todos") params.tipo = filtro.toUpperCase();
             if (searchText) params.q = searchText;
 
-            const response = await fetchAssignmentsEnriched({ page: currentPage, pageSize: 20, dueOnly: true, ...params });
+            const response = await fetchAssignmentsEnriched({ page: 1, pageSize: 1000, dueOnly: true, ...params });
             const enriched = response.data?.data ?? [];
-            const responseMeta = response.data?.meta ?? {};
             const clientesDisponibles = [];
 
             for (const asig of enriched) {
@@ -94,6 +93,12 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 const pendingDates = Array.isArray(asig.pendingDates) ? asig.pendingDates : [];
                 const pendingSince = asig.pendingSince || asig.nextVisitDate;
                 const pendingDatesFormatted = pendingDates.map((d) => new Date(d).toLocaleDateString("es-AR"));
+                const estaHabilitadoHoy = Boolean(
+                    (pendingSinceDate && pendingSinceDate <= hoy) ||
+                    (nextVisitDate && nextVisitDate <= hoy)
+                );
+
+                if (!estaHabilitadoHoy) continue;
 
                 const item = {
                     assignmentId: asig.id,
@@ -121,12 +126,19 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 clientesDisponibles.push(item);
             }
 
-            setClientesHoy(clientesDisponibles);
+            const pageSize = 20;
+            const totalItems = clientesDisponibles.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+            const safePage = Math.min(Math.max(1, currentPage), totalPages);
+            const startIndex = (safePage - 1) * pageSize;
+            const paginatedItems = clientesDisponibles.slice(startIndex, startIndex + pageSize);
+
+            setClientesHoy(paginatedItems);
             setMeta({
-                page: responseMeta.page ?? currentPage,
-                pageSize: responseMeta.pageSize ?? 20,
-                totalItems: responseMeta.totalItems ?? clientesDisponibles.length,
-                totalPages: responseMeta.totalPages ?? 1
+                page: safePage,
+                pageSize,
+                totalItems,
+                totalPages
             });
             setError(null);
         } catch (err) {
