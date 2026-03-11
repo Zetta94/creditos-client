@@ -20,8 +20,17 @@ const isCreditFinalized = (credit) => {
     if (totalInstallments > 0 && paidInstallments >= totalInstallments) return true;
 
     const totalAmount = Number(credit.amount ?? 0);
+    const installmentAmount = Number(
+        credit.installmentAmount ?? (totalInstallments > 0 ? totalAmount / totalInstallments : 0)
+    );
     const receivedAmount = Number(credit.receivedAmount ?? 0);
-    if (totalAmount > 0 && receivedAmount >= totalAmount) return true;
+
+    if (totalInstallments > 0 && installmentAmount > 0) {
+        const paidInstallmentsByAmount = Math.floor(receivedAmount / installmentAmount);
+        return paidInstallmentsByAmount >= totalInstallments;
+    }
+
+    if (totalInstallments <= 0 && totalAmount > 0 && receivedAmount >= totalAmount) return true;
 
     return false;
 };
