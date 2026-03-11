@@ -185,17 +185,17 @@ export default function ClienteDetalle() {
                 </div>
 
                 {/* Tabla DESKTOP */}
-                <div className="hidden overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 sm:block">
-                    <table className="w-full text-left text-sm">
+                <div className="hidden rounded-lg border border-gray-200 dark:border-gray-700 sm:block">
+                    <table className="w-full table-fixed text-left text-sm">
                         <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
                             <tr>
-                                <th className="min-w-[160px] px-4 py-3 font-medium">Proximo cobro</th>
-                                <th className="min-w-[140px] px-4 py-3 font-medium">Tipo de credito</th>
-                                <th className="min-w-[140px] px-4 py-3 font-medium">Monto</th>
-                                <th className="min-w-[100px] px-4 py-3 font-medium">Cuotas</th>
-                                <th className="min-w-[120px] px-4 py-3 font-medium">Pagadas</th>
-                                <th className="min-w-[120px] px-4 py-3 font-medium">Estado</th>
-                                <th className="min-w-[140px] px-4 py-3 text-center font-medium">Acciones</th>
+                                <th className="w-[16%] px-3 py-3 font-medium">Proximo cobro</th>
+                                <th className="w-[14%] px-3 py-3 font-medium">Tipo</th>
+                                <th className="w-[16%] px-3 py-3 font-medium">Monto</th>
+                                <th className="w-[10%] px-3 py-3 font-medium">Cuotas</th>
+                                <th className="w-[20%] px-3 py-3 font-medium">Pagadas</th>
+                                <th className="w-[12%] px-3 py-3 font-medium">Estado</th>
+                                <th className="w-[12%] px-3 py-3 text-center font-medium">Accion</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -211,21 +211,21 @@ export default function ClienteDetalle() {
                                         key={cr.id}
                                         className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
                                     >
-                                        <td className="px-4 py-3 align-middle">
+                                        <td className="px-3 py-3 align-middle">
                                             {formatNextInstallmentDate(cr)}
                                         </td>
-                                        <td className="px-4 py-3 align-middle">
+                                        <td className="px-3 py-3 align-middle">
                                             {CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "-"}
                                         </td>
-                                        <td className="px-4 py-3 align-middle">
+                                        <td className="px-3 py-3 align-middle whitespace-nowrap">
                                             ${formatCurrency(cr.amount)}
                                         </td>
-                                        <td className="px-4 py-3 align-middle">
+                                        <td className="px-3 py-3 align-middle">
                                             {Number(cr.totalInstallments || 0)}
                                         </td>
-                                        <td className="px-4 py-3 align-middle">
+                                        <td className="px-3 py-3 align-middle">
                                             <div className="flex items-center gap-2">
-                                                <span>
+                                                <span className="whitespace-nowrap text-xs lg:text-sm">
                                                     {Number(cr.paidInstallments || 0)}/{Number(cr.totalInstallments || 0)}
                                                 </span>
                                                 <Progress
@@ -236,15 +236,15 @@ export default function ClienteDetalle() {
                                                 />
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 align-middle">
+                                        <td className="px-3 py-3 align-middle">
                                             <EstadoPill estado={cr.status} />
                                         </td>
-                                        <td className="px-4 py-3 text-center align-middle">
+                                        <td className="px-3 py-3 text-center align-middle">
                                             <button
                                                 onClick={() => navigate(`/creditos/${cr.id}`)}
-                                                className="rounded-md bg-sky-600 px-3 py-2 text-white hover:bg-sky-500"
+                                                className="rounded-md bg-sky-600 px-2.5 py-2 text-xs text-white hover:bg-sky-500 lg:px-3 lg:text-sm"
                                             >
-                                                Ver crédito
+                                                Ver
                                             </button>
                                         </td>
                                     </tr>
@@ -306,7 +306,7 @@ const formatCurrency = (value) => Number(value || 0).toLocaleString("es-AR");
 
 function Progress({ value }) {
     return (
-        <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+        <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 lg:w-24">
             <div
                 className="h-full bg-blue-600 transition-[width] duration-300 ease-out"
                 style={{ width: `${Math.max(0, Math.min(100, value))}%` }}

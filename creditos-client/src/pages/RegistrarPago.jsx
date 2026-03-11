@@ -22,6 +22,7 @@ export default function RegistrarPago() {
     const [pagos, setPagos] = useState([{ metodo: "efectivo", monto: "", id: Date.now() }]);
     const [nota, setNota] = useState("");
     const [cuotasPagadasHoy, setCuotasPagadasHoy] = useState(1);
+    const [installmentMode, setInstallmentMode] = useState("ARREARS");
 
     const pendingInfo = location.state?.pendingInfo;
     const pendingAmount = pendingInfo?.pendingAmount;
@@ -133,6 +134,7 @@ export default function RegistrarPago() {
                 creditId: creditoId,
                 payments: breakdown,
                 installmentCount: canSelectInstallments ? cuotasPagadasHoy : undefined,
+                installmentMode,
                 date: new Date().toISOString(),
                 note: nota
             })).unwrap();
@@ -200,6 +202,18 @@ export default function RegistrarPago() {
                 {canSelectInstallments && (
                     <div className="rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
                         <label className="block text-xs font-medium text-blue-700 dark:text-blue-200 mb-1">
+                            Aplicar cuotas como
+                        </label>
+                        <select
+                            value={installmentMode}
+                            onChange={(e) => setInstallmentMode(e.target.value)}
+                            className="mb-3 w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 dark:border-blue-500/40 dark:bg-gray-800 dark:text-gray-100"
+                        >
+                            <option value="ARREARS">Cuotas pagadas (recomendado)</option>
+                            <option value="ADVANCE">Cuotas de adelanto</option>
+                        </select>
+
+                        <label className="block text-xs font-medium text-blue-700 dark:text-blue-200 mb-1">
                             Cuotas pagadas en esta cobranza
                         </label>
                         <input
@@ -212,6 +226,11 @@ export default function RegistrarPago() {
                         />
                         <p className="mt-1 text-xs text-blue-700 dark:text-blue-200">
                             Restantes: {remainingInstallments} cuotas. Monto sugerido: ${suggestedAmount.toLocaleString("es-AR")}
+                        </p>
+                        <p className="mt-1 text-xs text-blue-700 dark:text-blue-200">
+                            {installmentMode === "ARREARS"
+                                ? "La proxima visita se mantiene en el proximo ciclo normal."
+                                : "Se adelanta la agenda segun la cantidad de cuotas seleccionadas."}
                         </p>
                     </div>
                 )}

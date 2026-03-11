@@ -75,6 +75,7 @@ export default function CreditoEditar() {
     const [form, setForm] = useState({
         userId: "",
         type: "MONTHLY",
+        installmentMode: "ARREARS",
         amount: "",
         installmentAmount: "",
         totalInstallments: "",
@@ -105,6 +106,7 @@ export default function CreditoEditar() {
                 setForm({
                     userId: data.userId || "",
                     type: data.type || "MONTHLY",
+                    installmentMode: "ARREARS",
                     amount: data.amount ?? "",
                     installmentAmount: data.installmentAmount ?? "",
                     totalInstallments: data.totalInstallments ?? "",
@@ -189,6 +191,7 @@ export default function CreditoEditar() {
         const payload = {
             userId: form.userId || null,
             type: form.type,
+            installmentMode: form.installmentMode,
             amount: Number(form.amount),
             installmentAmount: form.installmentAmount === "" ? null : Number(form.installmentAmount),
             totalInstallments: form.totalInstallments === "" ? null : Number(form.totalInstallments),
@@ -287,6 +290,19 @@ export default function CreditoEditar() {
                                     {option.label}
                                 </option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Aplicar cuotas como</label>
+                        <select
+                            name="installmentMode"
+                            value={form.installmentMode}
+                            onChange={handleChange}
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        >
+                            <option value="ARREARS">Cuotas pagadas</option>
+                            <option value="ADVANCE">Cuotas de adelanto</option>
                         </select>
                     </div>
 

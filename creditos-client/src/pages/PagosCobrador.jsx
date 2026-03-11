@@ -11,53 +11,6 @@ const CREDIT_TYPE_TO_FILTER = {
     ONE_TIME: "mensual",
 };
 
-const getNextInstallmentDate = (credit) => {
-    if (!credit) return null;
-
-    const rawNextInstallment = Number(credit.nextInstallmentToCharge) || 0;
-    if (rawNextInstallment <= 0) return null;
-
-    const baseDate = credit.startDate ? new Date(credit.startDate) : null;
-    if (!baseDate || Number.isNaN(baseDate.getTime())) {
-        return credit.dueDate ? new Date(credit.dueDate) : null;
-    }
-
-    const nextIndex = Math.max(rawNextInstallment, 1) - 1;
-    const date = new Date(baseDate);
-    date.setHours(0, 0, 0, 0);
-
-    switch (String(credit.type || "").toUpperCase()) {
-        case "DAILY":
-            date.setDate(date.getDate() + nextIndex);
-            break;
-        case "WEEKLY":
-            date.setDate(date.getDate() + (nextIndex * 7));
-            break;
-        case "QUINCENAL":
-            date.setDate(date.getDate() + (nextIndex * 15));
-            break;
-        case "MONTHLY":
-            date.setMonth(date.getMonth() + nextIndex);
-            break;
-        case "ONE_TIME":
-        default:
-            if (credit.dueDate) {
-                const due = new Date(credit.dueDate);
-                return Number.isNaN(due.getTime()) ? null : due;
-            }
-            break;
-    }
-
-    if (String(credit.type || "").toUpperCase() !== "ONE_TIME" && credit.dueDate) {
-        const due = new Date(credit.dueDate);
-        if (!Number.isNaN(due.getTime()) && date > due) {
-            return due;
-        }
-    }
-
-    return date;
-};
-
 const isCreditFinalized = (credit) => {
     if (!credit) return true;
     if (String(credit.status || "").toUpperCase() === "PAID") return true;
@@ -128,9 +81,8 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
 
                 const pendingSinceDate = asig.pendingSince ? new Date(asig.pendingSince) : null;
                 const nextVisitDate = asig.nextVisitDate ? new Date(asig.nextVisitDate) : null;
-                const nextInstallmentDate = getNextInstallmentDate(credit);
                 const venceHoy = Boolean(
-                    (nextInstallmentDate && nextInstallmentDate <= hoy) ||
+                    (nextVisitDate && nextVisitDate <= hoy) ||
                     (pendingSinceDate && pendingSinceDate <= hoy)
                 );
 
@@ -142,7 +94,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 const pendingSince = asig.pendingSince || asig.nextVisitDate;
                 const pendingDatesFormatted = pendingDates.map((d) => new Date(d).toLocaleDateString("es-AR"));
                 const estaHabilitadoHoy = Boolean(
-                    (nextInstallmentDate && nextInstallmentDate <= hoy) ||
+                    (nextVisitDate && nextVisitDate <= hoy) ||
                     (pendingSinceDate && pendingSinceDate <= hoy)
                 );
 
