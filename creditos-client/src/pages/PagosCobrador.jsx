@@ -219,8 +219,73 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 ) : (
                     <ul className="divide-y divide-slate-200 dark:divide-slate-700">
                         {clientesHoy.map((c) => (
-                            <li key={c.creditoId} className="flex flex-col gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                                <div>
+                            <li key={c.creditoId} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                                {/* Desktop row */}
+                                <div className="hidden md:grid md:grid-cols-[2.1fr_0.9fr_1fr_1fr_1.1fr_1.2fr] md:items-center md:gap-3">
+                                    <div className="min-w-0">
+                                        <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
+                                            {c.orden ? `${c.orden}. ` : ""}{c.name}
+                                        </p>
+                                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                                            {c.address || "Sin direccion"}
+                                        </p>
+                                    </div>
+                                    <div className="text-sm text-slate-300 uppercase">{String(c.tipoPago || "-")}</div>
+                                    <div className="text-sm font-semibold text-slate-100">
+                                        {c.cuotaActual}/{c.totalCuotas}
+                                    </div>
+                                    <div className="text-sm font-semibold text-slate-100">
+                                        ${Number(c.monto || 0).toLocaleString("es-AR")}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {c.paidToday ? (
+                                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Cobrado</span>
+                                        ) : c.venceHoy ? (
+                                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Hoy</span>
+                                        ) : (
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">Pendiente</span>
+                                        )}
+                                        {String(c.estado || "").toUpperCase() === "OVERDUE" && (
+                                            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Atrasado</span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, {
+                                                state: {
+                                                    pendingInfo: {
+                                                        pendingAmount: c.pendingAmount,
+                                                        pendingOccurrences: c.pendingOccurrences,
+                                                        pendingDates: c.pendingDates,
+                                                        pendingSince: c.pendingSince
+                                                    }
+                                                }
+                                            })}
+                                            disabled={c.paidToday}
+                                            className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
+                                        >
+                                            {c.paidToday ? "Cobrado" : "Cobrar"}
+                                            <HiArrowRight className="h-4 w-4" />
+                                        </button>
+                                        {!c.paidToday && (
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate(`/cobrador/pagos/${c.creditoId}/reprogramar`, {
+                                                    state: {
+                                                        assignmentId: c.assignmentId,
+                                                        clientName: c.name
+                                                    }
+                                                })}
+                                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                                            >
+                                                No pude
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Mobile card */}
+                                <div className="md:hidden">
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="font-semibold text-slate-900 dark:text-slate-100">
@@ -234,22 +299,16 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                             {String(c.tipoPago || "-")}
                                         </span>
                                     </div>
-
-                                    <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate-300 sm:grid-cols-3">
+                                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-300">
                                         <div className="rounded-lg bg-slate-800/70 px-3 py-2">
-                                            <p className="text-xs text-slate-400">Monto cuota</p>
-                                            <p className="font-semibold text-slate-100">${Number(c.monto || 0).toLocaleString("es-AR")}</p>
-                                        </div>
-                                        <div className="rounded-lg bg-slate-800/70 px-3 py-2">
-                                            <p className="text-xs text-slate-400">Cuota actual</p>
+                                            <p className="text-xs text-slate-400">Cuota</p>
                                             <p className="font-semibold text-slate-100">{c.cuotaActual}/{c.totalCuotas}</p>
                                         </div>
                                         <div className="rounded-lg bg-slate-800/70 px-3 py-2">
-                                            <p className="text-xs text-slate-400">Ultimo pago</p>
-                                            <p className="font-semibold text-slate-100">{c.lastPayment ? new Date(c.lastPayment).toLocaleDateString("es-AR") : "Sin pagos"}</p>
+                                            <p className="text-xs text-slate-400">Monto</p>
+                                            <p className="font-semibold text-slate-100">${Number(c.monto || 0).toLocaleString("es-AR")}</p>
                                         </div>
                                     </div>
-
                                     <div className="mt-2 flex flex-wrap gap-2">
                                         {c.paidToday ? (
                                             <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Cobrado hoy</span>
@@ -260,47 +319,39 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                                             <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Atrasado</span>
                                         )}
                                     </div>
-                                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                                        <p>
-                                            Pendiente estimado: <span className="font-semibold">${Number(c.pendingAmount || 0).toLocaleString("es-AR")}</span>
-                                            {c.pendingOccurrences > 1 && ` (${c.pendingOccurrences} cuotas)`}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center pt-1">
-                                    <button
-                                        onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, {
-                                            state: {
-                                                pendingInfo: {
-                                                    pendingAmount: c.pendingAmount,
-                                                    pendingOccurrences: c.pendingOccurrences,
-                                                    pendingDates: c.pendingDates,
-                                                    pendingSince: c.pendingSince
-                                                }
-                                            }
-                                        })}
-                                        disabled={c.paidToday}
-                                        className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm focus:outline-none w-full sm:w-auto ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
-                                    >
-                                        {c.paidToday ? "Ya cobrado" : "Cobrar"}
-                                        <HiArrowRight className="h-4 w-4" />
-                                    </button>
-
-                                    {!c.paidToday && (
+                                    <div className="mt-3 flex flex-col gap-2">
                                         <button
-                                            type="button"
-                                            onClick={() => navigate(`/cobrador/pagos/${c.creditoId}/reprogramar`, {
+                                            onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, {
                                                 state: {
-                                                    assignmentId: c.assignmentId,
-                                                    clientName: c.name
+                                                    pendingInfo: {
+                                                        pendingAmount: c.pendingAmount,
+                                                        pendingOccurrences: c.pendingOccurrences,
+                                                        pendingDates: c.pendingDates,
+                                                        pendingSince: c.pendingSince
+                                                    }
                                                 }
                                             })}
-                                            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 w-full sm:w-auto"
+                                            disabled={c.paidToday}
+                                            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm focus:outline-none w-full ${c.paidToday ? "bg-gray-400 text-white cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"}`}
                                         >
-                                            No pude cobrar
+                                            {c.paidToday ? "Ya cobrado" : "Cobrar"}
+                                            <HiArrowRight className="h-4 w-4" />
                                         </button>
-                                    )}
+                                        {!c.paidToday && (
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate(`/cobrador/pagos/${c.creditoId}/reprogramar`, {
+                                                    state: {
+                                                        assignmentId: c.assignmentId,
+                                                        clientName: c.name
+                                                    }
+                                                })}
+                                                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 w-full"
+                                            >
+                                                No pude cobrar
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </li>
                         ))}
