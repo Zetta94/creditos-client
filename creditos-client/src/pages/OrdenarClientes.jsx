@@ -227,7 +227,7 @@ export default function OrdenClientes({ cobradorId }) {
 
     useEffect(() => {
         if (!selectedCobradorId) return;
-        dispatch(loadAssignments({ cobradorId: selectedCobradorId, pageSize: 1000 }));
+        dispatch(loadAssignments({ cobradorId: selectedCobradorId, dueOnly: true, pageSize: 1000 }));
     }, [dispatch, selectedCobradorId]);
 
     const { listaHoy } = useMemo(() => {
@@ -245,11 +245,16 @@ export default function OrdenClientes({ cobradorId }) {
                 tipoPago: a.tipoPago,
                 orden: a.orden,
                 nextVisitDate: a.nextVisitDate,
+                pendingSince: a.pendingSince,
             }))
             .filter((a) => a.id);
 
         const hoy = source
-            .filter((a) => toDateKey(a.nextVisitDate) === todayKey)
+            .filter((a) => {
+                const nextVisitKey = toDateKey(a.nextVisitDate);
+                const pendingSinceKey = toDateKey(a.pendingSince);
+                return nextVisitKey === todayKey || pendingSinceKey === todayKey || Boolean(pendingSinceKey && pendingSinceKey < todayKey);
+            })
             .sort((a, b) => a.orden - b.orden);
 
         return { listaHoy: hoy };
@@ -269,7 +274,7 @@ export default function OrdenClientes({ cobradorId }) {
     };
 
     const refreshAssignments = async () => {
-        await dispatch(loadAssignments({ cobradorId: selectedCobradorId, pageSize: 1000 }));
+        await dispatch(loadAssignments({ cobradorId: selectedCobradorId, dueOnly: true, pageSize: 1000 }));
     };
 
     const guardarHoy = async () => {
