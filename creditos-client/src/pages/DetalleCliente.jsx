@@ -3,6 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { fetchClient } from "../services/clientsService";
 import { fetchCredits } from "../services/creditsService";
 
+const CREDIT_TYPE_LABELS = {
+    DAILY: "Diario",
+    WEEKLY: "Semanal",
+    QUINCENAL: "Quincenal",
+    MONTHLY: "Mensual",
+    ONE_TIME: "Unico",
+};
+
 export default function ClienteDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -181,7 +189,8 @@ export default function ClienteDetalle() {
                     <table className="w-full text-left text-sm">
                         <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
                             <tr>
-                                <th className="min-w-[140px] px-4 py-3 font-medium">Creado</th>
+                                <th className="min-w-[160px] px-4 py-3 font-medium">Proximo cobro</th>
+                                <th className="min-w-[140px] px-4 py-3 font-medium">Tipo de credito</th>
                                 <th className="min-w-[140px] px-4 py-3 font-medium">Monto</th>
                                 <th className="min-w-[100px] px-4 py-3 font-medium">Cuotas</th>
                                 <th className="min-w-[120px] px-4 py-3 font-medium">Pagadas</th>
@@ -192,7 +201,7 @@ export default function ClienteDetalle() {
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {creditosOrdenados.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                                         Sin créditos para este cliente.
                                     </td>
                                 </tr>
@@ -203,9 +212,10 @@ export default function ClienteDetalle() {
                                         className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
                                     >
                                         <td className="px-4 py-3 align-middle">
-                                            {cr.startDate
-                                                ? new Date(cr.startDate).toLocaleDateString("es-AR")
-                                                : "-"}
+                                            {formatNextInstallmentDate(cr)}
+                                        </td>
+                                        <td className="px-4 py-3 align-middle">
+                                            {CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "-"}
                                         </td>
                                         <td className="px-4 py-3 align-middle">
                                             ${formatCurrency(cr.amount)}
@@ -310,17 +320,20 @@ function CreditoCard({ cr, onView }) {
     const installments = Number(cr.totalInstallments || 0);
     const paid = Number(cr.paidInstallments || 0);
     const progress = installments > 0 ? (paid / installments) * 100 : 0;
-    const startDate = cr.startDate ? new Date(cr.startDate).toLocaleDateString("es-AR") : "-";
+    const nextInstallmentDate = formatNextInstallmentDate(cr);
+    const creditType = CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "-";
     return (
         <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
-                    <div className="text-sm font-semibold">Creado el {startDate}</div>
+                    <div className="text-sm font-semibold">Proximo cobro: {nextInstallmentDate}</div>
                 </div>
                 <EstadoPill estado={cr.status} />
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-gray-500">Tipo</div>
+                <div>{creditType}</div>
                 <div className="text-gray-500">Monto</div>
                 <div>${amountLabel}</div>
                 <div className="text-gray-500">Cuotas</div>
@@ -330,8 +343,6 @@ function CreditoCard({ cr, onView }) {
                     {paid}/{installments}
                     <Progress value={progress} />
                 </div>
-                <div className="text-gray-500">Inicio</div>
-                <div>{startDate}</div>
             </div>
 
             <div className="mt-3">
@@ -352,6 +363,41 @@ function CardEmpty() {
             Sin créditos para este cliente.
         </div>
     );
+}
+
+function formatNextInstallmentDate(credit) {
+    const nextInstallment = Number(credit?.nextInstallmentToCharge || 0);
+    const startDate = credit?.startDate ? new Date(credit.startDate) : null;
+    if (!startDate || Number.isNaN(startDate.getTime()) || nextInstallment <= 0) return "-";
+
+    const date = new Date(startDate);
+    date.setHours(0, 0, 0, 0);
+    const offset = Math.max(nextInstallment - 1, 0);
+    const creditType = String(credit?.type || "").toUpperCase();
+
+    switch (creditType) {
+        case "DAILY":
+            date.setDate(date.getDate() + offset);
+            break;
+        case "WEEKLY":
+            date.setDate(date.getDate() + (offset * 7));
+            break;
+        case "QUINCENAL":
+            date.setDate(date.getDate() + (offset * 15));
+            break;
+        case "MONTHLY":
+            date.setMonth(date.getMonth() + offset);
+            break;
+        case "ONE_TIME":
+        default:
+            if (credit?.dueDate) {
+                const due = new Date(credit.dueDate);
+                return Number.isNaN(due.getTime()) ? "-" : due.toLocaleDateString("es-AR");
+            }
+            break;
+    }
+
+    return date.toLocaleDateString("es-AR");
 }
 
 
