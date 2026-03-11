@@ -3,6 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";
 import { fetchAssignmentsEnriched } from "../services/assignmentsService";
 
+const CREDIT_TYPE_TO_FILTER = {
+    DAILY: "diario",
+    WEEKLY: "semanal",
+    QUINCENAL: "quincenal",
+    MONTHLY: "mensual",
+    ONE_TIME: "mensual",
+};
+
 const isCreditFinalized = (credit) => {
     if (!credit) return true;
     if (String(credit.status || "").toUpperCase() === "PAID") return true;
@@ -68,16 +76,16 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 if (!credit) continue;
                 if (isCreditFinalized(credit)) continue;
 
-                const tipoAsignado = asig.tipoPago?.toLowerCase();
-                const filtroCoincide = filtro === "todos" || tipoAsignado === filtro;
+                const tipoCredito = CREDIT_TYPE_TO_FILTER[String(credit.type || "").toUpperCase()] || asig.tipoPago?.toLowerCase() || "mensual";
+                const filtroCoincide = filtro === "todos" || tipoCredito === filtro;
                 if (!filtroCoincide) continue;
 
-                const inicio = new Date(credit.startDate);
-                const diffDias = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
-                let venceHoy = false;
-                if (tipoAsignado === "diario") venceHoy = true;
-                if (tipoAsignado === "semanal") venceHoy = diffDias % 7 === 0;
-                if (tipoAsignado === "mensual") venceHoy = hoy.getDate() === inicio.getDate();
+                const pendingSinceDate = asig.pendingSince ? new Date(asig.pendingSince) : null;
+                const nextVisitDate = asig.nextVisitDate ? new Date(asig.nextVisitDate) : null;
+                const venceHoy = Boolean(
+                    (pendingSinceDate && pendingSinceDate <= hoy) ||
+                    (nextVisitDate && nextVisitDate <= hoy)
+                );
 
                 const cuotaActual = credit.paidInstallments + 1;
                 const cuotasRestantes = credit.totalInstallments - credit.paidInstallments;
@@ -93,7 +101,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                     creditoId: credit.id,
                     monto: credit.installmentAmount,
                     estado: credit.status,
-                    tipoPago: tipoAsignado,
+                    tipoPago: tipoCredito,
                     cuotaActual,
                     cuotasRestantes,
                     totalCuotas: credit.totalInstallments,
@@ -144,7 +152,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-                    {["todos", "diario", "semanal", "mensual"].map((f) => (
+                    {["todos", "diario", "semanal", "quincenal", "mensual"].map((f) => (
                         <button
                             key={f}
                             onClick={() => {

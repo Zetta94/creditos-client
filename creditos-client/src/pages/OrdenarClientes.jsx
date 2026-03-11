@@ -4,10 +4,17 @@ import { HiArrowsUpDown } from "react-icons/hi2";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { loadAssignments } from "../store/assignmentsSlice";
-import { reorderAssignments as reorderAssignmentsService } from "../services/assignmentsService";
+import { fetchAssignmentsEnriched, reorderAssignments as reorderAssignmentsService } from "../services/assignmentsService";
 import { fetchUsers } from "../services/usersService";
 
 const TODAY_BASE_ORDER = 1000;
+const CREDIT_TYPE_LABELS = {
+    DAILY: "DIARIO",
+    WEEKLY: "SEMANAL",
+    QUINCENAL: "QUINCENAL",
+    MONTHLY: "MENSUAL",
+    ONE_TIME: "UNICO",
+};
 
 const toDateKey = (value) => {
     if (!value) return null;
@@ -117,7 +124,7 @@ function AssignmentOrderList({
                                                             {index + 1}. {item.nombre}
                                                         </p>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                            {item.tipoPago?.toUpperCase()} - Proxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
+                                                            {String(item.tipoPagoReal || item.tipoPago || "-").toUpperCase()} - Proxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
                                                         </p>
                                                     </div>
                                                     <span className="text-xs text-gray-500 dark:text-gray-400">Orden actual: {item.orden}</span>
@@ -191,6 +198,7 @@ export default function OrdenClientes({ cobradorId }) {
     const [guardandoHoy, setGuardandoHoy] = useState(false);
 
     const [clientesHoy, setClientesHoy] = useState([]);
+    const [creditTypesByAssignment, setCreditTypesByAssignment] = useState({});
 
     useEffect(() => {
         let active = true;
@@ -230,6 +238,59 @@ export default function OrdenClientes({ cobradorId }) {
         dispatch(loadAssignments({ cobradorId: selectedCobradorId, dueOnly: true, pageSize: 1000 }));
     }, [dispatch, selectedCobradorId]);
 
+    useEffect(() => {
+        let active = true;
+
+        const loadAssignmentCredits = async () => {
+            if (!selectedCobradorId) {
+                if (active) setCreditTypesByAssignment({});
+                return;
+            }
+
+            try {
+                const response = await fetchAssignmentsEnriched({
+                    cobradorId: selectedCobradorId,
+                    dueOnly: true,
+                    page: 1,
+                    pageSize: 1000
+                });
+
+                if (!active) return;
+
+                const items = Array.isArray(response?.data?.data) ? response.data.data : [];
+                const nextMap = {};
+
+                for (const item of items) {
+                    const assignmentId = item?.id;
+                    const creditType = String(item?.credit?.type || "").toUpperCase();
+                    if (!assignmentId || !creditType) continue;
+
+                    if (!nextMap[assignmentId]) {
+                        nextMap[assignmentId] = new Set();
+                    }
+
+                    nextMap[assignmentId].add(CREDIT_TYPE_LABELS[creditType] || creditType);
+                }
+
+                const normalized = Object.fromEntries(
+                    Object.entries(nextMap).map(([key, value]) => [key, Array.from(value).sort()])
+                );
+
+                setCreditTypesByAssignment(normalized);
+            } catch {
+                if (active) {
+                    setCreditTypesByAssignment({});
+                }
+            }
+        };
+
+        loadAssignmentCredits();
+
+        return () => {
+            active = false;
+        };
+    }, [selectedCobradorId]);
+
     const { listaHoy } = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -243,6 +304,7 @@ export default function OrdenClientes({ cobradorId }) {
                 id: a.client?.id,
                 nombre: a.client?.name,
                 tipoPago: a.tipoPago,
+                tipoPagoReal: creditTypesByAssignment[a.id]?.join(" + ") || a.tipoPago,
                 orden: a.orden,
                 nextVisitDate: a.nextVisitDate,
                 pendingSince: a.pendingSince,
@@ -258,7 +320,7 @@ export default function OrdenClientes({ cobradorId }) {
             .sort((a, b) => a.orden - b.orden);
 
         return { listaHoy: hoy };
-    }, [allAssignments, selectedCobradorId]);
+    }, [allAssignments, selectedCobradorId, creditTypesByAssignment]);
 
     useEffect(() => {
         setClientesHoy(listaHoy);
