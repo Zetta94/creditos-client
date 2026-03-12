@@ -221,6 +221,17 @@ export default function ClienteDetalle() {
                                 </tr>
                             ) : (
                                 creditosOrdenados.map((cr) => (
+                                    (() => {
+                                        const totalInstallments = Number(cr.totalInstallments || 0);
+                                        const rawPaidInstallments = Number(cr.paidInstallments || 0);
+                                        const isPaidStatus = String(cr.status || "").toUpperCase() === "PAID";
+                                        const paidInstallmentsDisplay = isPaidStatus && totalInstallments > 0
+                                            ? totalInstallments
+                                            : rawPaidInstallments;
+                                        const progressValue = totalInstallments > 0
+                                            ? (paidInstallmentsDisplay / totalInstallments) * 100
+                                            : 0;
+                                        return (
                                     <tr
                                         key={cr.id}
                                         className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
@@ -245,14 +256,9 @@ export default function ClienteDetalle() {
                                         <td className="px-3 py-3 align-middle">
                                             <div className="flex items-center gap-2">
                                                 <span className="whitespace-nowrap text-xs lg:text-sm">
-                                                    {Number(cr.paidInstallments || 0)}/{Number(cr.totalInstallments || 0)}
+                                                    {paidInstallmentsDisplay}/{totalInstallments}
                                                 </span>
-                                                <Progress
-                                                    value={(Number(cr.totalInstallments || 0) > 0
-                                                        ? (Number(cr.paidInstallments || 0) / Number(cr.totalInstallments || 0)) * 100
-                                                        : 0)
-                                                    }
-                                                />
+                                                <Progress value={progressValue} />
                                             </div>
                                         </td>
                                         <td className="px-3 py-3 align-middle">
@@ -267,6 +273,8 @@ export default function ClienteDetalle() {
                                             </button>
                                         </td>
                                     </tr>
+                                        );
+                                    })()
                                 ))
                             )}
                         </tbody>
@@ -337,7 +345,8 @@ function Progress({ value }) {
 function CreditoCard({ cr, assignmentsByCollector, onView }) {
     const amountLabel = formatCurrency(cr.amount);
     const installments = Number(cr.totalInstallments || 0);
-    const paid = Number(cr.paidInstallments || 0);
+    const rawPaid = Number(cr.paidInstallments || 0);
+    const paid = String(cr.status || "").toUpperCase() === "PAID" && installments > 0 ? installments : rawPaid;
     const progress = installments > 0 ? (paid / installments) * 100 : 0;
     const nextInstallmentDate = formatNextVisitDate(cr, assignmentsByCollector);
     const nextInstallmentLabel = formatNextInstallmentLabel(cr);
