@@ -140,7 +140,9 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
             const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
             const safePage = Math.min(Math.max(1, currentPage), totalPages);
             const startIndex = (safePage - 1) * pageSize;
-            const paginatedItems = clientesDisponibles.slice(startIndex, startIndex + pageSize);
+            const paginatedItems = clientesDisponibles
+                .sort((a, b) => Number(a.orden ?? 0) - Number(b.orden ?? 0))
+                .slice(startIndex, startIndex + pageSize);
 
             setClientesHoy(paginatedItems);
             setMeta({
