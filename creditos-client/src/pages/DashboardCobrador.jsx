@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     HiPlay,
     HiStop,
@@ -35,6 +35,7 @@ export default function DashboardCobrador() {
     const [errorResumen, setErrorResumen] = useState(null);
 
     const applyResumenData = useCallback((data) => {
+        const activo = Boolean(data.trayectoActivo);
         setResumen({
             mercadopago: data.mercadopago ?? 0,
             efectivo: data.efectivo ?? 0,
@@ -47,16 +48,16 @@ export default function DashboardCobrador() {
             clientesVisitados: data.clientesVisitados ?? 0,
             asignaciones: data.asignaciones ?? 0,
             reporteGenerado: Boolean(data.reporteGenerado),
-            trayectoActivo: Boolean(data.trayectoActivo),
+            trayectoActivo: activo,
         });
-        const activo = Boolean(data.trayectoActivo);
         setTrayectoActivoState(activo);
         dispatch(setTrayectoActivoAction(activo));
         setLoadingTrayecto(false);
+        setLoadingResumen(false);
         setErrorResumen(null);
     }, [dispatch]);
 
-    const getResumen = useCallback(async () => {
+    const getResumenData = useCallback(async () => {
         const response = await fetchDashboardResumenCobrador();
         return response.data || {};
     }, []);
@@ -64,7 +65,7 @@ export default function DashboardCobrador() {
     const reloadResumen = useCallback(async (options = { showLoader: true }) => {
         if (options.showLoader) setLoadingResumen(true);
         try {
-            const data = await getResumen();
+            const data = await getResumenData();
             applyResumenData(data);
             return data;
         } catch (err) {
@@ -73,12 +74,12 @@ export default function DashboardCobrador() {
         } finally {
             if (options.showLoader) setLoadingResumen(false);
         }
-    }, [getResumen, applyResumenData]);
+    }, [getResumenData, applyResumenData]);
 
     useEffect(() => {
         let active = true;
         setLoadingResumen(true);
-        getResumen()
+        getResumenData()
             .then((data) => {
                 if (!active) return;
                 applyResumenData(data);
@@ -95,43 +96,7 @@ export default function DashboardCobrador() {
         return () => {
             active = false;
         };
-    }, [getResumen, applyResumenData]);
-
-    useEffect(() => {
-        let mounted = true;
-        async function checkTrayecto() {
-            try {
-                const { fetchMyReports } = await import("../services/reportsService");
-                const res = await fetchMyReports();
-                const reportes = Array.isArray(res?.data?.data) ? res.data.data : [];
-                const hoy = new Date();
-                hoy.setHours(0, 0, 0, 0);
-                const existeHoy = reportes.find((r) => {
-                    const fecha = new Date(r.fechaDeReporte);
-                    fecha.setHours(0, 0, 0, 0);
-                    return fecha.getTime() === hoy.getTime() && !r.finalized;
-                });
-                if (mounted) {
-                    const estaActivo = Boolean(existeHoy);
-                    setTrayectoActivoState(estaActivo);
-                    dispatch(setTrayectoActivoAction(estaActivo));
-                    setResumen((prev) => ({
-                        ...prev,
-                        trayectoActivo: estaActivo,
-                        reporteGenerado: estaActivo ? false : prev.reporteGenerado
-                    }));
-                }
-            } catch (err) {
-                if (mounted) {
-                    setTrayectoActivoState(false);
-                    dispatch(setTrayectoActivoAction(false));
-                    setResumen((prev) => ({ ...prev, trayectoActivo: false }));
-                }
-            }
-        }
-        checkTrayecto();
-        return () => { mounted = false; };
-    }, [dispatch]);
+    }, [getResumenData, applyResumenData]);
 
     async function confirmarInicio() {
         setToast({
@@ -142,10 +107,8 @@ export default function DashboardCobrador() {
                 try {
                     setLoadingTrayecto(true);
                     await import("../services/reportsService").then((m) => m.startReport());
-                    setTrayectoActivoState(true);
-                    dispatch(setTrayectoActivoAction(true));
+                    await reloadResumen({ showLoader: false });
                     setToast({ message: "Trayecto iniciado correctamente.", type: "success" });
-                    await reloadResumen({ showLoader: false }).catch(() => undefined);
                 } catch (err) {
                     setToast({ message: "Error iniciando trayecto.", type: "error" });
                 } finally {
@@ -164,10 +127,8 @@ export default function DashboardCobrador() {
                 try {
                     setLoadingTrayecto(true);
                     await import("../services/reportsService").then((m) => m.finalizeReport());
-                    setTrayectoActivoState(false);
-                    dispatch(setTrayectoActivoAction(false));
-                    setToast({ message: "Reporte finalizado. El administrador podra verlo en Usuarios > Reportes.", type: "info" });
-                    await reloadResumen({ showLoader: false }).catch(() => undefined);
+                    await reloadResumen({ showLoader: false });
+                    setToast({ message: "Reporte finalizado correctamente.", type: "info" });
                 } catch (err) {
                     setToast({ message: "Error enviando resumen.", type: "error" });
                 } finally {
@@ -203,9 +164,10 @@ export default function DashboardCobrador() {
                             ) : !trayectoActivo ? (
                                 <button
                                     onClick={confirmarInicio}
-                                    className="flex w-full md:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm sm:text-base font-medium text-white hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition"
+                                    disabled={resumen.reporteGenerado}
+                                    className={`flex w-full md:w-auto items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm sm:text-base font-medium text-white focus:outline-none focus:ring-2 transition ${resumen.reporteGenerado ? "bg-gray-500 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-300"}`}
                                 >
-                                    <HiPlay className="h-5 w-5" /> Iniciar trayecto
+                                    <HiPlay className="h-5 w-5" /> {resumen.reporteGenerado ? "Dia Finalizado" : "Iniciar trayecto"}
                                 </button>
                             ) : (
                                 <button
@@ -283,4 +245,3 @@ function DatoResumen({ label, value }) {
         </div>
     );
 }
-

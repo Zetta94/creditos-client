@@ -43,3 +43,21 @@ ENUM BD Tipo de pago -  Agregar tipo en un solo pago. -----> SOLUCIONADO <-----
 Créditos especiales, agregar categorías de datos para créditos especiales como heladeras, autos, etc.-----> SOLUCIONADO <-----
 Gastos a la base de datos. -----> SOLUCIONADO <-----
 
+
+------------------------------------------------------------------------------------------------------------------
+Dashboard cobrador:
+
+Volver responsive!!!!
+
+Inicio
+-Completo
+Sueldo
+- Agregar la comisión que le corresponde por cada crédito o producto. 
+- Agregar sueldo semanal y el dia que cobro (SABADO)
+Comisiones (Eliminar)
+Reportes
+- Completo
+Recorrido
+- Ver bug de recorrido.
+
+
