@@ -70,6 +70,53 @@ const buildDemoSeries = (baseAmount, count = 4) => {
     return series;
 };
 
+const computeScheduledDueDate = (baseDate, totalInstallments, type) => {
+    if (!baseDate || !totalInstallments || Number(totalInstallments) <= 0) return null;
+
+    const due = new Date(baseDate);
+    if (Number.isNaN(due.getTime())) return null;
+
+    const total = Math.max(0, Number(totalInstallments) || 0);
+    switch (type) {
+        case "ONE_TIME":
+            break;
+        case "DAILY":
+            due.setDate(due.getDate() + total);
+            break;
+        case "WEEKLY":
+            due.setDate(due.getDate() + total * 7);
+            break;
+        case "QUINCENAL":
+            due.setDate(due.getDate() + total * 15);
+            break;
+        case "MONTHLY":
+        default:
+            due.setMonth(due.getMonth() + total);
+            break;
+    }
+
+    return due;
+};
+
+const resolveDisplayDueDate = (credit) => {
+    const scheduledDueDate = computeScheduledDueDate(
+        credit?.firstPaymentDate ?? credit?.startDate,
+        credit?.totalInstallments,
+        credit?.type
+    );
+
+    if (!credit?.dueDate) return scheduledDueDate;
+
+    const storedDueDate = new Date(credit.dueDate);
+    if (Number.isNaN(storedDueDate.getTime())) return scheduledDueDate;
+
+    if (!scheduledDueDate) return storedDueDate;
+
+    return storedDueDate.getTime() < scheduledDueDate.getTime()
+        ? storedDueDate
+        : scheduledDueDate;
+};
+
 export default function CreditoDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -162,8 +209,14 @@ export default function CreditoDetalle() {
         : baseAmount;
     let saldoPendiente = Math.max(saldoObjetivo - totalPagado, 0);
     const cuotasRestantes = cuotasTotales ? Math.max(cuotasTotales - cuotasPagadas, 0) : null;
+    const isSinglePayment = credito.type === "ONE_TIME";
+    const primaryDateLabel = isSinglePayment ? "Fecha de pago" : "Fecha de otorgamiento";
     const startDateLabel = credito.startDate ? new Date(credito.startDate).toLocaleDateString("es-AR") : "—";
-    const dueDateLabel = credito.dueDate ? new Date(credito.dueDate).toLocaleDateString("es-AR") : "—";
+    const firstPaymentDateLabel = credito.firstPaymentDate
+        ? new Date(credito.firstPaymentDate).toLocaleDateString("es-AR")
+        : startDateLabel;
+    const resolvedDueDate = resolveDisplayDueDate(credito);
+    const dueDateLabel = resolvedDueDate ? resolvedDueDate.toLocaleDateString("es-AR") : "—";
     const expenses = Array.isArray(credito.expenses) ? credito.expenses : [];
     const specialCredit = credito?.specialCredit || null;
     const specialCreditName = typeof specialCredit?.name === "string" && specialCredit.name.trim().length > 0
@@ -243,9 +296,10 @@ export default function CreditoDetalle() {
 
     const calculateNextInstallmentDate = () => {
         if (rawNextInstallment <= 0) return null;
-        if (!credito.startDate) return credito.dueDate ? new Date(credito.dueDate) : null;
+        const firstPaymentDate = credito.firstPaymentDate ?? credito.startDate;
+        if (!firstPaymentDate) return credito.dueDate ? new Date(credito.dueDate) : null;
 
-        const baseDate = new Date(credito.startDate);
+        const baseDate = new Date(firstPaymentDate);
         if (Number.isNaN(baseDate.getTime())) return credito.dueDate ? new Date(credito.dueDate) : null;
 
         const nextIndex = Math.max(rawNextInstallment, 1) - 1;
@@ -435,7 +489,7 @@ export default function CreditoDetalle() {
         ];
 
         if (hasSpecialCredit) {
-            summaryRows.push(["Crédito especial", specialCreditName]);
+            summaryRows.push(["Grupo especial", specialCreditName]);
         }
 
         if (clientReliabilityLabel) {
@@ -496,10 +550,14 @@ export default function CreditoDetalle() {
                     : "Pendiente"
         ]);
 
-        summaryRows.push(["Inicio", formatDate(credito.startDate)]);
+        summaryRows.push([primaryDateLabel, formatDate(credito.startDate)]);
 
-        if (credito.dueDate) {
-            summaryRows.push(["Vencimiento", formatDate(credito.dueDate)]);
+        if (!isSinglePayment) {
+            summaryRows.push(["Primer pago", formatDate(credito.firstPaymentDate ?? credito.startDate)]);
+        }
+
+        if (resolvedDueDate) {
+            summaryRows.push(["Cobro final", formatDate(resolvedDueDate)]);
         }
 
         summaryRows.push(["Generado", new Date().toLocaleDateString("es-AR")]);
@@ -579,8 +637,17 @@ export default function CreditoDetalle() {
 
                         {hasSpecialCredit && (
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium text-gray-800 dark:text-gray-200">Crédito especial:</span>{" "}
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Grupo especial:</span>{" "}
                                 {specialCreditName}
+                                {specialCredit?.id && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/grupos-especiales/${specialCredit.id}/editar`)}
+                                        className="ml-3 inline-flex rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-200 dark:hover:bg-blue-900/50"
+                                    >
+                                        Editar grupo especial
+                                    </button>
+                                )}
                             </p>
                         )}
 
@@ -596,13 +663,21 @@ export default function CreditoDetalle() {
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
                                 </svg>
-                                Inicio: {startDateLabel}
+                                {primaryDateLabel}: {startDateLabel}
                             </span>
+                            {!isSinglePayment && (
+                                <span className="flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
+                                    </svg>
+                                    Primer pago: {firstPaymentDateLabel}
+                                </span>
+                            )}
                             <span className="flex items-center gap-1.5">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Vencimiento: {dueDateLabel}
+                                Cobro final: {dueDateLabel}
                             </span>
                         </div>
                     </div>
@@ -647,7 +722,7 @@ export default function CreditoDetalle() {
                 </div>
                 <KpiCard label="Tipo de crédito" value={creditTypeLabel} />
                 {hasSpecialCredit && (
-                    <KpiCard label="Crédito especial" value={specialCreditName} />
+                    <KpiCard label="Grupo especial" value={specialCreditName} />
                 )}
                 <KpiCard label="Monto recibido" value={currencyFormatter.format(receivedAmount)} />
                 <KpiCard
@@ -854,7 +929,7 @@ export default function CreditoDetalle() {
                 >
                     Editar credito
                 </button>
-                
+
                 {!creditoFinalizado && (
                     <button
                         onClick={() => navigate(`/creditos/${id}/cancelar`)}

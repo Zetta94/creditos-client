@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import OrdenarClientes from "../pages/OrdenarClientes.jsx";
 import { HiOutlineArrowLeft, HiPencil } from "react-icons/hi2";
@@ -12,6 +12,7 @@ import Pagination from "../components/Pagination";
 export default function UsuarioDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const assignedPortfolioRef = useRef(null);
 
     const [usuario, setUsuario] = useState(null);
     const [creditos, setCreditos] = useState([]);
@@ -148,12 +149,24 @@ export default function UsuarioDetalle() {
 
     const roleDisplay = (usuario.role || "").toUpperCase();
     const statusDisplay = usuario.status || "ACTIVE";
+    const isCollector = roleDisplay === "COBRADOR" || roleDisplay === "EMPLOYEE";
     const birthDateDisplay = (() => {
         if (!usuario.birthDate) return "—";
         const parsed = new Date(usuario.birthDate);
         if (Number.isNaN(parsed.getTime())) return "—";
         return parsed.toLocaleDateString("es-AR", { timeZone: "UTC" });
     })();
+    const detailItems = [
+        { label: "Telefono", value: usuario.phone },
+        { label: "Telefono alternativo", value: usuario.alternatePhone },
+        { label: "Direccion", value: usuario.address },
+        { label: "Documento", value: usuario.document },
+        { label: "Cumpleanos", value: birthDateDisplay },
+        { label: "Responsabilidad", value: usuario.responsability },
+        { label: "Sueldo", value: `$${usuario.salary?.toLocaleString("es-AR")}` },
+        { label: "Tipo de sueldo", value: usuario.salaryType },
+        { label: "Comision por credito o cliente nuevo", value: formatCommissionValue(usuario.comisions) },
+    ];
 
     const handleBack = () => {
         if (window.history.length > 2) {
@@ -163,145 +176,221 @@ export default function UsuarioDetalle() {
         }
     };
 
-    return (
-        <div className="mx-auto max-w-6xl px-4 py-6 space-y-10">
+    const handleGoToAssignedPortfolio = () => {
+        assignedPortfolioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
 
-            {/* === BOTÓN VOLVER === */}
-            <div className="flex justify-end">
+    return (
+        <div className="mx-auto max-w-7xl px-4 py-6 space-y-8 sm:px-6 xl:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
+                        Usuario
+                    </p>
+                    <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                        Perfil y rendimiento
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+                        Visualiza la informacion principal del usuario, sus indicadores semanales y accesos rapidos a gestion y reportes.
+                    </p>
+                </div>
                 <button
                     onClick={handleBack}
-                    className="flex items-center gap-2 rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:text-white"
                 >
                     <HiOutlineArrowLeft className="h-4 w-4" />
                     Volver
                 </button>
             </div>
-            {/* === DATOS PERSONALES === */}
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-6 dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
-                    {/* === Columna izquierda: Info del usuario === */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 w-full lg:w-1/2">
-                        {/* Avatar / Inicial */}
-                        <div className="flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-2xl font-bold shadow-md">
-                            {usuario.name.charAt(0).toUpperCase()}
-                        </div>
 
-                        {/* Datos personales */}
-                        <div className="flex flex-col">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {usuario.name}
-                            </h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{usuario.email}</p>
+            <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-slate-950">
+                <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_42%),linear-gradient(135deg,_rgba(15,23,42,1),_rgba(30,41,59,0.96))] px-6 py-7 text-white sm:px-8 lg:px-10">
+                    <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0 space-y-4 xl:max-w-xl 2xl:max-w-2xl">
+                            <div>
+                                <h2 className="max-w-full break-words text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-[2.1rem]">
+                                    {usuario.name}
+                                </h2>
+                                <p className="mt-1 text-sm text-slate-300">{usuario.email}</p>
+                            </div>
 
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                <span
-                                    className={`w-fit rounded-full border px-3 py-1 text-xs font-medium tracking-wide ${roleDisplay === "ADMIN"
-                                        ? "border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
-                                        : "border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                                        }`}
-                                >
-                                    {roleDisplay === "COBRADOR" || roleDisplay === "EMPLOYEE" ? "Cobrador" : roleDisplay}
+                            <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-100">
+                                    ID {usuario.id?.slice?.(0, 8) || usuario.id}
                                 </span>
                                 <span
-                                    className={`w-fit rounded-full border px-3 py-1 text-xs font-medium tracking-wide ${statusDisplay === "ACTIVE"
-                                        ? "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                        : "border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-300"
+                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] ${roleDisplay === "ADMIN"
+                                        ? "border-fuchsia-300/25 bg-fuchsia-400/15 text-fuchsia-100"
+                                        : "border-amber-300/25 bg-amber-400/15 text-amber-100"
+                                        }`}
+                                >
+                                    {isCollector ? "Cobrador" : roleDisplay}
+                                </span>
+                                <span
+                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] ${statusDisplay === "ACTIVE"
+                                        ? "border-emerald-300/25 bg-emerald-400/15 text-emerald-100"
+                                        : "border-slate-300/20 bg-slate-200/10 text-slate-200"
                                         }`}
                                 >
                                     {statusDisplay === "ACTIVE" ? "Activo" : "Inactivo"}
                                 </span>
                             </div>
 
-                            <div className="mt-4 grid grid-cols-1 gap-y-1 sm:grid-cols-2 text-sm text-gray-700 dark:text-gray-300">
-                                <p className="font-medium">Teléfono:</p>
-                                <p>{usuario.phone}</p>
-                                <p className="font-medium">Teléfono alternativo:</p>
-                                <p>{usuario.alternatePhone}</p>
-                                <p className="font-medium">Dirección:</p>
-                                <p>{usuario.address}</p>
-                                <p className="font-medium">Documento:</p>
-                                <p>{usuario.document}</p>
-                                <p className="font-medium">Cumpleaños:</p>
-                                <p>{birthDateDisplay}</p>
-                                <p className="font-medium">Responsabilidad:</p>
-                                <p>{usuario.responsability}</p>
-                                <p className="font-medium">Sueldo:</p>
-                                <p>${usuario.salary?.toLocaleString("es-AR")}</p>
-                                <p className="font-medium">Tipo sueldo:</p>
-                                <p>{usuario.salaryType}</p>
-                                <p className="font-medium">Comisión:</p>
-                                <p>{usuario.comisions}%</p>
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                <HighlightCard
+                                    label="Rol operativo"
+                                    value={isCollector ? "Cobrador" : roleDisplay}
+                                    tone="blue"
+                                />
+                                <HighlightCard
+                                    label="Responsabilidad"
+                                    value={usuario.responsability}
+                                    tone="emerald"
+                                />
+                                <HighlightCard
+                                    label="Esquema salarial"
+                                    value={usuario.salaryType}
+                                    tone="amber"
+                                />
                             </div>
                         </div>
-                    </div>
 
-                    {/* === Columna derecha: KPIs y botón === */}
-                    <div className="w-full lg:w-1/2 flex flex-col gap-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <Kpi label="Créditos cargados (semana)" value={creditosCargados} />
-                            <Kpi label="Pagos recibidos (semana)" value={pagosRecibidos} />
+                        <div className="grid w-full gap-3 sm:grid-cols-3 xl:max-w-[34rem]">
+                            <Kpi label="Creditos cargados" value={creditosCargados} hint="Esta semana" accent="blue" />
+                            <Kpi label="Pagos recibidos" value={pagosRecibidos} hint="Esta semana" accent="emerald" />
                             <Kpi
-                                label="Total cobrado (semana)"
+                                label="Total cobrado"
                                 value={totalCobradoSemana.toLocaleString("es-AR", {
                                     style: "currency",
                                     currency: "ARS",
                                     maximumFractionDigits: 0,
                                 })}
+                                hint="Semana actual"
+                                accent="amber"
                             />
-                        </div>
-
-                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                            <button
-                                onClick={() => navigate(`/usuarios/${usuario.id}/editar`)}
-                                className="flex items-center justify-center gap-2 rounded-xl border border-blue-500 bg-blue-600/90 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 hover:shadow-md active:scale-95 dark:bg-blue-700 dark:hover:bg-blue-600"
-                            >
-                                <HiPencil className="h-5 w-5" />
-                                Editar información
-                            </button>
-
-                            <button
-                                onClick={() => navigate(`/usuarios/${usuario.id}/reportes`)}
-                                className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-600/90 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 hover:shadow-md active:scale-95 dark:bg-emerald-700 dark:hover:bg-emerald-600"
-                            >
-                                Ver reportes
-                            </button>
                         </div>
                     </div>
                 </div>
 
-            </div>
+                <div className="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-[minmax(0,1.4fr)_340px] lg:px-10 lg:py-8">
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                                Ficha personal
+                            </p>
+                            <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                                Informacion del usuario
+                            </h3>
+                        </div>
 
-            {/* === ORDENAR CLIENTES === */}
-            {roleDisplay === "COBRADOR" || roleDisplay === "EMPLOYEE" ? (
-                <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {detailItems.map((item) => (
+                                <DetailItem key={item.label} label={item.label} value={item.value} />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 rounded-[24px] border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                                Acciones
+                            </p>
+                            <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                                Gestion rapida
+                            </h3>
+                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                Actualiza la ficha del usuario o entra directo a sus reportes sin salir de esta vista.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-3">
+                            {isCollector ? (
+                                <>
+                                    <ActionButton
+                                        onClick={handleGoToAssignedPortfolio}
+                                        tone="amber"
+                                    >
+                                        Ordenar clientes asignados
+                                    </ActionButton>
+
+                                    <ActionButton
+                                        onClick={() => navigate(`/usuarios/${usuario.id}/sueldo`)}
+                                        tone="emerald"
+                                    >
+                                        Sueldo y comision
+                                    </ActionButton>
+                                </>
+                            ) : null}
+
+                            <ActionButton
+                                onClick={() => navigate(`/usuarios/${usuario.id}/reportes`)}
+                                tone="blue"
+                            >
+                                Ver reportes
+                            </ActionButton>
+
+                            <ActionButton
+                                onClick={() => navigate(`/usuarios/${usuario.id}/editar`)}
+                                tone="neutral"
+                                icon={<HiPencil className="h-4 w-4" />}
+                            >
+                                Editar informacion
+                            </ActionButton>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {isCollector ? (
+                <div ref={assignedPortfolioRef} className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_45px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950">
+                    <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-6">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                            Cartera asignada
+                        </p>
+                        <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                            Orden de clientes del cobrador
+                        </h3>
+                    </div>
                     <OrdenarClientes cobradorId={usuario.id} />
                 </div>
             ) : null}
 
-            {(roleDisplay === "COBRADOR" || roleDisplay === "EMPLOYEE") && (
-                <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4 sm:p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        Creditos asignados aun no iniciados
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {isCollector && (
+                <section className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_18px_45px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950 sm:p-6">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                                Inicio futuro
+                            </p>
+                            <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                                Creditos asignados aun no iniciados
+                            </h3>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                            {upcomingMeta.totalItems ?? upcomingStarts.length} pendientes
+                        </div>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                         Esta seccion es visible para administracion y muestra los creditos de este cobrador que inician en el futuro.
                     </p>
                     {loadingUpcoming ? (
-                        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Cargando creditos pendientes de inicio...</p>
+                        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Cargando creditos pendientes de inicio...</p>
                     ) : upcomingStarts.length === 0 ? (
-                        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay creditos pendientes de inicio.</p>
+                        <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                            No hay creditos pendientes de inicio.
+                        </div>
                     ) : (
                         <div className="mt-4 space-y-4">
                             <div className="grid gap-3 sm:hidden">
                                 {upcomingStarts.map((item) => (
                                     <article
                                         key={item.creditId}
-                                        className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
                                     >
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                             {item.client?.name || "Cliente"}
                                         </p>
-                                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+                                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
                                             <span className="font-medium">Producto</span>
                                             <span className="text-right">{item.product || "Credito"}</span>
                                             <span className="font-medium">Monto</span>
@@ -314,10 +403,10 @@ export default function UsuarioDetalle() {
                                     </article>
                                 ))}
                             </div>
-                            <div className="hidden overflow-x-auto sm:block">
+                            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 sm:block dark:border-slate-800">
                                 <table className="min-w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-gray-500 dark:text-gray-400">
+                                        <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
                                             <th className="px-3 py-2">Cliente</th>
                                             <th className="px-3 py-2">Producto</th>
                                             <th className="px-3 py-2">Monto</th>
@@ -327,12 +416,12 @@ export default function UsuarioDetalle() {
                                     </thead>
                                     <tbody>
                                         {upcomingStarts.map((item) => (
-                                            <tr key={item.creditId} className="border-b border-gray-100 dark:border-gray-800">
-                                                <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{item.client?.name || "Cliente"}</td>
-                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{item.product || "Credito"}</td>
-                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">${Number(item.amount || 0).toLocaleString("es-AR")}</td>
-                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "-"}</td>
-                                                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "-"}</td>
+                                            <tr key={item.creditId} className="border-b border-slate-100 dark:border-slate-900">
+                                                <td className="px-3 py-3 text-slate-900 dark:text-slate-100">{item.client?.name || "Cliente"}</td>
+                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">{item.product || "Credito"}</td>
+                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">${Number(item.amount || 0).toLocaleString("es-AR")}</td>
+                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">{item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "-"}</td>
+                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">{item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "-"}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -351,7 +440,7 @@ export default function UsuarioDetalle() {
                             />
                         </div>
                     )}
-                </div>
+                </section>
             )}
 
 
@@ -359,13 +448,82 @@ export default function UsuarioDetalle() {
     );
 }
 
-function Kpi({ label, value }) {
+function formatCommissionValue(value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+        return "Sin comision";
+    }
+
+    if (numericValue <= 100) {
+        return `${numericValue}%`;
+    }
+
+    return formatCurrency(numericValue);
+}
+
+function DetailItem({ label, value }) {
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
-            <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-            <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/80">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{label}</div>
+            <div className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100 break-words">
                 {value}
             </div>
+        </div>
+    );
+}
+
+function HighlightCard({ label, value, tone = "blue" }) {
+    const toneClasses = {
+        blue: "border-blue-300/20 bg-blue-400/10 text-blue-50",
+        emerald: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50",
+        amber: "border-amber-300/20 bg-amber-400/10 text-amber-50",
+    };
+
+    return (
+        <div className={`rounded-2xl border px-4 py-3 backdrop-blur ${toneClasses[tone] || toneClasses.blue}`}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">{label}</div>
+            <div className="mt-1 text-sm font-semibold text-white">{value}</div>
+        </div>
+    );
+}
+
+function ActionButton({ children, onClick, tone = "neutral", icon = null }) {
+    const toneClasses = {
+        blue: "border-blue-400/35 bg-blue-500/10 text-blue-100 hover:border-blue-300/50 hover:bg-blue-500/16",
+        emerald: "border-emerald-400/35 bg-emerald-500/10 text-emerald-100 hover:border-emerald-300/50 hover:bg-emerald-500/16",
+        amber: "border-amber-400/35 bg-amber-500/10 text-amber-100 hover:border-amber-300/50 hover:bg-amber-500/16",
+        neutral: "border-slate-300/80 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-900 dark:hover:text-white",
+    };
+
+    return (
+        <button
+            onClick={onClick}
+            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5 ${toneClasses[tone] || toneClasses.neutral}`}
+        >
+            {icon}
+            {children}
+        </button>
+    );
+}
+
+function Kpi({ label, value, hint, accent = "blue" }) {
+    const accentClasses = {
+        blue: "border-blue-400/30 bg-blue-500/10",
+        emerald: "border-emerald-400/30 bg-emerald-500/10",
+        amber: "border-amber-400/30 bg-amber-500/10",
+    };
+
+    return (
+        <div className={`rounded-[22px] border p-4 text-left shadow-[0_16px_35px_-32px_rgba(15,23,42,0.75)] ${accentClasses[accent] || accentClasses.blue}`}>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-300">{label}</div>
+            <div className="mt-3 text-2xl font-black tracking-tight text-white sm:text-[1.9rem]">
+                {value}
+            </div>
+            {hint ? (
+                <div className="mt-2 text-xs font-medium text-slate-300/80">
+                    {hint}
+                </div>
+            ) : null}
         </div>
     );
 }

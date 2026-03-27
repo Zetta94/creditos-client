@@ -80,78 +80,83 @@ export default function ReprogramarCobro() {
     };
 
     return (
-        <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
-            <div className="flex items-center justify-between">
-                <button
-                    type="button"
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
-                >
-                    <HiArrowLeft className="h-5 w-5" />
-                    Volver
-                </button>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Reprogramar cobro</h1>
-            </div>
-
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Credito: {creditoId}</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{clientName}</p>
-            </div>
-
-            <form
-                onSubmit={handleSubmit}
-                className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 space-y-4"
-            >
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Motivo
-                    </label>
-                    <select
-                        value={reasonCode}
-                        onChange={(event) => setReasonCode(event.target.value)}
-                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+        <div className="min-h-screen bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4 sm:px-4 sm:py-6">
+            <div className="mx-auto max-w-2xl space-y-5">
+                <div className="flex flex-col gap-3 rounded-[28px] border border-slate-700/80 bg-slate-900/85 p-4 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)] sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="inline-flex min-h-11 items-center gap-2 self-start rounded-2xl border border-slate-700 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-100"
                     >
-                        {REASON_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
+                        <HiArrowLeft className="h-5 w-5" />
+                        Volver
+                    </button>
+                    <div className="sm:text-right">
+                        <h1 className="text-xl font-bold text-slate-100 sm:text-2xl">Reprogramar cobro</h1>
+                        <p className="mt-1 text-sm text-slate-400">Formulario simple y táctil para usar desde iPhone.</p>
+                    </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Detalle (opcional)
-                    </label>
-                    <textarea
-                        value={reasonDetail}
-                        onChange={(event) => setReasonDetail(event.target.value)}
-                        rows={3}
-                        placeholder="Ej: se rompio el auto en camino al domicilio."
-                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                    />
+                <div className="rounded-[28px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm">
+                    <p className="text-sm text-slate-400">Credito: {creditoId}</p>
+                    <p className="text-lg font-semibold text-slate-100">{clientName}</p>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Reprogramar para
-                    </label>
-                    <input
-                        type="date"
-                        value={promisedDate}
-                        onChange={(event) => setPromisedDate(event.target.value)}
-                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-500 disabled:opacity-60"
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4 rounded-[28px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm sm:p-5"
                 >
-                    {saving ? "Guardando..." : "Guardar reprogramacion"}
-                </button>
-            </form>
+                    <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-300">
+                            Motivo
+                        </label>
+                        <select
+                            value={reasonCode}
+                            onChange={(event) => setReasonCode(event.target.value)}
+                            className="min-h-12 w-full rounded-2xl border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
+                        >
+                            {REASON_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-300">
+                            Detalle (opcional)
+                        </label>
+                        <textarea
+                            value={reasonDetail}
+                            onChange={(event) => setReasonDetail(event.target.value)}
+                            rows={3}
+                            placeholder="Ej: se rompio el auto en camino al domicilio."
+                            className="w-full rounded-2xl border border-slate-700 bg-slate-950/30 px-3 py-3 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-300">
+                            Reprogramar para
+                        </label>
+                        <input
+                            type="date"
+                            value={promisedDate}
+                            onChange={(event) => setPromisedDate(event.target.value)}
+                            className="min-h-12 w-full rounded-2xl border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-white font-semibold shadow-[0_18px_30px_-22px_rgba(59,130,246,0.95)] transition hover:from-blue-500 hover:to-cyan-400 disabled:opacity-60"
+                    >
+                        {saving ? "Guardando..." : "Guardar reprogramacion"}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }

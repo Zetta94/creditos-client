@@ -24,6 +24,7 @@ import UsuarioNuevo from "./pages/UsuarioNuevo.jsx";
 import UsuarioDetalle from "./pages/UsuarioDetalle.jsx";
 import UsuarioEditar from "./pages/UsuarioEditar.jsx";
 import UsuarioReportes from "./pages/UsuarioReportes.jsx";
+import UsuarioSueldo from "./pages/UsuarioSueldo.jsx";
 import ReporteDetalle from "./pages/ReporteDetalle.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
 import Creditos from "./pages/Creditos.jsx";
@@ -31,6 +32,7 @@ import CreditoNuevo from "./pages/CreditoNuevo.jsx";
 import CreditoDetalle from "./pages/CreditoDetalle.jsx";
 import CreditoEditar from "./pages/CreditoEditar.jsx";
 import CancelarCredito from "./pages/CreditoCancelar.jsx";
+import SpecialCreditEditar from "./pages/SpecialCreditEditar.jsx";
 import FinancialDetail from "./pages/FinancialDetail.jsx";
 
 // Paginas de COBRADOR
@@ -114,6 +116,7 @@ function AppRouter() {
         <Route path="usuarios" element={<ProtectedRoute allowedRoles={["admin"]}><Usuarios /></ProtectedRoute>} />
         <Route path="usuarios/nuevo" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioNuevo /></ProtectedRoute>} />
         <Route path="usuarios/:id" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioDetalle /></ProtectedRoute>} />
+        <Route path="usuarios/:id/sueldo" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioSueldo /></ProtectedRoute>} />
         <Route path="usuarios/:id/editar" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioEditar /></ProtectedRoute>} />
         <Route path="usuarios/:id/reportes" element={<ProtectedRoute allowedRoles={["admin"]}><UsuarioReportes /></ProtectedRoute>} />
         <Route path="reportes/:reportId" element={<ProtectedRoute allowedRoles={["admin"]}><ReporteDetalle /></ProtectedRoute>} />
@@ -123,6 +126,8 @@ function AppRouter() {
         <Route path="creditos/:id" element={<ProtectedRoute allowedRoles={["admin"]}><CreditoDetalle /></ProtectedRoute>} />
         <Route path="creditos/:id/editar" element={<ProtectedRoute allowedRoles={["admin"]}><CreditoEditar /></ProtectedRoute>} />
         <Route path="creditos/:id/cancelar" element={<ProtectedRoute allowedRoles={["admin"]}><CancelarCredito /></ProtectedRoute>} />
+        <Route path="creditos-especiales/:id/editar" element={<ProtectedRoute allowedRoles={["admin"]}><SpecialCreditEditar /></ProtectedRoute>} />
+        <Route path="grupos-especiales/:id/editar" element={<ProtectedRoute allowedRoles={["admin"]}><SpecialCreditEditar /></ProtectedRoute>} />
         <Route path="finanzas/detalle" element={<ProtectedRoute allowedRoles={["admin"]}><FinancialDetail /></ProtectedRoute>} />
         <Route path="ordenar-clientes" element={<ProtectedRoute allowedRoles={["admin"]}><OrdenClientes cobradorId={userId} /></ProtectedRoute>} />
         <Route path="asignar-clientes" element={<ProtectedRoute allowedRoles={["admin"]}><AsignarClientes cobradorId={userId} clientesIniciales={[]} /></ProtectedRoute>} />
@@ -179,6 +184,14 @@ function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["cobrador"]}>
               <CobradorReportes cobradorId={userId} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="cobrador/reportes/:reportId"
+          element={
+            <ProtectedRoute allowedRoles={["cobrador"]}>
+              <ReporteDetalle />
             </ProtectedRoute>
           }
         />

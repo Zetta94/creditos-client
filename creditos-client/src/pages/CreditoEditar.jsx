@@ -29,38 +29,82 @@ const toDateInput = (value) => {
     return `${y}-${m}-${d}`;
 };
 
-const computeDueDate = (startDate, totalInstallments, paidInstallments, type) => {
-    if (!startDate || !totalInstallments || Number(totalInstallments) <= 0) return "";
+const computeScheduledDueDate = (baseDate, totalInstallments, type) => {
+    if (!baseDate || !totalInstallments || Number(totalInstallments) <= 0) return "";
 
-    const start = new Date(`${startDate}T00:00:00`);
+    const due = new Date(`${baseDate}T00:00:00`);
+    if (Number.isNaN(due.getTime())) return "";
+    const total = Math.max(0, Number(totalInstallments) || 0);
+
+    switch (type) {
+        case "ONE_TIME":
+            break;
+        case "DAILY":
+            due.setDate(due.getDate() + total);
+            break;
+        case "WEEKLY":
+            due.setDate(due.getDate() + total * 7);
+            break;
+        case "QUINCENAL":
+            due.setDate(due.getDate() + total * 15);
+            break;
+        case "MONTHLY":
+        default:
+            due.setMonth(due.getMonth() + total);
+            break;
+    }
+
+    return toDateInput(due);
+};
+
+const computeAdvanceDueDate = (baseDate, totalInstallments, paidInstallments, type) => {
+    if (!baseDate || !totalInstallments || Number(totalInstallments) <= 0) return "";
+
+    const start = new Date(`${baseDate}T00:00:00`);
     if (Number.isNaN(start.getTime())) return "";
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const base = start.getTime() > today.getTime() ? start : today;
     const due = new Date(base);
     const total = Math.max(0, Number(totalInstallments) || 0);
     const paid = Math.max(0, Number(paidInstallments) || 0);
-    const periods = Math.max(0, total - paid);
+    const remaining = Math.max(0, total - paid);
 
     switch (type) {
         case "ONE_TIME":
             break;
         case "DAILY":
-            due.setDate(due.getDate() + periods);
+            due.setDate(due.getDate() + remaining);
             break;
         case "WEEKLY":
-            due.setDate(due.getDate() + periods * 7);
+            due.setDate(due.getDate() + remaining * 7);
             break;
         case "QUINCENAL":
-            due.setDate(due.getDate() + periods * 15);
+            due.setDate(due.getDate() + remaining * 15);
             break;
         case "MONTHLY":
         default:
-            due.setMonth(due.getMonth() + periods);
+            due.setMonth(due.getMonth() + remaining);
             break;
     }
 
     return toDateInput(due);
+};
+
+const inferInstallmentMode = (data) => {
+    const scheduledDueDate = computeScheduledDueDate(
+        toDateInput(data?.firstPaymentDate ?? data?.startDate),
+        data?.totalInstallments,
+        data?.type
+    );
+    const storedDueDate = toDateInput(data?.dueDate);
+
+    if (scheduledDueDate && storedDueDate && storedDueDate < scheduledDueDate) {
+        return "ADVANCE";
+    }
+
+    return "ARREARS";
 };
 
 export default function CreditoEditar() {
@@ -83,9 +127,15 @@ export default function CreditoEditar() {
         receivedAmount: "",
         nextInstallmentToCharge: "",
         startDate: "",
+        firstPaymentDate: "",
         dueDate: "",
         status: "PENDING"
     });
+
+    const isSinglePayment = form.type === "ONE_TIME";
+    const minimumInstallments = isSinglePayment ? 1 : 2;
+    const scheduleBaseDate = isSinglePayment ? form.startDate : form.firstPaymentDate;
+    const primaryDateLabel = isSinglePayment ? "Fecha de pago" : "Fecha de otorgamiento";
 
     const cobradores = useMemo(
         () => users.filter((user) => user.role === "COBRADOR" || user.role === "EMPLOYEE"),
@@ -106,7 +156,7 @@ export default function CreditoEditar() {
                 setForm({
                     userId: data.userId || "",
                     type: data.type || "MONTHLY",
-                    installmentMode: "ARREARS",
+                    installmentMode: inferInstallmentMode(data),
                     amount: data.amount ?? "",
                     installmentAmount: data.installmentAmount ?? "",
                     totalInstallments: data.totalInstallments ?? "",
@@ -114,6 +164,7 @@ export default function CreditoEditar() {
                     receivedAmount: data.receivedAmount ?? "",
                     nextInstallmentToCharge: data.nextInstallmentToCharge ?? "",
                     startDate: toDateInput(data.startDate),
+                    firstPaymentDate: toDateInput(data.firstPaymentDate ?? data.startDate),
                     dueDate: toDateInput(data.dueDate),
                     status: data.status || "PENDING"
                 });
@@ -137,20 +188,30 @@ export default function CreditoEditar() {
             const normalizedPaidInstallments = totalInstallments > 0
                 ? Math.min(Math.max(0, paidInstallmentsRaw), totalInstallments)
                 : Math.max(0, paidInstallmentsRaw);
+            const normalizedTotalInstallments = totalInstallments > 0
+                ? Math.max(isSinglePayment ? 1 : 2, totalInstallments)
+                : totalInstallments;
+            const baseDate = prev.type === "ONE_TIME" ? prev.startDate : prev.firstPaymentDate;
 
             const receivedAmount = installmentAmount > 0
                 ? installmentAmount * normalizedPaidInstallments
                 : 0;
-            const nextInstallment = totalInstallments > 0
-                ? (normalizedPaidInstallments >= totalInstallments ? "" : String(normalizedPaidInstallments + 1))
+            const nextInstallment = normalizedTotalInstallments > 0
+                ? (normalizedPaidInstallments >= normalizedTotalInstallments ? "" : String(normalizedPaidInstallments + 1))
                 : "";
-            const dueDate = computeDueDate(
-                prev.startDate,
-                totalInstallments,
-                normalizedPaidInstallments,
-                prev.type
-            );
-            const status = totalInstallments > 0 && normalizedPaidInstallments >= totalInstallments
+            const dueDate = prev.installmentMode === "ADVANCE"
+                ? computeAdvanceDueDate(
+                    baseDate,
+                    normalizedTotalInstallments,
+                    normalizedPaidInstallments,
+                    prev.type
+                )
+                : computeScheduledDueDate(
+                    baseDate,
+                    normalizedTotalInstallments,
+                    prev.type
+                );
+            const status = normalizedTotalInstallments > 0 && normalizedPaidInstallments >= normalizedTotalInstallments
                 ? "PAID"
                 : prev.status === "PAID"
                     ? "PENDING"
@@ -168,6 +229,7 @@ export default function CreditoEditar() {
 
             return {
                 ...prev,
+                totalInstallments: normalizedTotalInstallments > 0 ? String(normalizedTotalInstallments) : prev.totalInstallments,
                 paidInstallments: String(normalizedPaidInstallments),
                 receivedAmount: String(receivedAmount),
                 nextInstallmentToCharge: nextInstallment,
@@ -175,7 +237,7 @@ export default function CreditoEditar() {
                 status
             };
         });
-    }, [form.installmentAmount, form.totalInstallments, form.paidInstallments, form.startDate, form.type]);
+    }, [form.installmentAmount, form.totalInstallments, form.paidInstallments, form.startDate, form.firstPaymentDate, form.type, form.installmentMode, isSinglePayment]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -184,7 +246,15 @@ export default function CreditoEditar() {
             return;
         }
         if (!form.startDate) {
-            toast.error("La fecha de inicio es obligatoria");
+            toast.error(isSinglePayment ? "La fecha de pago es obligatoria" : "La fecha de otorgamiento es obligatoria");
+            return;
+        }
+        if (!isSinglePayment && !form.firstPaymentDate) {
+            toast.error("La fecha de primer pago es obligatoria");
+            return;
+        }
+        if (!isSinglePayment && Number(form.totalInstallments || 0) < 2) {
+            toast.error("En planes recurrentes la cantidad mínima es 2 cuotas");
             return;
         }
 
@@ -199,6 +269,9 @@ export default function CreditoEditar() {
             receivedAmount: form.receivedAmount === "" ? 0 : Number(form.receivedAmount),
             nextInstallmentToCharge: form.nextInstallmentToCharge === "" ? null : Number(form.nextInstallmentToCharge),
             startDate: new Date(`${form.startDate}T00:00:00`).toISOString(),
+            firstPaymentDate: isSinglePayment
+                ? null
+                : (form.firstPaymentDate ? new Date(`${form.firstPaymentDate}T00:00:00`).toISOString() : null),
             dueDate: form.dueDate ? new Date(`${form.dueDate}T00:00:00`).toISOString() : null,
             status: form.status
         };
@@ -308,11 +381,14 @@ export default function CreditoEditar() {
 
                     <Field label="Monto" name="amount" type="number" value={form.amount} onChange={handleChange} required />
                     <Field label="Monto de cuota" name="installmentAmount" type="number" value={form.installmentAmount} onChange={handleChange} />
-                    <Field label="Cuotas totales" name="totalInstallments" type="number" value={form.totalInstallments} onChange={handleChange} />
+                    <Field label="Cuotas totales" name="totalInstallments" type="number" min={minimumInstallments} value={form.totalInstallments} onChange={handleChange} />
                     <Field label="Cuotas pagadas" name="paidInstallments" type="number" value={form.paidInstallments} onChange={handleChange} />
                     <Field label="Monto recibido" name="receivedAmount" type="number" value={form.receivedAmount} readOnly />
                     <Field label="Proxima cuota a cobrar" name="nextInstallmentToCharge" type="number" value={form.nextInstallmentToCharge} readOnly />
-                    <Field label="Fecha inicio" name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
+                    <Field label={primaryDateLabel} name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
+                    {!isSinglePayment && (
+                        <Field label="Fecha de primer pago" name="firstPaymentDate" type="date" value={form.firstPaymentDate} onChange={handleChange} required />
+                    )}
                     <Field label="Fecha vencimiento" name="dueDate" type="date" value={form.dueDate} readOnly />
                 </div>
 

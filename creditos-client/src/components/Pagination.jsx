@@ -35,19 +35,19 @@ export default function Pagination({
     };
 
     return (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full">
-            <div className="text-sm text-gray-600 dark:text-gray-300">
+        <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-slate-300">
                 Mostrando {startItem}-{endItem} de {totalItems} registros
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                 {onPageSizeChange && (
-                    <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <label className="flex items-center justify-between gap-2 text-sm text-slate-300 sm:justify-start">
                         Filas por página
                         <select
                             value={pageSize}
                             onChange={handlePageSizeChange}
-                            className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                            className="h-10 rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
                         >
                             {pageSizeOptions.map((option) => (
                                 <option key={option} value={option}>
@@ -58,18 +58,18 @@ export default function Pagination({
                     </label>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:items-center">
                     <button
                         type="button"
                         onClick={handlePrev}
                         disabled={safePage <= 1}
-                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <HiChevronLeft className="h-4 w-4" />
-                        Anterior
+                        <span className="hidden sm:inline">Anterior</span>
                     </button>
 
-                    <span className="min-w-[110px] text-center text-sm text-gray-600 dark:text-gray-300">
+                    <span className="min-w-[110px] text-center text-sm text-slate-300">
                         Página {safePage} de {totalPages || 1}
                     </span>
 
@@ -77,9 +77,9 @@ export default function Pagination({
                         type="button"
                         onClick={handleNext}
                         disabled={safePage >= totalPages}
-                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        Siguiente
+                        <span className="hidden sm:inline">Siguiente</span>
                         <HiChevronRight className="h-4 w-4" />
                     </button>
                 </div>

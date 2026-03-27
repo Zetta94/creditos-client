@@ -28,16 +28,6 @@ export default function UsuarioNuevo() {
         comisions: "",
     });
 
-    const [totalConComision, setTotalConComision] = useState(0);
-
-    useEffect(() => {
-        const sueldo = parseFloat(form.salary) || 0;
-        const comision = parseFloat(form.comisions) || 0;
-        const total =
-            comision <= 100 ? sueldo + sueldo * (comision / 100) : sueldo + comision;
-        setTotalConComision(total);
-    }, [form.salary, form.comisions]);
-
     function handleChange(e) {
         const { name, value } = e.target;
         setForm((s) => ({ ...s, [name]: value }));
@@ -266,7 +256,7 @@ export default function UsuarioNuevo() {
                         </div>
 
                         <Field
-                            label="Comisión (% o monto)"
+                            label="Comisión por crédito o cliente nuevo (% o monto)"
                             name="comisions"
                             type="number"
                             value={form.comisions}
@@ -274,15 +264,13 @@ export default function UsuarioNuevo() {
                             placeholder="Ej: 10 o 5000"
                         />
 
-                        <div>
+                        <div className="flex flex-col gap-1.5">
                             <label className="text-sm text-gray-600 dark:text-gray-300">
-                                Total con comisión
+                                Aclaración
                             </label>
-                            <input
-                                readOnly
-                                value={`$ ${totalConComision.toLocaleString("es-AR")}`}
-                                className="h-10 w-full rounded-lg border border-green-400 bg-green-50 px-3 text-sm text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300"
-                            />
+                            <div className="min-h-10 w-full rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+                                La comisión se paga aparte del sueldo y se usa como referencia por crédito o cliente nuevo.
+                            </div>
                         </div>
                     </div>
                 </section>

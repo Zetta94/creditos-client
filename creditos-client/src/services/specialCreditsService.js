@@ -6,3 +6,5 @@ export const fetchSpecialCredits = (params = {}) => {
 };
 
 export const createSpecialCredit = (payload) => api.post("/special-credits", payload);
+export const fetchSpecialCredit = (id) => api.get(`/special-credits/${id}`);
+export const updateSpecialCredit = (id, payload) => api.put(`/special-credits/${id}`, payload);

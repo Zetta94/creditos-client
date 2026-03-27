@@ -6,6 +6,7 @@ import { fetchCredits } from "../services/creditsService";
 import { fetchPayments } from "../services/paymentsService";
 import { fetchReportsByUser } from "../services/reportsService";
 import { HiOutlineArrowLeft } from "react-icons/hi2";
+import ReportActivityCalendar from "../components/ReportActivityCalendar";
 
 export default function UsuarioReportes() {
     const { id } = useParams();
@@ -39,7 +40,7 @@ export default function UsuarioReportes() {
                     fetchClients({ page: 1, pageSize: 500 }).then((r) => r.data?.data ?? []),
                     fetchCredits({ page: 1, pageSize: 2000 }).then((r) => r.data?.data ?? []),
                     fetchPayments({ page: 1, pageSize: 500 }).then((r) => r.data?.data ?? []),
-                    fetchReportsByUser(id, { page: 1, pageSize: 200 }).then((r) => r.data?.data ?? []).catch(() => [])
+                    fetchReportsByUser(id, { page: 1, pageSize: 1000 }).then((r) => r.data?.data ?? []).catch(() => [])
                 ]);
                 if (!mounted) return;
                 setUsuario(u);
@@ -113,17 +114,6 @@ export default function UsuarioReportes() {
         });
     }, [pagos, id]);
 
-    const pagosPorFecha = useMemo(() => {
-        const map = new Map();
-        pagosUsuario.forEach((p) => {
-            const fechaKey = new Date(p.date).toISOString().slice(0, 10);
-            const list = map.get(fechaKey) || [];
-            list.push(p);
-            map.set(fechaKey, list);
-        });
-        return map;
-    }, [pagosUsuario]);
-
     const pagosSemana = useMemo(() => {
         const inicioSemana = new Date(semana);
         const finSemana = new Date(inicioSemana);
@@ -188,31 +178,6 @@ export default function UsuarioReportes() {
         };
     }, [pagosMes, creditosAsignados, totalPagadoPorCredito]);
 
-    const resumenDiario = useMemo(() => {
-        const inicioSemana = new Date(semana);
-        const items = [];
-        for (let i = 0; i < 6; i += 1) {
-            const fecha = new Date(inicioSemana);
-            fecha.setDate(inicioSemana.getDate() + i);
-            const key = fecha.toISOString().slice(0, 10);
-            const pagosDia = pagosPorFecha.get(key) || [];
-            const cobrado = pagosDia.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-            const creditosSinPago = creditosAsignados.filter((cr) => {
-                const restante = calcularRestante(cr);
-                if (restante <= 0) return false;
-                return !pagosDia.some((p) => p.creditId === cr.id);
-            }).length;
-            items.push({
-                fecha,
-                key,
-                cobrado,
-                creditosSinPago,
-                pagos: pagosDia.length
-            });
-        }
-        return items;
-    }, [semana, pagosPorFecha, creditosAsignados, totalPagadoPorCredito]);
-
     const diasConPagos = useMemo(() => {
         const set = new Set();
         pagosSemana.forEach((p) => {
@@ -246,15 +211,7 @@ export default function UsuarioReportes() {
             <div className="text-center text-red-400 mt-10">Usuario no encontrado.</div>
         );
 
-    const handleBack = () => {
-        if (window.history.length > 2) {
-            navigate(-1);
-        } else if (id) {
-            navigate(`/usuarios/${id}`);
-        } else {
-            navigate("/usuarios");
-        }
-    };
+    const handleBack = () => navigate(-1);
 
     return (
         <div className="mx-auto max-w-6xl px-4 py-6 space-y-8">
@@ -336,8 +293,13 @@ export default function UsuarioReportes() {
                     creditosSinPago={resumenMes.creditosSinPago}
                     pendiente={resumenMes.pendiente}
                 />
-                <ResumenDiarioPanel datos={resumenDiario} />
             </div>
+
+            <ReportActivityCalendar
+                reports={reportes}
+                title={`Calendario de actividad de ${usuario.name}`}
+                onReportClick={(report) => openReportDetail(report.id)}
+            />
 
             {/* === REPORTES DEL USUARIO (REGISTRADOS) === */}
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -538,37 +500,3 @@ function ResumenPanel({ title, cobrado, creditosSinPago, pendiente, periodo }) {
     );
 }
 
-function ResumenDiarioPanel({ datos }) {
-    const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
-    return (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Resumen diario</h3>
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                {datos.map((item) => (
-                    <div key={item.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3">
-                        <div>
-                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                                {item.fecha.toLocaleDateString("es-AR", {
-                                    weekday: "long",
-                                    day: "2-digit",
-                                    month: "short",
-                                })}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {item.pagos} pagos registrados
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-sm">
-                            <span className="font-medium text-emerald-600 dark:text-emerald-300">
-                                Cobrado: {currency.format(item.cobrado)}
-                            </span>
-                            <span className="text-indigo-600 dark:text-indigo-300">
-                                Créditos sin pagar: {item.creditosSinPago}
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}

@@ -16,6 +16,13 @@ const salaryTypeLabels = {
     MENSUAL: "Mensual",
 };
 
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString("es-AR")}`;
+
+const formatDate = (value) => {
+    if (!value) return "-";
+    return new Date(value).toLocaleDateString("es-AR");
+};
+
 export default function SueldoCobrador() {
     const authUser = useSelector((state) => state.auth.user);
     const storedUser = useMemo(() => {
@@ -107,6 +114,7 @@ export default function SueldoCobrador() {
         [resumenPreview]
     );
     const totalSemana = salarioBaseSemanal + totalComisionSemana;
+    const pagoRegistradoSemana = resumenPreview?.payment ?? null;
     const esSabado = new Date().getDay() === 6;
     const historialParaMostrar = useMemo(
         () => historialResumenes.filter((h) => (h?.weeklySalary || 0) > 0 || (h?.totalCommission || 0) > 0 || (h?.items?.length || 0) > 0),
@@ -150,220 +158,265 @@ export default function SueldoCobrador() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#08122f] to-[#0b1f55] p-3 sm:p-6">
+        <div className="min-h-screen bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] p-3 sm:p-6">
             <div className="mx-auto w-full max-w-6xl">
-            <div className="mb-4 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-100">
-                        Sueldo semanal de {cobrador.name}
-                    </h1>
-                    <p className="text-sm text-slate-400">
-                        Tipo de salario: {salaryTypeLabel}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                        Dia de cobro: <span className="font-semibold">SABADO</span>
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={generarResumenPago}
-                    disabled={!esSabado || generandoResumen}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                    <HiDocumentText className="h-4 w-4" />
-                    {generandoResumen ? "Generando..." : "Generar resumen semanal"}
-                </button>
-            </div>
-            </div>
-
-            {!esSabado && (
-                <div className="mb-4 rounded-xl border border-amber-700 bg-amber-950/30 p-3 text-sm text-amber-200">
-                    El resumen para pago al administrador solo se genera los sabados.
-                </div>
-            )}
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm text-slate-500 dark:text-slate-400">Sueldo semanal</h3>
-                        <HiCurrencyDollar className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                        ${salarioBaseSemanal.toLocaleString("es-AR")}
-                    </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm text-slate-500 dark:text-slate-400">Comision semanal</h3>
-                        <HiTrendingUp className="h-5 w-5 text-green-500" />
-                    </div>
-                    <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                        ${totalComisionSemana.toLocaleString("es-AR")}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {porcentajeComision}% por credito creado
-                    </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm text-slate-500 dark:text-slate-400">Total cobrado semana</h3>
-                        <HiCalendar className="h-5 w-5 text-purple-500" />
-                    </div>
-                    <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                        ${totalPagosSemana.toLocaleString("es-AR")}
-                    </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 bg-slate-900/75 p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm text-slate-500 dark:text-slate-400">Total a pagar (sabado)</h3>
-                        <HiCalendar className="h-5 w-5 text-emerald-500" />
-                    </div>
-                    <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                        ${totalSemana.toLocaleString("es-AR")}
-                    </p>
-                </div>
-            </div>
-
-            {resumenSemanal && (
-                <div className="mt-5 rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-800 dark:border-green-700 dark:bg-green-900/20 dark:text-green-200">
-                    {resumenSemanal.alreadyGenerated
-                        ? "Resumen semanal ya existente. El administrador ya lo tiene en Mensajes."
-                        : "Resumen semanal generado correctamente. El administrador puede verlo en Mensajes para pagarte."}
-                </div>
-            )}
-
-            <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm sm:p-5">
-                <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    Detalle semanal por credito creado (comision unica por credito/producto)
-                </h2>
-
-                {loading ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Cargando pagos...</p>
-                ) : error ? (
-                    <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
-                ) : creditosConComision.length > 0 ? (
-                    <>
-                        <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead className="bg-gray-50 dark:bg-gray-800">
-                                    <tr>
-                                        <th className="px-4 py-2 text-left text-sm font-medium text-slate-600 dark:text-slate-300">Fecha</th>
-                                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</th>
-                                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Credito/Producto</th>
-                                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Monto cobrado</th>
-                                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Comision</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {detallePaginado.map((item) => (
-                                        <tr key={item.creditId}>
-                                            <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
-                                                {new Date(item.date).toLocaleDateString("es-AR")}
-                                            </td>
-                                            <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{item.cliente}</td>
-                                            <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{item.producto}</td>
-                                            <td className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                ${item.amount.toLocaleString("es-AR")}
-                                            </td>
-                                            <td className="px-4 py-2 text-sm font-semibold text-green-600 dark:text-green-400">
-                                                ${item.comision.toLocaleString("es-AR")}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                <div className="mb-4 rounded-[28px] border border-slate-700/80 bg-slate-900/85 p-4 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)] sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-100">
+                                Sueldo semanal de {cobrador.name}
+                            </h1>
+                            <p className="text-sm text-slate-400">
+                                Tipo de salario: {salaryTypeLabel}
+                            </p>
+                            <p className="text-sm text-slate-400">
+                                Dia de cobro: <span className="font-semibold">SABADO</span>
+                            </p>
                         </div>
-                        <div className="sm:hidden space-y-3">
-                            {detallePaginado.map((item) => (
-                                <div key={item.creditId} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(item.date).toLocaleDateString("es-AR")}</p>
-                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.cliente}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.producto}</p>
-                                    <div className="mt-1 text-sm">
-                                        <p className="text-gray-700 dark:text-gray-300">Monto credito: <span className="font-semibold">${item.amount.toLocaleString("es-AR")}</span></p>
-                                        <p className="text-green-600 dark:text-green-400">Comision: <span className="font-semibold">${item.comision.toLocaleString("es-AR")}</span></p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-4">
-                            <Pagination
-                                page={detallePageSafe}
-                                pageSize={detallePageSize}
-                                totalItems={creditosConComision.length}
-                                totalPages={detalleTotalPages}
-                                onPageChange={setDetallePage}
-                                onPageSizeChange={(size) => {
-                                    setDetallePageSize(size);
-                                    setDetallePage(1);
-                                }}
-                                pageSizeOptions={[5, 10, 20]}
-                            />
-                        </div>
-                    </>
-                ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No se registraron creditos creados esta semana.</p>
+                        <button
+                            type="button"
+                            onClick={generarResumenPago}
+                            disabled={!esSabado || generandoResumen}
+                            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_30px_-22px_rgba(59,130,246,0.95)] transition hover:from-blue-500 hover:to-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <HiDocumentText className="h-4 w-4" />
+                            {generandoResumen ? "Generando..." : "Generar resumen semanal"}
+                        </button>
+                    </div>
+                </div>
+
+                {!esSabado && (
+                    <div className="mb-4 rounded-2xl border border-amber-700/80 bg-amber-950/30 p-3 text-sm text-amber-200">
+                        El resumen para pago al administrador solo se genera los sabados.
+                    </div>
                 )}
-            </div>
 
-            <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm sm:p-5">
-                <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    Resumenes anteriores de pago
-                </h2>
-                {loading ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Cargando historial...</p>
-                ) : historialParaMostrar.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No hay resumenes historicos para mostrar.</p>
-                ) : (
-                    <div className="space-y-3">
-                        {historialPaginado.map((item) => (
-                            <div key={item.payrollKey} className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                        Semana del {new Date(item.weekStart).toLocaleDateString("es-AR")} al {new Date(item.weekEnd).toLocaleDateString("es-AR")}
-                                    </p>
-                                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${item.generated
-                                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                            : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                        }`}>
-                                        {item.generated ? "Generado" : "No generado"}
-                                    </span>
-                                </div>
-                                <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
-                                    <p className="text-gray-700 dark:text-gray-300">
-                                        Sueldo: <span className="font-semibold">${Number(item.weeklySalary || 0).toLocaleString("es-AR")}</span>
-                                    </p>
-                                    <p className="text-green-700 dark:text-green-300">
-                                        Comision: <span className="font-semibold">${Number(item.totalCommission || 0).toLocaleString("es-AR")}</span>
-                                    </p>
-                                    <p className="text-blue-700 dark:text-blue-300">
-                                        Total: <span className="font-semibold">${Number(item.weeklyPayout || 0).toLocaleString("es-AR")}</span>
-                                    </p>
-                                </div>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Creditos con comision en la semana: {Array.isArray(item.items) ? item.items.length : 0}
+                {pagoRegistradoSemana ? (
+                    <div className="mb-4 rounded-2xl border border-emerald-700/80 bg-emerald-950/30 p-4 text-sm text-emerald-100">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="font-semibold">Pago de esta semana registrado</p>
+                                <p className="text-emerald-200/90">
+                                    Administracion registro tu pago el {formatDate(pagoRegistradoSemana.paidAt)}.
+                                    Total pagado: {formatCurrency(pagoRegistradoSemana.totalPaid)}.
                                 </p>
                             </div>
-                        ))}
-                        <Pagination
-                            page={historialPageSafe}
-                            pageSize={historialPageSize}
-                            totalItems={historialParaMostrar.length}
-                            totalPages={historialTotalPages}
-                            onPageChange={setHistorialPage}
-                            onPageSizeChange={(size) => {
-                                setHistorialPageSize(size);
-                                setHistorialPage(1);
-                            }}
-                            pageSizeOptions={[4, 8, 12]}
-                        />
+                            <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                                {pagoRegistradoSemana.commissionPaid ? "Con comision" : "Sin comision"}
+                            </span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mb-4 rounded-2xl border border-slate-700/80 bg-slate-900/70 p-4 text-sm text-slate-200">
+                        Todavia no hay un pago registrado por administracion para esta semana.
                     </div>
                 )}
-            </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-[24px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm text-slate-400">Sueldo semanal</h3>
+                            <HiCurrencyDollar className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <p className="mt-2 text-2xl font-semibold text-slate-100">
+                            {formatCurrency(salarioBaseSemanal)}
+                        </p>
+                    </div>
+
+                    <div className="rounded-[24px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm text-slate-400">Comision semanal</h3>
+                            <HiTrendingUp className="h-5 w-5 text-green-500" />
+                        </div>
+                        <p className="mt-2 text-2xl font-semibold text-slate-100">
+                            {formatCurrency(totalComisionSemana)}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                            {porcentajeComision}% por credito creado
+                        </p>
+                    </div>
+
+                    <div className="rounded-[24px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm text-slate-400">Total cobrado semana</h3>
+                            <HiCalendar className="h-5 w-5 text-purple-500" />
+                        </div>
+                        <p className="mt-2 text-2xl font-semibold text-slate-100">
+                            {formatCurrency(totalPagosSemana)}
+                        </p>
+                    </div>
+
+                    <div className="rounded-[24px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm text-slate-400">Total a pagar (sabado)</h3>
+                            <HiCalendar className="h-5 w-5 text-emerald-500" />
+                        </div>
+                        <p className="mt-2 text-2xl font-semibold text-slate-100">
+                            {formatCurrency(totalSemana)}
+                        </p>
+                    </div>
+                </div>
+
+                {resumenSemanal && (
+                    <div className="mt-5 rounded-[24px] border border-emerald-700/80 bg-emerald-950/25 p-4 text-sm text-emerald-100 shadow-sm">
+                        {resumenSemanal.alreadyGenerated
+                            ? "Resumen semanal ya existente. El administrador ya lo tiene en Mensajes."
+                            : "Resumen semanal generado correctamente. El administrador puede verlo en Mensajes para pagarte."}
+                    </div>
+                )}
+
+                <div className="mt-8 rounded-[28px] border border-slate-700/80 bg-slate-900/82 p-4 shadow-sm sm:p-5">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-100">
+                        Detalle semanal por credito creado (comision unica por credito/producto)
+                    </h2>
+
+                    {loading ? (
+                        <p className="text-sm text-slate-400">Cargando pagos...</p>
+                    ) : error ? (
+                        <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+                    ) : creditosConComision.length > 0 ? (
+                        <>
+                            <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-700/80">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead className="bg-slate-950/40">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Fecha</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Cliente</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Credito/Producto</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Monto cobrado</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Comision</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700/70">
+                                        {detallePaginado.map((item) => (
+                                            <tr key={item.creditId}>
+                                                <td className="px-4 py-2 text-sm text-slate-300">
+                                                    {new Date(item.date).toLocaleDateString("es-AR")}
+                                                </td>
+                                                <td className="px-4 py-2 text-sm text-slate-300">{item.cliente}</td>
+                                                <td className="px-4 py-2 text-sm text-slate-300">{item.producto}</td>
+                                                <td className="px-4 py-2 text-sm font-semibold text-slate-100">
+                                                    ${item.amount.toLocaleString("es-AR")}
+                                                </td>
+                                                <td className="px-4 py-2 text-sm font-semibold text-emerald-300">
+                                                    ${item.comision.toLocaleString("es-AR")}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="sm:hidden space-y-3">
+                                {detallePaginado.map((item) => (
+                                    <div key={item.creditId} className="rounded-[24px] border border-slate-700/80 bg-slate-950/40 p-4 shadow-sm">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{formatDate(item.date)}</p>
+                                                <p className="mt-1 text-sm font-semibold text-slate-100">{item.cliente}</p>
+                                                <p className="text-xs text-slate-400">{item.producto}</p>
+                                            </div>
+                                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                                                {formatCurrency(item.comision)}
+                                            </span>
+                                        </div>
+                                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                            <div className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 text-slate-300">
+                                                <p className="text-[11px] uppercase tracking-wide text-slate-500">Credito</p>
+                                                <p className="mt-1 text-sm font-semibold text-slate-100">{formatCurrency(item.amount)}</p>
+                                            </div>
+                                            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-emerald-200">
+                                                <p className="text-[11px] uppercase tracking-wide text-emerald-300/70">Comision</p>
+                                                <p className="mt-1 text-sm font-semibold">{formatCurrency(item.comision)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4">
+                                <Pagination
+                                    page={detallePageSafe}
+                                    pageSize={detallePageSize}
+                                    totalItems={creditosConComision.length}
+                                    totalPages={detalleTotalPages}
+                                    onPageChange={setDetallePage}
+                                    onPageSizeChange={(size) => {
+                                        setDetallePageSize(size);
+                                        setDetallePage(1);
+                                    }}
+                                    pageSizeOptions={[5, 10, 20]}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <p className="text-sm text-slate-400">No se registraron creditos creados esta semana.</p>
+                    )}
+                </div>
+
+                <div className="mt-8 rounded-[28px] border border-slate-700/80 bg-slate-900/82 p-4 shadow-sm sm:p-5">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-100">
+                        Resumenes anteriores de pago
+                    </h2>
+                    {loading ? (
+                        <p className="text-sm text-slate-400">Cargando historial...</p>
+                    ) : historialParaMostrar.length === 0 ? (
+                        <p className="text-sm text-slate-400">No hay resumenes historicos para mostrar.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {historialPaginado.map((item) => (
+                                <div key={item.payrollKey} className="rounded-2xl border border-slate-700/80 bg-slate-950/30 p-4">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <p className="text-sm font-semibold text-slate-100">
+                                            Semana del {formatDate(item.weekStart)} al {formatDate(item.weekEnd)}
+                                        </p>
+                                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${item.generated
+                                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                                            : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                                            }`}>
+                                            {item.generated ? "Generado" : "No generado"}
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+                                        <p className="text-slate-300">
+                                            Sueldo: <span className="font-semibold">{formatCurrency(item.weeklySalary)}</span>
+                                        </p>
+                                        <p className="text-emerald-300">
+                                            Comision: <span className="font-semibold">{formatCurrency(item.totalCommission)}</span>
+                                        </p>
+                                        <p className="text-sky-300">
+                                            Total: <span className="font-semibold">{formatCurrency(item.weeklyPayout)}</span>
+                                        </p>
+                                    </div>
+                                    <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+                                        <p className="text-slate-300">
+                                            Estado: <span className="font-semibold">{item.payment ? "Pagado" : "Pendiente"}</span>
+                                        </p>
+                                        <p className="text-slate-300">
+                                            Comision pagada: <span className="font-semibold">{item.payment?.commissionPaid ? "Si" : "No"}</span>
+                                        </p>
+                                        <p className="text-slate-300">
+                                            Pagado: <span className="font-semibold">{item.payment ? formatCurrency(item.payment.totalPaid) : "—"}</span>
+                                        </p>
+                                    </div>
+                                    <p className="mt-1 text-xs text-slate-400">
+                                        Creditos con comision en la semana: {Array.isArray(item.items) ? item.items.length : 0}
+                                    </p>
+                                </div>
+                            ))}
+                            <Pagination
+                                page={historialPageSafe}
+                                pageSize={historialPageSize}
+                                totalItems={historialParaMostrar.length}
+                                totalPages={historialTotalPages}
+                                onPageChange={setHistorialPage}
+                                onPageSizeChange={(size) => {
+                                    setHistorialPageSize(size);
+                                    setHistorialPage(1);
+                                }}
+                                pageSizeOptions={[4, 8, 12]}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

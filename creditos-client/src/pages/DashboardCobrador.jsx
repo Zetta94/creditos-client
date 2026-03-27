@@ -148,13 +148,14 @@ export default function DashboardCobrador() {
     const formatNumber = (value) => new Intl.NumberFormat("es-AR").format(value ?? 0);
 
     return (
-        <main className="min-h-screen bg-gradient-to-b from-[#08122f] to-[#0b1f55] px-3 py-4 sm:px-6 sm:py-6">
+        <main className="min-h-screen bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4 sm:px-6 sm:py-6">
             <div className="mx-auto w-full max-w-6xl space-y-5">
-                <section className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 shadow-sm backdrop-blur sm:p-5">
+                <section className="rounded-[28px] border border-slate-700/80 bg-slate-900/85 p-4 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)] backdrop-blur sm:p-5">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
                             <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Jornada</p>
                             <h1 className="mt-1 text-2xl font-bold text-slate-100">Panel del Cobrador</h1>
+                            <p className="mt-2 max-w-xl text-sm text-slate-400">Vista pensada para operar rápido desde el teléfono durante el recorrido.</p>
                         </div>
                         <div className="w-full md:w-auto">
                             {loadingTrayecto ? (
@@ -227,21 +228,21 @@ export default function DashboardCobrador() {
 
 function Indicador({ icon, label, valor }) {
     return (
-        <div className="flex min-h-[96px] flex-col justify-between rounded-2xl border border-slate-700 bg-slate-900/75 p-3 shadow-sm sm:p-4">
+        <div className="flex min-h-[108px] flex-col justify-between rounded-[24px] border border-slate-700/80 bg-slate-900/80 p-3 shadow-sm sm:p-4">
             <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
                 <div className="shrink-0">{icon}</div>
             </div>
-            <p className="mt-2 text-base font-semibold text-slate-100 sm:text-lg">{valor}</p>
+            <p className="mt-2 break-words text-base font-semibold leading-tight text-slate-100 sm:text-lg">{valor}</p>
         </div>
     );
 }
 
 function DatoResumen({ label, value }) {
     return (
-        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/65 p-3 shadow-sm sm:p-4">
+        <div className="rounded-[24px] border border-dashed border-slate-700/80 bg-slate-900/70 p-3 shadow-sm sm:p-4">
             <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{label}</p>
-            <p className="mt-1 text-base font-semibold text-slate-100 sm:text-lg">{value}</p>
+            <p className="mt-1 break-words text-base font-semibold text-slate-100 sm:text-lg">{value}</p>
         </div>
     );
 }
