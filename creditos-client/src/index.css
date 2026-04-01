@@ -74,6 +74,42 @@
 }
 
 /* ============================================================
+   TEMA PREMIUM DARK — Arquitectura Unificada
+   ============================================================ */
+.premium-dark {
+  --ios-bg:          #060b1d;
+  --ios-bg-card:     rgba(255, 255, 255, 0.05);
+  --ios-bg-grouped:  #060b1d;
+  --ios-fill:        rgba(255, 255, 255, 0.08);
+  --ios-fill-sec:    rgba(255, 255, 255, 0.12);
+  --ios-label:       #FFFFFF;
+  --ios-label-sec:   rgba(255, 255, 255, 0.45);
+  --ios-label-ter:   rgba(255, 255, 255, 0.25);
+  --ios-separator:   rgba(255, 255, 255, 0.1);
+  --ios-sep-opaque:  rgba(255, 255, 255, 0.12);
+  --ios-shadow-sm:   0 8px 24px rgba(0,0,0,0.4);
+  --ios-shadow-md:   0 12px 32px rgba(0,0,0,0.5);
+  --ios-shadow-float: 0 16px 48px rgba(0,0,0,0.6);
+}
+
+.premium-dark .ios-card {
+  background: var(--ios-bg-card);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.premium-dark .ios-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.premium-dark .ios-input:focus {
+  background: rgba(10, 20, 50, 0.4);
+  border-color: var(--ios-blue);
+}
+
+/* ============================================================
    BASE GLOBAL
    ============================================================ */
 html,
@@ -95,6 +131,15 @@ body {
 /* Scroll momentum iOS */
 * {
   -webkit-overflow-scrolling: touch;
+}
+
+/* Ocultar barra de scroll para elementos específicos */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* ============================================================
@@ -143,6 +188,24 @@ body {
 
 .animate-scale-in {
   animation: scale-in 0.25s var(--ios-ease);
+}
+
+/* Animación de Notificación Premium (Snappy) */
+@keyframes ios-notify-in {
+  from { 
+    opacity: 0; 
+    transform: scale(0.96) translateY(12px); 
+    filter: blur(4px);
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1) translateY(0); 
+    filter: blur(0);
+  }
+}
+
+.animate-ios-notification {
+  animation: ios-notify-in 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Shimmer para skeletons */
@@ -334,6 +397,27 @@ body {
 
 .ios-nav-item:active {
   transform: scale(0.93);
+}
+
+.ios-bottom-nav.is-collector .ios-bottom-nav-inner {
+  background: rgba(10, 20, 50, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.ios-bottom-nav.is-collector .ios-nav-item {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.ios-bottom-nav.is-collector .ios-nav-item.active {
+  color: #fff;
+  background: rgba(0, 122, 255, 0.25);
+  box-shadow: 0 0 15px rgba(0, 122, 255, 0.25);
+}
+
+.ios-bottom-nav.is-collector .ios-nav-item:not(.active):hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .ios-nav-item.active {

@@ -19,6 +19,7 @@ import SidebarCobrador from "./SideBarCobrador";
 import { useDispatch, useSelector } from "react-redux";
 import { resetTrayecto } from "../../store/trayectoSlice";
 import { logout } from "../../store/authSlice";
+import toast from "react-hot-toast";
 
 /* ─── Ítems de navegación por rol ─── */
 const adminNavItems = [
@@ -42,6 +43,7 @@ export default function SideBar() {
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef(null);
   const authUser = useSelector((state) => state.auth.user);
+  const trayectoActive = useSelector((state) => state.trayecto.active);
   const dispatch = useDispatch();
 
   const user = useMemo(() => {
@@ -101,10 +103,10 @@ export default function SideBar() {
           right: 0,
           zIndex: 50,
           height: "64px",
-          background: "rgba(255,255,255,0.85)",
+          background: isCollector ? "rgba(6, 11, 29, 0.75)" : "rgba(255,255,255,0.85)",
           backdropFilter: "blur(20px) saturate(180%)",
           WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          borderBottom: "1px solid rgba(0,0,0,0.06)",
+          borderBottom: isCollector ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -128,12 +130,12 @@ export default function SideBar() {
             padding: "6px 12px",
             borderRadius: "14px",
             border: "none",
-            background: "transparent",
+            background: isCollector ? "rgba(255,255,255,0.05)" : "transparent",
             cursor: "pointer",
             transition: "background 0.15s",
           }}
-          onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          onMouseEnter={e => e.currentTarget.style.background = isCollector ? "rgba(255,255,255,0.1)" : "var(--ios-fill)"}
+          onMouseLeave={e => e.currentTarget.style.background = isCollector ? "rgba(255,255,255,0.05)" : "transparent"}
         >
           <div style={{
             width: "36px",
@@ -153,8 +155,8 @@ export default function SideBar() {
             className="hidden sm:flex"
             style={{ flexDirection: "column", lineHeight: 1.2, textAlign: "left" }}
           >
-            <span style={{ fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ios-label-sec)", fontWeight: 600 }}>El Imperio</span>
-            <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--ios-label)" }}>Dashboard</span>
+            <span style={{ fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: isCollector ? "rgba(255,255,255,0.4)" : "var(--ios-label-sec)", fontWeight: 600 }}>El Imperio</span>
+            <span style={{ fontSize: "15px", fontWeight: 700, color: isCollector ? "#fff" : "var(--ios-label)" }}>Dashboard</span>
           </div>
         </button>
 
@@ -173,8 +175,8 @@ export default function SideBar() {
               gap: "8px",
               padding: "4px 12px 4px 4px",
               borderRadius: "99px",
-              border: "1.5px solid var(--ios-sep-opaque)",
-              background: "var(--ios-bg-card)",
+              border: isCollector ? "1px solid rgba(255,255,255,0.15)" : "1.5px solid var(--ios-sep-opaque)",
+              background: isCollector ? "rgba(255,255,255,0.05)" : "var(--ios-bg-card)",
               cursor: "pointer",
               transition: "all 0.15s",
             }}
@@ -189,11 +191,11 @@ export default function SideBar() {
             }}>
               {initials}
             </span>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--ios-label)", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: isCollector ? "#fff" : "var(--ios-label)", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {displayName}
             </span>
             <HiChevronDown style={{
-              width: "14px", height: "14px", color: "var(--ios-label-sec)", flexShrink: 0,
+              width: "14px", height: "14px", color: isCollector ? "rgba(255,255,255,0.5)" : "var(--ios-label-sec)", flexShrink: 0,
               transform: userOpen ? "rotate(180deg)" : "rotate(0)",
               transition: "transform 0.2s",
             }} />
@@ -226,12 +228,12 @@ export default function SideBar() {
                 top: "calc(100% + 8px)",
                 right: "0",
                 width: "240px",
-                background: "rgba(255,255,255,0.97)",
+                background: isCollector ? "rgba(10, 15, 35, 0.95)" : "rgba(255,255,255,0.97)",
                 backdropFilter: "blur(20px)",
                 WebkitBackdropFilter: "blur(20px)",
                 borderRadius: "20px",
-                border: "1px solid var(--ios-sep-opaque)",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+                border: isCollector ? "1px solid rgba(255,255,255,0.12)" : "1px solid var(--ios-sep-opaque)",
+                boxShadow: isCollector ? "0 8px 32px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
                 overflow: "hidden",
                 zIndex: 60,
               }}
@@ -247,7 +249,7 @@ export default function SideBar() {
                     {initials}
                   </span>
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontWeight: 700, fontSize: "15px", color: "var(--ios-label)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ fontWeight: 700, fontSize: "15px", color: isCollector ? "#fff" : "var(--ios-label)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {displayName}
                     </p>
                     <p style={{ fontSize: "12px", color: "var(--ios-blue)", margin: "2px 0 0", fontWeight: 600 }}>
@@ -256,7 +258,7 @@ export default function SideBar() {
                   </div>
                 </div>
                 {email && (
-                  <p style={{ fontSize: "12px", color: "var(--ios-label-sec)", marginTop: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ fontSize: "12px", color: isCollector ? "rgba(255,255,255,0.45)" : "var(--ios-label-sec)", marginTop: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {email}
                   </p>
                 )}
@@ -315,7 +317,7 @@ export default function SideBar() {
           • Cobrador: siempre visible
           ══════════════════════════════════════ */}
       <div
-        className={`ios-bottom-nav ${!isCollector ? "sm:hidden" : ""}`}
+        className={`ios-bottom-nav ${isCollector ? "is-collector" : "sm:hidden"}`}
         style={{ pointerEvents: "none" }}
       >
         <div
@@ -337,6 +339,21 @@ export default function SideBar() {
                 key={item.to}
                 to={item.to}
                 className={`ios-nav-item ${isActive ? "active" : ""}`}
+                onClick={(e) => {
+                  if (isCollector && item.to === "/cobrador/pagos" && !trayectoActive) {
+                    e.preventDefault();
+                    toast.error("Inicia trayecto primero para ver tus cobros del día", {
+                      id: "trayecto-error",
+                      style: {
+                        borderRadius: '16px',
+                        background: '#1c2b4a',
+                        color: '#fff',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }
+                    });
+                  }
+                }}
               >
                 <Icon style={{ width: "22px", height: "22px" }} />
                 <span>{item.label}</span>
@@ -345,6 +362,7 @@ export default function SideBar() {
           })}
         </div>
       </div>
+
     </>
   );
 }

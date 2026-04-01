@@ -249,15 +249,24 @@ export default function UsuarioDetalle() {
         {isCollector && (
           <>
             <ActionBtn onClick={() => assignedPortfolioRef.current?.scrollIntoView({ behavior: "smooth" })} color="#7C4A00" bg="#FFF3E0" hoverBg="#FFE5A0">
-              Ordenar clientes
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <HiCollection style={{ width: "18px", height: "18px" }} />
+                Ordenar clientes
+              </div>
             </ActionBtn>
             <ActionBtn onClick={() => navigate(`/usuarios/${id}/sueldo`)} color="#1A6B36" bg="#E8F8ED" hoverBg="#B8F0CC">
-              Sueldo y comisión
+               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <HiCurrencyDollar style={{ width: "18px", height: "18px" }} />
+                Sueldo y comisión
+              </div>
             </ActionBtn>
           </>
         )}
         <ActionBtn onClick={() => navigate(`/usuarios/${id}/reportes`)} color="#004299" bg="#EBF3FF" hoverBg="#C8E0FF">
-          Ver reportes
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+            <HiChartBar style={{ width: "18px", height: "18px" }} />
+            Ver reportes
+          </div>
         </ActionBtn>
         {!isCollector && (
           <ActionBtn onClick={() => navigate(`/usuarios/${id}/editar`)} color="#3A3A3C" bg="var(--ios-fill)" hoverBg="#E5E5EA">
@@ -265,14 +274,12 @@ export default function UsuarioDetalle() {
           </ActionBtn>
         )}
       </div>
-
-      {/* Cartera asignada */}
+      
+      {/* ═══ Cartera asignada ═══ */}
       {isCollector && (
-        <div ref={assignedPortfolioRef} className="ios-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
-            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>Orden de clientes</h2>
-            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: "4px 0 0" }}>Cartera asignada al cobrador</p>
-          </div>
+        <div ref={assignedPortfolioRef} style={{ marginTop: "10px" }}>
+          {/* El componente OrdenarClientes ya trae su propio ios-card y titulo, 
+              así que lo dejamos "suelto" para evitar anidación excesiva */}
           <OrdenarClientes cobradorId={usuario.id} />
         </div>
       )}

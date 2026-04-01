@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";
 import { fetchAssignmentsEnriched } from "../services/assignmentsService";
 import { useSelector } from "react-redux";
+import Pagination from "../components/Pagination";
 
 const CREDIT_TYPE_TO_FILTER = {
     DAILY: "diario",
@@ -46,7 +47,7 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
-    const { user } = useSelector((state) => state.user);
+    const { user } = useSelector((state) => state.auth);
     const trayectoActivo = useSelector(state => state.trayecto.active);
 
     const formatCurrency = (value) => `$${Number(value || 0).toLocaleString("es-AR")}`;
@@ -176,15 +177,21 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     // Cartel si el trayecto no está activo
     if (!trayectoActivo) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4">
-                <div className="ios-card p-6 max-w-md w-full text-center">
-                    <h2 className="text-lg font-bold mb-2 text-rose-600">Trayecto no iniciado</h2>
-                    <p className="text-base text-slate-700 mb-3">Debes iniciar tu trayecto desde el panel de inicio para ver los cobros del día.</p>
+            <div className="min-h-screen bg-[#060b1d] text-white flex flex-col items-center justify-center px-4"
+                 style={{ backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)", backgroundAttachment: "fixed" }}>
+                <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-2xl max-w-sm w-full text-center">
+                    <div className="mb-4 flex flex-col items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                        <h2 className="text-xl font-black tracking-tight text-white uppercase">Acceso Restringido</h2>
+                    </div>
+                    <p className="text-sm text-slate-400 mb-6 font-medium leading-relaxed">
+                        Debes iniciar tu jornada desde el panel de inicio para poder gestionar los cobros de hoy.
+                    </p>
                     <button
-                        className="mt-2 rounded-xl bg-blue-600 text-white px-5 py-2 font-semibold shadow hover:bg-blue-700 transition"
-                        onClick={() => window.location.href = '/cobrador/dashboard'}
+                        className="w-full h-14 rounded-2xl bg-white/10 border border-white/20 text-white font-black text-sm tracking-widest uppercase hover:bg-white/20 transition-all active:scale-95 shadow-xl"
+                        onClick={() => navigate('/cobrador/dashboard')}
                     >
-                        Ir al panel de inicio
+                        Volver al Inicio
                     </button>
                 </div>
             </div>
@@ -192,250 +199,170 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4 sm:px-4 sm:py-6">
-            <div className="mx-auto max-w-5xl space-y-4">
-                <div className="rounded-[28px] border border-slate-700/90 bg-slate-900/85 p-4 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)] backdrop-blur sm:p-5">
-                    <h1 className="text-xl font-bold text-slate-100 sm:text-2xl">
-                        Cobros del dia
-                    </h1>
-                    <p className="mt-1 max-w-2xl text-sm text-slate-300">
-                        Solo se muestran clientes habilitados para hoy.
-                    </p>
+        <div className="min-h-screen bg-[#060b1d] text-white" 
+             style={{ backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)", backgroundAttachment: "fixed" }}>
+            <div className="mx-auto max-w-2xl px-4 py-8 pb-32 animate-fade-in space-y-6">
+                
+                {/* ── Header ── */}
+                <header className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl -mr-16 -mt-16" />
+                    <div className="relative z-10">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Mi Agenda</p>
+                        <h1 className="text-3xl font-black tracking-tight text-white mb-1">Cobros del Día</h1>
+                        <p className="text-xs text-slate-400 font-medium tracking-wide">
+                            Solo se muestran clientes habilitados para hoy.
+                        </p>
+                    </div>
+                </header>
+
+                {/* --- Filtros (Horizontal Scrollable) --- */}
+                <div className="relative">
+                    <div className="flex overflow-x-auto gap-2 p-1.5 bg-white/5 rounded-[24px] border border-white/5 backdrop-blur-md no-scrollbar scroll-smooth">
+                        {["todos", "diario", "semanal", "quincenal", "mensual"].map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => {
+                                    setTipo(f);
+                                    setPage(1);
+                                }}
+                                className={`whitespace-nowrap px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${tipo === f
+                                    ? "bg-white/95 text-blue-900 shadow-xl shadow-white/10 scale-[1.02]"
+                                    : "text-slate-400 hover:text-white hover:bg-white/5 active:scale-95"
+                                    }`}
+                            >
+                                {f === "todos" ? "Todos" : f}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 rounded-[24px] border border-slate-700/80 bg-slate-900/75 p-2 shadow-sm sm:flex sm:flex-wrap sm:items-center">
-                    {["todos", "diario", "semanal", "quincenal", "mensual"].map((f) => (
-                        <button
-                            key={f}
-                            onClick={() => {
-                                setTipo(f);
-                                setPage(1);
-                            }}
-                            className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition sm:w-auto ${tipo === f
-                                ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_18px_30px_-22px_rgba(59,130,246,0.95)]"
-                                : "bg-slate-950/40 text-slate-200 hover:bg-slate-800"
-                                }`}
-                        >
-                            {f === "todos" ? "Todos" : `${f[0].toUpperCase()}${f.slice(1)}`}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="rounded-[24px] border border-slate-700/80 bg-slate-900/80 p-3 shadow-sm">
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Buscar cliente para cobrar hoy
-                    </label>
+                {/* --- Buscador --- */}
+                <div className="rounded-[28px] bg-white/5 border border-white/5 p-6 backdrop-blur-xl shadow-lg">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Buscar Cliente</p>
                     <input
                         type="text"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
-                        placeholder="Nombre, documento o telefono"
-                        className="w-full rounded-xl border border-slate-600 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
+                        placeholder="Nombre, documento o telefono..."
+                        className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 px-5 text-sm text-white placeholder:text-slate-600 focus:border-blue-500/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
                     />
                 </div>
 
-                <div className="overflow-hidden rounded-[28px] border border-slate-700/80 bg-slate-900/80 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)]">
-                    <div className="border-b border-slate-700 p-4">
-                        <h2 className="text-base sm:text-lg font-semibold text-slate-100">
-                            Cobros a realizar hoy ({meta.totalItems})
+                <div className="space-y-4">
+                    <div className="px-4 flex items-center justify-between">
+                        <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                            Listado de Cobros ({meta.totalItems})
                         </h2>
                     </div>
 
                     {loading ? (
-                        <p className="p-4 text-gray-500 dark:text-gray-400">Cargando clientes...</p>
+                        <div className="p-12 text-center text-slate-500 font-bold animate-pulse">Cargando clientes...</div>
                     ) : error ? (
-                        <p className="p-4 text-red-500 dark:text-red-400">{error}</p>
+                        <div className="p-8 text-center text-rose-500 font-bold bg-rose-500/10 rounded-3xl border border-rose-500/20">{error}</div>
                     ) : clientesHoy.length === 0 ? (
-                        <p className="p-4 text-gray-500 dark:text-gray-400">No hay pagos programados para hoy.</p>
+                        <div className="p-12 text-center text-slate-500 font-bold bg-white/5 rounded-[32px] border border-white/5">No hay pagos para hoy.</div>
                     ) : (
-                        <>
-                            <div className="hidden md:grid md:grid-cols-[2.3fr_0.9fr_1fr_1fr_1fr_1.4fr] md:items-center md:gap-4 border-b border-slate-700 bg-slate-950/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                <span className="pl-1">Cliente</span>
-                                <span className="text-center">Tipo</span>
-                                <span className="text-center">Cuota</span>
-                                <span className="text-center">Monto</span>
-                                <span className="text-center">Estado</span>
-                                <span className="text-center">Acciones</span>
-                            </div>
-                            <ul className="divide-y divide-slate-700/80">
-                                {clientesHoy.map((c) => (
-                                    <li key={c.creditoId} className="p-4 transition hover:bg-slate-950/20">
-                                        {/* Desktop row */}
-                                        <div className="hidden md:grid md:grid-cols-[2.3fr_0.9fr_1fr_1fr_1fr_1.4fr] md:items-center md:gap-4">
-                                            <div className="min-w-0 pl-1">
-                                                <p className="truncate font-semibold text-slate-100">
-                                                    {c.name}
-                                                </p>
-                                                <p className="truncate text-xs text-slate-400">
-                                                    {c.address || "Sin direccion"}
-                                                </p>
-                                            </div>
-                                            <div className="text-center text-sm font-medium uppercase text-slate-300">{String(c.tipoPago || "-")}</div>
-                                            <div className="text-center text-sm font-semibold text-slate-100">
-                                                {c.cuotaActual}/{c.totalCuotas}
-                                            </div>
-                                            <div className="text-center text-sm font-semibold text-slate-100">
-                                                {formatCurrency(c.monto)}
-                                            </div>
-                                            <div className="flex flex-wrap justify-center gap-2">
-                                                {c.paidToday ? (
-                                                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Cobrado</span>
-                                                ) : c.venceHoy ? (
-                                                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Hoy</span>
-                                                ) : (
-                                                    <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">Pendiente</span>
-                                                )}
-                                                {String(c.estado || "").toUpperCase() === "OVERDUE" && (
-                                                    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Atrasado</span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button
-                                                    onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, {
-                                                        state: {
-                                                            pendingInfo: {
-                                                                pendingAmount: c.pendingAmount,
-                                                                pendingOccurrences: c.pendingOccurrences,
-                                                                pendingDates: c.pendingDates,
-                                                                pendingSince: c.pendingSince
-                                                            }
-                                                        }
-                                                    })}
-                                                    disabled={c.paidToday}
-                                                    className={`inline-flex h-10 min-w-[118px] items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${c.paidToday ? "bg-slate-500 text-white cursor-not-allowed" : "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-sm hover:from-blue-500 hover:to-cyan-400"}`}
-                                                >
-                                                    {c.paidToday ? "Cobrado" : "Cobrar"}
-                                                    <HiArrowRight className="h-4 w-4" />
-                                                </button>
-                                                {!c.paidToday && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate(`/cobrador/pagos/${c.creditoId}/reprogramar`, {
-                                                            state: {
-                                                                assignmentId: c.assignmentId,
-                                                                clientName: c.name
-                                                            }
-                                                        })}
-                                                        className="inline-flex h-10 min-w-[118px] items-center justify-center rounded-lg border border-amber-400/60 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20"
-                                                    >
-                                                        No pude cobrar
-                                                    </button>
-                                                )}
-                                            </div>
+                        <div className="space-y-6">
+                            {clientesHoy.map((c) => (
+                                <div key={c.creditoId}>
+                                    {/* Desktop Row - Oculto en móvil */}
+                                    <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1.5fr] md:items-center md:gap-4 p-5 rounded-[32px] bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-all">
+                                        <div>
+                                            <p className="font-black text-white">{c.name}</p>
+                                            <p className="text-[10px] text-slate-500 truncate">{c.address}</p>
                                         </div>
-
-                                        {/* Mobile card */}
-                                        <div className="md:hidden rounded-[26px] border border-slate-700/70 bg-gradient-to-b from-slate-900/70 to-slate-950/40 p-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,1)]">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-[17px] font-semibold text-slate-50">
-                                                        {c.name}
-                                                    </p>
-                                                    <p className="mt-1 line-clamp-2 text-sm text-slate-400">
-                                                        {c.address || "Sin direccion"}
-                                                    </p>
-                                                </div>
-                                                <span className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
-                                                    {String(c.tipoPago || "-")}
+                                        <div className="text-center font-black text-emerald-400">{formatCurrency(c.monto)}</div>
+                                        <div className="text-center font-bold text-slate-400">{c.cuotaActual}/{c.totalCuotas}</div>
+                                        <div className="flex justify-center">
+                                            {c.paidToday ? (
+                                                <span className="text-[10px] font-black text-emerald-500 uppercase">COBRADO</span>
+                                            ) : (
+                                                <span className={`text-[10px] font-black uppercase ${c.venceHoy ? "text-orange-400" : "text-slate-500"}`}>
+                                                    {c.venceHoy ? "PARA HOY" : "PENDIENTE"}
                                                 </span>
-                                            </div>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, { state: { pendingInfo: { pendingAmount: c.pendingAmount, pendingOccurrences: c.pendingOccurrences, pendingDates: c.pendingDates, pendingSince: c.pendingSince }}})} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs">Cobrar</button>
+                                        </div>
+                                    </div>
 
-                                            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                                                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/35 px-3 py-3">
-                                                    <p className="text-[11px] uppercase tracking-wide text-slate-500">Cuota</p>
-                                                    <p className="mt-1 text-base font-semibold text-slate-100">{c.cuotaActual}/{c.totalCuotas}</p>
-                                                </div>
-                                                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/35 px-3 py-3">
-                                                    <p className="text-[11px] uppercase tracking-wide text-slate-500">Monto</p>
-                                                    <p className="mt-1 text-base font-semibold text-cyan-200">{formatCurrency(c.monto)}</p>
-                                                </div>
+                                    {/* Mobile card - iPhone Premium */}
+                                    <div className="md:hidden rounded-[32px] bg-white/5 border border-white/10 p-6 backdrop-blur-xl shadow-2xl space-y-5">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="min-w-0 flex-1">
+                                                <h4 className="text-xl font-black text-white tracking-tighter truncate">{c.name}</h4>
+                                                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mt-1 mb-2">DIRECCIÓN</p>
+                                                <p className="text-sm text-slate-300 line-clamp-2 leading-tight">{c.address || "Sin dirección registrada"}</p>
                                             </div>
-
-                                            <div className="mt-4 rounded-2xl border border-slate-700/60 bg-slate-950/30 px-3 py-3">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    {c.paidToday ? (
-                                                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Cobrado hoy</span>
-                                                    ) : c.venceHoy ? (
-                                                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Vence hoy</span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">Pendiente</span>
-                                                    )}
-                                                    {String(c.estado || "").toUpperCase() === "OVERDUE" && (
-                                                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Atrasado</span>
-                                                    )}
-                                                    {getPendingCopy(c) ? (
-                                                        <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-100">
-                                                            {getPendingCopy(c)}
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                                {c.pendingDatesFormatted?.length ? (
-                                                    <p className="mt-2 text-xs leading-5 text-slate-400">
-                                                        Fechas pendientes: {c.pendingDatesFormatted.slice(0, 3).join(" • ")}
-                                                    </p>
-                                                ) : null}
-                                            </div>
-
-                                            <div className="mt-4 flex flex-col gap-2.5">
-                                                <button
-                                                    onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, {
-                                                        state: {
-                                                            pendingInfo: {
-                                                                pendingAmount: c.pendingAmount,
-                                                                pendingOccurrences: c.pendingOccurrences,
-                                                                pendingDates: c.pendingDates,
-                                                                pendingSince: c.pendingSince
-                                                            }
-                                                        }
-                                                    })}
-                                                    disabled={c.paidToday}
-                                                    className={`flex min-h-[52px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold focus:outline-none w-full transition ${c.paidToday ? "bg-slate-600 text-white cursor-not-allowed" : "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_18px_30px_-22px_rgba(59,130,246,0.95)] hover:from-blue-500 hover:to-cyan-400"}`}
-                                                >
-                                                    {c.paidToday ? "Ya cobrado" : "Cobrar"}
-                                                    <HiArrowRight className="h-4 w-4" />
-                                                </button>
-                                                {!c.paidToday && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate(`/cobrador/pagos/${c.creditoId}/reprogramar`, {
-                                                            state: {
-                                                                assignmentId: c.assignmentId,
-                                                                clientName: c.name
-                                                            }
-                                                        })}
-                                                        className="flex min-h-[52px] items-center justify-center rounded-2xl border border-slate-600 bg-slate-900/40 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-800/60 w-full"
-                                                    >
-                                                        No pude cobrar
-                                                    </button>
-                                                )}
+                                            <div className="shrink-0 h-10 px-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{c.tipoPago}</span>
                                             </div>
                                         </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="rounded-2xl bg-white/5 p-4 border border-white/5">
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Cuota</p>
+                                                <p className="text-lg font-black text-white">{c.cuotaActual} <span className="text-xs text-slate-500 font-bold italic">/ {c.totalCuotas}</span></p>
+                                            </div>
+                                            <div className="rounded-2xl bg-white/5 p-4 border border-white/5">
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Monto</p>
+                                                <p className="text-lg font-black text-emerald-400">{formatCurrency(c.monto)}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {c.paidToday ? (
+                                                <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400 uppercase tracking-widest">COBRADO</div>
+                                            ) : c.venceHoy ? (
+                                                <div className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-[10px] font-black text-orange-400 uppercase tracking-widest">VENCE HOY</div>
+                                            ) : (
+                                                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest">PENDIENTE</div>
+                                            )}
+                                            {String(c.estado || "").toUpperCase() === "OVERDUE" && (
+                                                <div className="px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-[10px] font-black text-rose-500 uppercase tracking-widest">ATRASADO</div>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-2 flex flex-col gap-3">
+                                            {!c.paidToday ? (
+                                                <>
+                                                    <button
+                                                        onClick={() => navigate(`/cobrador/pagos/${c.creditoId}`, { state: { pendingInfo: { pendingAmount: c.pendingAmount, pendingOccurrences: c.pendingOccurrences, pendingDates: c.pendingDates, pendingSince: c.pendingSince }}})}
+                                                        className="h-16 w-full rounded-3xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-black text-lg tracking-tight shadow-xl shadow-blue-500/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+                                                    >
+                                                        COBRAR AHORA
+                                                        <HiArrowRight className="h-6 w-6" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => navigate(`/cobrador/pagos/${c.creditoId}/reprogramar`, { state: { assignmentId: c.assignmentId, clientName: c.name }})}
+                                                        className="h-12 w-full rounded-2xl bg-white/5 border border-white/10 text-slate-400 font-bold text-sm tracking-wide transition-all active:scale-95"
+                                                    >
+                                                        No pude realizar el cobro
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <div className="h-16 w-full rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center gap-3 text-emerald-400 font-black">
+                                                    TRANSACCIÓN COMPLETADA
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
+                    
                     {!loading && !error && meta.totalPages > 1 && (
-                        <div className="flex flex-col gap-3 border-t border-slate-700 px-4 py-3 text-sm text-slate-300 sm:flex-row sm:items-center sm:justify-between">
-                            <button
-                                type="button"
-                                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                                disabled={meta.page <= 1}
-                                className={`w-full rounded-xl px-3 py-2 sm:w-auto ${meta.page <= 1 ? "cursor-not-allowed bg-slate-700 text-slate-500" : "bg-slate-700 hover:bg-slate-600 text-white"}`}
-                            >
-                                Anterior
-                            </button>
-                            <span className="text-center">
-                                Pagina {meta.page} de {meta.totalPages}
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => setPage((prev) => Math.min(meta.totalPages, prev + 1))}
-                                disabled={meta.page >= meta.totalPages}
-                                className={`w-full rounded-xl px-3 py-2 sm:w-auto ${meta.page >= meta.totalPages ? "cursor-not-allowed bg-slate-700 text-slate-500" : "bg-slate-700 hover:bg-slate-600 text-white"}`}
-                            >
-                                Siguiente
-                            </button>
+                        <div className="pt-8">
+                            <Pagination
+                                page={meta.page}
+                                pageSize={meta.pageSize}
+                                totalItems={meta.totalItems}
+                                totalPages={meta.totalPages}
+                                onPageChange={setPage}
+                                variant="dark"
+                            />
                         </div>
                     )}
                 </div>

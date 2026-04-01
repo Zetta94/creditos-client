@@ -42,7 +42,17 @@ export default function CobradorTrayectoGuard({ children, requireActive = true }
         return () => { mounted = false; };
     }, [dispatch]);
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Verificando acceso...</div>;
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#060b1d] flex items-center justify-center p-8"
+                 style={{ backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)" }}>
+                <div className="flex flex-col items-center gap-4 animate-fade-in text-center">
+                    <div className="h-10 w-10 border-4 border-white/5 border-t-blue-500 rounded-full animate-spin shadow-lg shadow-blue-500/20" />
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Verificando Acceso</p>
+                </div>
+            </div>
+        );
+    }
     if (requireActive && !activo) {
         return <Navigate to="/cobrador/dashboard" state={{ from: location }} replace />;
     }

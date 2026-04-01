@@ -8,6 +8,7 @@ export const deleteReport = (id) => api.delete(`/reports/${id}`);
 
 export const startReport = () => api.post("/reports/start");
 export const finalizeReport = () => api.post("/reports/finalize");
+export const finalizeReportById = (id) => api.post(`/reports/${id}/finalize`);
 export const fetchWeeklyPayrollPreview = (params = {}) => api.get("/reports/weekly-payroll/preview", { params });
 export const fetchWeeklyPayrollHistory = (params = {}) => api.get("/reports/weekly-payroll/history", { params });
 export const generateWeeklyPayroll = () => api.post("/reports/weekly-payroll");

@@ -76,156 +76,154 @@ export default function ReportesCobrador() {
   if (error) return <div style={{ padding: "40px", textAlign: "center", color: "#8B0000", fontSize: "15px" }}>{error}</div>;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
+    <div className="min-h-screen bg-[#060b1d] text-white" 
+         style={{ backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)", backgroundAttachment: "fixed" }}>
+      
+      <div className="mx-auto max-w-2xl px-4 py-8 pb-32 animate-fade-in space-y-6">
+        
+        {/* ── Header & Filtros ── */}
+        <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-xl space-y-6">
+          <div className="flex justify-between items-end">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Mi Actividad</p>
+              <h1 className="text-3xl font-black tracking-tight text-white">Historial</h1>
+            </div>
+            <span className="text-[10px] font-bold text-slate-600 italic">{totalItems} jornadas</span>
+          </div>
 
-      {/* Header + filtros */}
-      <div className="ios-card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: "14px", marginBottom: "16px" }}>
-          <div>
-            <h1 style={{ fontSize: "24px", fontWeight: 800, color: "var(--ios-label)", margin: "0 0 4px", letterSpacing: "-0.025em" }}>
-              Mis reportes
-            </h1>
-            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>
-              {totalItems} {totalItems === 1 ? "reporte" : "reportes"} encontrados
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Filtrar Mes</label>
+              <select 
+                value={filtroMes} 
+                onChange={(e) => setFiltroMes(e.target.value)}
+                className="h-12 w-full rounded-2xl bg-white/5 border border-white/10 px-4 text-sm text-white font-bold appearance-none focus:border-blue-500/50 outline-none"
+              >
+                <option value="todos" className="bg-slate-900">Todos los meses</option>
+                {mesesDisponibles.map((mes) => (
+                  <option key={mes} value={mes} className="bg-slate-900">{mes.charAt(0).toUpperCase() + mes.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Día Específico</label>
+              <input 
+                type="date" 
+                value={filtroDia} 
+                onChange={(e) => setFiltroDia(e.target.value)}
+                className="h-12 w-full rounded-2xl bg-white/5 border border-white/10 px-4 text-sm text-white font-bold focus:border-blue-500/50 outline-none color-scheme-dark"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
           </div>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
-          <div style={{ flex: "1 1 160px" }}>
-            <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", display: "block", marginBottom: "5px" }}>Mes</label>
-            <select value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)} style={{ ...inputStyle, width: "100%" }} onFocus={onFocus} onBlur={onBlur}>
-              <option value="todos">Todos los meses</option>
-              {mesesDisponibles.map((mes) => (
-                <option key={mes} value={mes}>{mes.charAt(0).toUpperCase() + mes.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-          <div style={{ flex: "1 1 160px" }}>
-            <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", display: "block", marginBottom: "5px" }}>Día específico</label>
-            <input type="date" value={filtroDia} onChange={(e) => setFiltroDia(e.target.value)} style={{ ...inputStyle, width: "100%" }} onFocus={onFocus} onBlur={onBlur} />
-          </div>
+
           {(filtroMes !== "todos" || filtroDia) && (
             <button
               onClick={() => { setFiltroMes("todos"); setFiltroDia(""); }}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "5px",
-                height: "40px", padding: "0 14px", borderRadius: "10px", border: "none",
-                background: "var(--ios-fill)", color: "var(--ios-label-sec)",
-                fontSize: "13px", fontWeight: 600, cursor: "pointer",
-                marginTop: "23px",
-              }}
+              className="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
             >
-              <HiX style={{ width: "14px", height: "14px" }} />
-              Limpiar
+              <HiX className="h-4 w-4" /> Limpiar Filtros
             </button>
           )}
         </div>
-      </div>
 
-      {/* KPIs */}
-      {reportesFiltrados.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
-          {resumenTarjetas.map((item) => (
-            <div key={item.label} className="ios-card" style={{ padding: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: 0 }}>{item.label}</p>
-                <div style={{ width: "30px", height: "30px", borderRadius: "9px", background: item.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <item.icon style={{ width: "15px", height: "15px", color: item.color }} />
+        {/* ── KPIs Summary ── */}
+        {reportesFiltrados.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {resumenTarjetas.map((item) => (
+              <div key={item.label} className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-xl relative overflow-hidden">
+                <div className="flex justify-between items-start mb-2">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</p>
+                  <item.icon className="h-4 w-4 opacity-30" style={{ color: item.color }} />
                 </div>
+                <p className="text-md font-black text-white">{item.value}</p>
               </div>
-              <p style={{ fontSize: "18px", fontWeight: 800, color: "var(--ios-label)", margin: 0 }}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Calendario */}
-      <ReportActivityCalendar
-        reports={reportes}
-        title="Calendario de actividad"
-        onReportClick={(report) => navigate(`/cobrador/reportes/${report.id}`)}
-      />
-
-      {/* Desktop table */}
-      <div className="hidden sm:block ios-card" style={{ overflow: "hidden", padding: 0 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              {["Fecha", "Clientes visitados", "Efectivo", "MercadoPago", "Transferencia", "Total"].map((h, i) => (
-                <th key={h} style={{ padding: "11px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: i === 0 ? "left" : "right" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {reportesPaginados.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: "var(--ios-label-ter)", fontSize: "14px" }}>No hay reportes para los filtros seleccionados.</td></tr>
-            ) : reportesPaginados.map((r) => (
-              <tr key={r.id}
-                onClick={() => navigate(`/cobrador/reportes/${r.id}`)}
-                style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s", cursor: "pointer" }}
-                onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "var(--ios-label)" }}>
-                  {new Date(r.fechaDeReporte).toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}
-                </td>
-                <td style={{ padding: "12px 14px", fontSize: "14px", color: "var(--ios-label-sec)", textAlign: "right" }}>{r.clientsVisited}</td>
-                <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "#1A6B36", textAlign: "right" }}>${Number(r.efectivo || 0).toLocaleString("es-AR")}</td>
-                <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "#004299", textAlign: "right" }}>${Number(r.mercadopago || 0).toLocaleString("es-AR")}</td>
-                <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "#5C2B8C", textAlign: "right" }}>${Number(r.transferencia || 0).toLocaleString("es-AR")}</td>
-                <td style={{ padding: "12px 14px", fontSize: "15px", fontWeight: 800, color: "var(--ios-label)", textAlign: "right" }}>${Number(r.total || 0).toLocaleString("es-AR")}</td>
-              </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="sm:hidden" style={{ flexDirection: "column", gap: "10px" }}>
-        {reportesPaginados.length === 0 ? (
-          <div className="ios-card" style={{ padding: "40px", textAlign: "center", color: "var(--ios-label-ter)", fontSize: "14px" }}>
-            No hay reportes para los filtros seleccionados.
           </div>
-        ) : reportesPaginados.map((r) => (
-          <button key={r.id} type="button" onClick={() => navigate(`/cobrador/reportes/${r.id}`)}
-            style={{ width: "100%", textAlign: "left", background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)", border: "none", padding: "16px", cursor: "pointer", transition: "all 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
-            onMouseLeave={e => e.currentTarget.style.background = "var(--ios-bg-card)"}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-              <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>
-                {new Date(r.fechaDeReporte).toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}
-              </p>
-              <span style={{ padding: "4px 10px", borderRadius: "99px", background: "#EBF3FF", color: "#004299", fontSize: "12px", fontWeight: 700 }}>Ver detalle</span>
-            </div>
-            <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: "0 0 8px" }}>Clientes visitados: <strong style={{ color: "var(--ios-label)" }}>{r.clientsVisited}</strong></p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-              {[
-                { l: "Efvo", v: r.efectivo, c: "#1A6B36", bg: "#E8F8ED" },
-                { l: "MP", v: r.mercadopago, c: "#004299", bg: "#EBF3FF" },
-                { l: "Transf.", v: r.transferencia, c: "#5C2B8C", bg: "#F5EAFF" },
-              ].map(item => (
-                <div key={item.l} style={{ background: item.bg, borderRadius: "8px", padding: "8px 10px" }}>
-                  <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: item.c, margin: "0 0 2px", opacity: 0.7 }}>{item.l}</p>
-                  <p style={{ fontSize: "13px", fontWeight: 700, color: item.c, margin: 0 }}>${Number(item.v || 0).toLocaleString("es-AR")}</p>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: "10px", padding: "8px 10px", background: "var(--ios-fill)", borderRadius: "8px", display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "13px", color: "var(--ios-label-ter)", fontWeight: 600 }}>Total</span>
-              <span style={{ fontSize: "15px", fontWeight: 800, color: "var(--ios-label)" }}>${Number(r.total || 0).toLocaleString("es-AR")}</span>
-            </div>
-          </button>
-        ))}
-      </div>
+        )}
 
-      {/* Pagination */}
-      <Pagination
-        page={safePage} pageSize={pageSize}
-        totalItems={totalItems} totalPages={totalPages}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-      />
+        {/* ── Calendario ── */}
+        <div className="rounded-[32px] bg-white/5 border border-white/10 p-4 backdrop-blur-2xl">
+          <ReportActivityCalendar
+            reports={reportes}
+            title="Agenda de Actividad"
+            darkSurface={true}
+            onReportClick={(report) => navigate(`/cobrador/reportes/${report.id}`)}
+          />
+        </div>
+
+        {/* ── Listado ── */}
+        <div className="space-y-4">
+          <div className="px-2">
+            <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Listado de Jornadas</h2>
+          </div>
+
+          {reportesPaginados.length === 0 ? (
+            <div className="py-20 text-center rounded-[32px] bg-white/5 border border-white/10">
+              <p className="text-sm text-slate-500 font-bold italic">No se encontraron reportes.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reportesPaginados.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => navigate(`/cobrador/reportes/${r.id}`)}
+                  className="w-full text-left rounded-[32px] bg-white/5 border border-white/10 p-6 backdrop-blur-2xl shadow-xl hover:bg-white/[0.08] transition-all active:scale-98 group flex flex-col gap-4 relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <HiTrendingUp className="h-20 w-20" />
+                  </div>
+
+                  <div className="flex justify-between items-center relative z-10">
+                    <div>
+                      <p className="text-xl font-black text-white tracking-tight">
+                        {new Date(r.fechaDeReporte).toLocaleDateString("es-AR", { weekday: "long" }).toUpperCase()}
+                      </p>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        {new Date(r.fechaDeReporte).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
+                      </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                      <HiSearch className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 relative z-10">
+                    <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
+                      <p className="text-[8px] font-black text-emerald-500/70 uppercase mb-1">EFECTIVO</p>
+                      <p className="text-md font-black text-emerald-400">${Number(r.efectivo || 0).toLocaleString("es-AR")}</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
+                      <p className="text-[8px] font-black text-blue-500/70 uppercase mb-1">DIGITAL</p>
+                      <p className="text-md font-black text-blue-400">${Number((Number(r.mercadopago || 0) + Number(r.transferencia || 0))).toLocaleString("es-AR")}</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
+                      <p className="text-[8px] font-black text-slate-500 uppercase mb-1">VISITAS</p>
+                      <p className="text-md font-black text-white">{r.clientsVisited}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/5 flex justify-between items-center relative z-10">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Total de la jornada</p>
+                    <p className="text-xl font-black text-white tracking-tighter">${Number(r.total || 0).toLocaleString("es-AR")}</p>
+                  </div>
+                </button>
+              ))}
+
+              <div className="pt-4 px-2">
+                <Pagination
+                  page={safePage} pageSize={pageSize}
+                  totalItems={totalItems} totalPages={totalPages}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                  variant="dark"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }

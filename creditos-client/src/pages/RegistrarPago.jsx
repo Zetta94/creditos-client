@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { loadCredit } from "../store/creditsSlice";
@@ -51,19 +51,31 @@ export default function RegistrarPago() {
         }
     }, [credito?.clientId, credito?.client, dispatch]);
 
+    const initialSetDone = useRef(false);
+
     useEffect(() => {
-        if (!canSelectInstallments) return;
+        if (!canSelectInstallments || initialSetDone.current) return;
+        if (!credito || loadingCredit) return;
 
         const pendingCount = Number(pendingOccurrences || 0);
         const preferredCount = pendingCount > 0 ? pendingCount : 1;
         const normalizedCount = Math.min(maxInstallmentsToPay, Math.max(1, Math.floor(preferredCount)));
+        
         setCuotasPagadasHoy(normalizedCount);
+        setPagos([{ metodo: "efectivo", monto: String(installmentAmount * normalizedCount), id: Date.now() }]);
+        
+        initialSetDone.current = true;
+    }, [canSelectInstallments, installmentAmount, maxInstallmentsToPay, pendingOccurrences, credito, loadingCredit]);
 
-        setPagos((prev) => {
-            if (prev.length !== 1) return prev;
-            return [{ ...prev[0], monto: String(installmentAmount * normalizedCount) }];
-        });
-    }, [canSelectInstallments, installmentAmount, maxInstallmentsToPay, pendingOccurrences]);
+    const handleModeChange = (newMode) => {
+        setInstallmentMode(newMode);
+        if (newMode === "ADVANCE") {
+            actualizarCuotasPagadas(1);
+        } else {
+            const pendingCount = Number(pendingOccurrences || 0);
+            actualizarCuotasPagadas(pendingCount > 0 ? pendingCount : 1);
+        }
+    };
 
     if (loadingCredit) {
         return (
@@ -97,16 +109,25 @@ export default function RegistrarPago() {
     }
 
     function actualizarCuotasPagadas(valor) {
+        if (valor === "") {
+            setCuotasPagadasHoy("");
+            return;
+        }
+
         const numeric = Number(valor);
         const normalized = Number.isFinite(numeric)
-            ? Math.min(maxInstallmentsToPay, Math.max(1, Math.floor(numeric)))
+            ? Math.min(maxInstallmentsToPay, Math.floor(numeric))
             : 1;
+
         setCuotasPagadasHoy(normalized);
 
-        setPagos((prev) => {
-            if (!canSelectInstallments || prev.length !== 1) return prev;
-            return [{ ...prev[0], monto: String(installmentAmount * normalized) }];
-        });
+        // Actualizamos el monto solo si el valor es válido y mayor a 0
+        if (normalized > 0) {
+            setPagos((prev) => {
+                if (!canSelectInstallments || prev.length !== 1) return prev;
+                return [{ ...prev[0], monto: String(installmentAmount * normalized) }];
+            });
+        }
     }
 
     async function handleSubmit(e) {
@@ -140,7 +161,7 @@ export default function RegistrarPago() {
                 note: nota
             })).unwrap();
 
-            toast.success(`Pago total registrado: $${totalRegistrado.toLocaleString("es-AR")}`, {
+            toast.success("Pago confirmado", {
                 icon: "💰",
                 duration: 1800
             });
@@ -148,180 +169,180 @@ export default function RegistrarPago() {
             setTimeout(() => navigate("/cobrador/pagos"), 1800);
         } catch (error) {
             console.error("Error al registrar pago:", error);
+            toast.error("No se pudo registrar el pago. Intenta de nuevo.");
         }
-    }
-
-    return (
-        <div className="min-h-screen bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4 sm:px-4 sm:py-6">
-            <div className="mx-auto max-w-2xl space-y-5">
-                {/* Header */}
-                <div className="flex flex-col gap-3 rounded-[28px] border border-slate-700/80 bg-slate-900/85 p-4 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)] sm:flex-row sm:items-center sm:justify-between">
+    }    return (
+        <div className="min-h-screen bg-[#060b1d] text-white" 
+             style={{ backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)", backgroundAttachment: "fixed" }}>
+            
+            <div className="mx-auto max-w-2xl px-4 py-8 pb-32 animate-fade-in space-y-6">
+                
+                {/* ── Header ── */}
+                <div className="flex items-center justify-between px-2">
                     <button
                         onClick={() => navigate(-1)}
-                        className="inline-flex min-h-11 items-center gap-2 self-start rounded-2xl border border-slate-700 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-100"
+                        className="h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white backdrop-blur-xl active:scale-90 transition-all"
                     >
-                        <HiArrowLeft className="h-5 w-5" /> Volver
+                        <HiArrowLeft className="h-6 w-6" />
                     </button>
-                    <div className="sm:text-right">
-                        <h1 className="text-xl font-bold text-slate-100 sm:text-2xl">Registrar pago</h1>
-                        <p className="mt-1 text-sm text-slate-400">Carga optimizada para trabajo desde el celular.</p>
+                    <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Carga de Cobro</p>
+                        <h1 className="text-2xl font-black tracking-tight text-white">Nuevo Registro</h1>
                     </div>
                 </div>
 
-                {/* Cliente */}
-                <div className="rounded-[28px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm">
-                    <p className="text-lg font-semibold text-slate-100">
-                        {cliente.name}
-                    </p>
-                    <p className="text-sm text-slate-400">{cliente.address}</p>
-                    <p className="mt-2 text-sm text-slate-300">
-                        Crédito activo:{" "}
-                        <strong>{`$${credito.amount.toLocaleString("es-AR")}`}</strong> — Cuota:{" "}
-                        <strong>{`$${credito.installmentAmount.toLocaleString("es-AR")}`}</strong>
-                    </p>
-                    {pendingInfo && (
-                        <div className="mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-3 text-xs text-cyan-100">
-                            <p>
-                                Monto sugerido según adeudos:
-                                <span className="font-semibold"> ${Number(pendingAmount || 0).toLocaleString("es-AR")}</span>
-                                {pendingOccurrences > 0 && ` (${pendingOccurrences} ${pendingOccurrencesLabel})`}
-                            </p>
-                            {pendingDates && pendingDates.length > 0 && (
-                                <p>Fechas pendientes: {pendingDates.join(" • ")}</p>
-                            )}
+                {/* ── Cliente Card ── */}
+                <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl -mr-16 -mt-16" />
+                    <div className="relative z-10">
+                        <h2 className="text-2xl font-black text-white tracking-tighter mb-2">{cliente.name}</h2>
+                        <div className="space-y-1 text-sm text-slate-400 font-medium">
+                            <p>{cliente.address}</p>
+                            <div className="flex items-center gap-3 pt-3 border-t border-white/5 mt-4">
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Crédito</p>
+                                    <p className="text-md font-bold text-white">${credito.amount.toLocaleString("es-AR")}</p>
+                                </div>
+                                <div className="h-8 w-px bg-white/10" />
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Cuota</p>
+                                    <p className="text-md font-bold text-emerald-400">${credito.installmentAmount.toLocaleString("es-AR")}</p>
+                                </div>
+                            </div>
                         </div>
-                    )}
+
+                        {pendingInfo && (
+                            <div className="mt-6 rounded-2xl bg-emerald-500 text-white p-4 shadow-xl shadow-emerald-500/20">
+                                <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-80">Sugerencia de cobro</p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xl font-black">${Number(pendingAmount || 0).toLocaleString("es-AR")}</p>
+                                    <p className="text-xs font-bold uppercase">{pendingOccurrences} {pendingOccurrencesLabel}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Formulario */}
-                <form
-                    onSubmit={handleSubmit}
-                    className="space-y-5 rounded-[28px] border border-slate-700/80 bg-slate-900/80 p-4 shadow-sm sm:p-5"
-                >
-                    <h2 className="text-sm font-semibold text-slate-200">
-                        Detalle de pagos
-                    </h2>
+                {/* ── Formulario ── */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-xl space-y-8">
+                        
+                        {canSelectInstallments && (
+                            <div className="space-y-6 p-6 rounded-3xl bg-white/5 border border-white/5">
+                                <div className="space-y-3">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Modo de Aplicación</label>
+                                    <select
+                                        value={installmentMode}
+                                        onChange={(e) => handleModeChange(e.target.value)}
+                                        className="h-14 w-full rounded-2xl bg-white/5 border border-white/10 px-5 text-sm text-white focus:border-emerald-500/50 appearance-none font-bold"
+                                    >
+                                        <option value="ARREARS" className="bg-slate-900">Cuotas pagadas (Normal)</option>
+                                        <option value="ADVANCE" className="bg-slate-900">Cuotas de adelanto</option>
+                                    </select>
+                                </div>
 
-                    {canSelectInstallments && (
-                        <div className="rounded-2xl border border-blue-400/25 bg-blue-500/10 p-3">
-                            <label className="mb-1 block text-xs font-medium text-blue-100">
-                                Aplicar cuotas como
-                            </label>
-                            <select
-                                value={installmentMode}
-                                onChange={(e) => setInstallmentMode(e.target.value)}
-                                className="mb-3 min-h-12 w-full rounded-2xl border border-blue-400/30 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Cant. de Cuotas</label>
+                                        <span className="text-[10px] font-bold text-slate-400 italic">De {remainingInstallments} restantes</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={maxInstallmentsToPay}
+                                        value={cuotasPagadasHoy}
+                                        onChange={(e) => actualizarCuotasPagadas(e.target.value)}
+                                        className="h-14 w-full rounded-2xl bg-white/5 border border-white/10 px-5 text-xl font-black text-white focus:border-emerald-500/50"
+                                    />
+                                    <p className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-tight">
+                                        Monto sugerido: ${suggestedAmount.toLocaleString("es-AR")}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Pagos Dinámicos */}
+                        <div className="space-y-6">
+                            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Detalle de Medios</h3>
+                            {pagos.map((p) => (
+                                <div key={p.id} className="relative group space-y-4 p-6 rounded-3xl bg-white/5 border border-white/5 animate-slide-up">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest pl-1">Método</label>
+                                            <select
+                                                value={p.metodo}
+                                                onChange={(e) => actualizarPago(p.id, "metodo", e.target.value)}
+                                                className="h-14 w-full rounded-2xl bg-white/5 border border-white/10 px-5 text-sm text-white font-bold appearance-none"
+                                            >
+                                                <option value="efectivo" className="bg-slate-900">Efectivo</option>
+                                                <option value="mercadopago" className="bg-slate-900">Mercado Pago</option>
+                                                <option value="transferencia" className="bg-slate-900">Transferencia</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest pl-1">Monto ($)</label>
+                                            <input
+                                                type="number"
+                                                value={p.monto}
+                                                onChange={(e) => actualizarPago(p.id, "monto", e.target.value)}
+                                                placeholder="0.00"
+                                                className="h-14 w-full rounded-2xl bg-white/5 border border-white/10 px-5 text-lg font-black text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    {pagos.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => eliminarPago(p.id)}
+                                            className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-rose-500 text-white shadow-lg flex items-center justify-center active:scale-90 transition-all"
+                                        >
+                                            <HiTrash className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+
+                            <button
+                                type="button"
+                                onClick={agregarPago}
+                                className="w-full h-12 rounded-2xl bg-white/5 border border-dashed border-white/20 text-slate-400 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
                             >
-                                <option value="ARREARS">Cuotas pagadas (recomendado)</option>
-                                <option value="ADVANCE">Cuotas de adelanto</option>
-                            </select>
+                                <HiPlus className="h-4 w-4" /> Agregar otro medio
+                            </button>
+                        </div>
 
-                            <label className="mb-1 block text-xs font-medium text-blue-100">
-                                Cuotas pagadas en esta cobranza
-                            </label>
-                            <input
-                                type="number"
-                                min={1}
-                                max={maxInstallmentsToPay}
-                                value={cuotasPagadasHoy}
-                                onChange={(e) => actualizarCuotasPagadas(e.target.value)}
-                                className="min-h-12 w-full rounded-2xl border border-blue-400/30 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
+                        {/* Nota */}
+                        <div className="space-y-3">
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Nota Opcional</label>
+                            <textarea
+                                value={nota}
+                                onChange={(e) => setNota(e.target.value)}
+                                placeholder="Escribe un comentario..."
+                                rows={3}
+                                className="w-full rounded-3xl bg-white/5 border border-white/10 p-5 text-sm text-white font-medium focus:border-white/20 outline-none"
                             />
-                            <p className="mt-1 text-xs text-blue-100/90">
-                                Restantes: {remainingInstallments} cuotas. Monto sugerido: ${suggestedAmount.toLocaleString("es-AR")}
-                            </p>
-                            <p className="mt-1 text-xs text-blue-100/90">
-                                {installmentMode === "ARREARS"
-                                    ? "La proxima visita se mantiene en el proximo ciclo normal."
-                                    : "Se adelanta la agenda segun la cantidad de cuotas seleccionadas."}
-                            </p>
                         </div>
-                    )}
 
-                    {pagos.map((p) => (
-                        <div key={p.id} className="flex flex-col gap-3 border-b border-slate-700/70 pb-4 last:border-none sm:flex-row sm:items-end">
-                            {/* Método */}
-                            <div className="flex-1">
-                                <label className="mb-1 block text-xs font-medium text-slate-300">
-                                    Medio de pago
-                                </label>
-                                <select
-                                    value={p.metodo}
-                                    onChange={(e) => actualizarPago(p.id, "metodo", e.target.value)}
-                                    className="min-h-12 w-full rounded-2xl border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
-                                >
-                                    <option value="efectivo">Efectivo</option>
-                                    <option value="mercadopago">Mercado Pago</option>
-                                    <option value="transferencia">Transferencia</option>
-                                </select>
-                            </div>
-
-                            {/* Monto */}
-                            <div className="flex-1">
-                                <label className="mb-1 block text-xs font-medium text-slate-300">
-                                    Monto abonado
-                                </label>
-                                <input
-                                    type="number"
-                                    value={p.monto}
-                                    onChange={(e) => actualizarPago(p.id, "monto", e.target.value)}
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                    className="min-h-12 w-full rounded-2xl border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
-                                />
-                            </div>
-
-                            {/* Eliminar */}
-                            {pagos.length > 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => eliminarPago(p.id)}
-                                    className="mt-1 flex min-h-11 items-center gap-1 self-start rounded-2xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 sm:mt-0"
-                                >
-                                    <HiTrash className="h-4 w-4" /> Quitar
-                                </button>
-                            )}
+                        {/* Total Final */}
+                        <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+                            <p className="text-sm font-black text-slate-500 uppercase tracking-widest font-black">Total a Registrar</p>
+                            <p className="text-3xl font-black text-white tabular-nums">${total.toLocaleString("es-AR")}</p>
                         </div>
-                    ))}
 
-                    <div className="flex justify-end">
+                        {/* Submit */}
                         <button
-                            type="button"
-                            onClick={agregarPago}
-                            className="flex min-h-11 items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/20"
+                            type="submit"
+                            disabled={savingPayment}
+                            className="h-20 w-full rounded-[32px] bg-gradient-to-r from-emerald-400 to-emerald-600 text-[#060b1d] font-black text-xl tracking-tighter shadow-2xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 disabled:grayscale"
                         >
-                            <HiPlus className="h-4 w-4" /> Agregar otro medio de pago
+                            {savingPayment ? (
+                                <div className="h-6 w-6 border-4 border-[#060b1d]/30 border-t-[#060b1d] rounded-full animate-spin" />
+                            ) : (
+                                "CONFIRMAR PAGO"
+                            )}
                         </button>
                     </div>
-
-                    <div className="border-t border-slate-700 pt-3 text-right text-sm font-medium text-slate-200">
-                        Total a registrar:{" "}
-                        <span className="text-lg font-bold text-cyan-300">
-                            ${total.toLocaleString("es-AR")}
-                        </span>
-                    </div>
-
-                    <div>
-                        <label className="mb-1 block text-sm font-medium text-slate-300">
-                            Nota (opcional)
-                        </label>
-                        <textarea
-                            value={nota}
-                            onChange={(e) => setNota(e.target.value)}
-                            placeholder="Ej: parte en efectivo, parte por MP."
-                            rows={3}
-                            className="w-full rounded-2xl border border-slate-700 bg-slate-950/30 px-3 py-3 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={savingPayment}
-                        className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-white font-semibold shadow-[0_18px_30px_-22px_rgba(59,130,246,0.95)] transition hover:from-blue-500 hover:to-cyan-400 focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {savingPayment ? "Registrando..." : "Registrar pago"}
-                    </button>
                 </form>
             </div>
         </div>

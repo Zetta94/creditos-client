@@ -114,92 +114,121 @@ export default function DashboardCobrador() {
   const fmtCurrency = v => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(v ?? 0);
   const fmtNumber = v => new Intl.NumberFormat("es-AR").format(v ?? 0);
 
-  /* Estado del trayecto */
   const estadoTrayecto = resumen.trayectoActivo ? "En curso" : resumen.reporteGenerado ? "Finalizado" : "Pendiente";
   const estadoColor = resumen.trayectoActivo ? "#34C759" : resumen.reporteGenerado ? "#007AFF" : "#FF9500";
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in px-2 pb-6 max-w-lg mx-auto">
+    <div className="min-h-screen bg-[#060b1d] text-white" style={{ 
+        backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)",
+        backgroundAttachment: "fixed"
+    }}>
+      <div className="mx-auto max-w-[500px] px-4 py-8 pb-32 animate-fade-in">
+      
+      {/* ── Header Principal ── */}
+      <header className="py-8 text-center">
+        <p className="text-[10px] ont-black uppercase tracking-[0.2em] text-slate-500 mb-2">Mi Jornada</p>
+        <h1 className="text-3xl font-black tracking-tight text-white">Panel de Control</h1>
+      </header>
 
-      {/* ── Header card ── */}
-      <div className="ios-card p-6">
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--ios-label-ter)] mb-1">Jornada</p>
-            <h1 className="text-2xl font-extrabold text-[color:var(--ios-label)] mb-1 tracking-tight">Panel del Cobrador</h1>
-            <p className="text-[15px] text-[color:var(--ios-label-sec)] m-0">Vista pensada para operar rápido desde el teléfono.</p>
-          </div>
-
-          {/* Estado + Botón acción */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Badge de estado */}
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              padding: "6px 14px", borderRadius: "99px",
-              background: `${estadoColor}18`,
-              border: `1.5px solid ${estadoColor}40`,
-              fontSize: "13px", fontWeight: 700, color: estadoColor,
-            }}>
-              {resumen.trayectoActivo ? <HiPlay style={{ width: "14px", height: "14px" }} /> :
-                resumen.reporteGenerado ? <HiCheckCircle style={{ width: "14px", height: "14px" }} /> :
-                  <HiClock style={{ width: "14px", height: "14px" }} />}
+      {/* ── Tarjeta de Estado Principal ── */}
+      <section className="mb-8">
+        <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-2xl relative overflow-hidden text-center">
+          {/* Brillo de fondo sutil */}
+          <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/10 blur-3xl -ml-16 -mt-16" />
+          
+          <div className="relative z-10 flex flex-col items-center gap-6">
+            <div 
+              style={{ background: `${estadoColor}15`, color: estadoColor, borderColor: `${estadoColor}30` }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-widest"
+            >
+              <div style={{ background: estadoColor }} className="h-1.5 w-1.5 rounded-full animate-pulse" />
               {estadoTrayecto}
             </div>
 
-            {/* Botón principal */}
-            {loadingTrayecto ? (
-              <button disabled className="px-6 py-3 rounded-xl bg-[color:var(--ios-fill)] text-[color:var(--ios-label-ter)] font-semibold text-[15px] cursor-not-allowed">
-                Cargando...
-              </button>
-            ) : !trayectoActivo ? (
-              <button
-                onClick={confirmarInicio}
-                disabled={resumen.reporteGenerado}
-                className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-[15px] transition-all shadow ${resumen.reporteGenerado ? "bg-[color:var(--ios-fill)] text-[color:var(--ios-label-ter)] cursor-not-allowed" : "bg-[color:#34C759] text-white hover:shadow-lg hover:-translate-y-0.5"}`}
-              >
-                <HiPlay style={{ width: "18px", height: "18px" }} />
-                {resumen.reporteGenerado ? "Día Finalizado" : "Iniciar trayecto"}
-              </button>
-            ) : (
-              <button
-                onClick={confirmarFinalizacion}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-[15px] bg-[color:var(--ios-red)] text-white transition-all shadow hover:shadow-lg hover:-translate-y-0.5"
-              >
-                <HiStop style={{ width: "18px", height: "18px" }} />
-                Finalizar día
-              </button>
-            )}
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">TOTAL RECAUDADO HOY</p>
+              <h2 className="text-5xl font-black tracking-tighter text-white">
+                {loadingResumen ? "---" : fmtCurrency(resumen.totalCobrado)}
+              </h2>
+            </div>
+
+            {/* BOTÓN DE ACCIÓN PRINCIPAL */}
+            <div className="w-full mt-4">
+              {loadingTrayecto ? (
+                <div className="h-14 w-full rounded-2xl bg-white/5 flex items-center justify-center text-slate-500 font-bold">
+                  Cargando...
+                </div>
+              ) : !trayectoActivo ? (
+                <button
+                  onClick={confirmarInicio}
+                  disabled={resumen.reporteGenerado}
+                  className={`group relative h-16 w-full rounded-3xl font-black text-lg tracking-tight shadow-xl transition-all active:scale-95 ${
+                    resumen.reporteGenerado 
+                      ? "bg-slate-800 text-slate-500 cursor-not-allowed" 
+                      : "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white shadow-emerald-500/20"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    <HiPlay className="h-6 w-6" />
+                    {resumen.reporteGenerado ? "Jornada Finalizada" : "INICIAR TRAYECTO"}
+                  </div>
+                  {!resumen.reporteGenerado && (
+                    <div className="absolute inset-0 rounded-3xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={confirmarFinalizacion}
+                  className="h-16 w-full rounded-3xl bg-red-500/10 border border-red-500/20 text-red-500 font-black text-lg tracking-tight shadow-xl shadow-red-500/5 active:scale-95 transition-all flex items-center justify-center gap-3"
+                >
+                  <HiStop className="h-6 w-6" />
+                  FINALIZAR JORNADA
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Error ── */}
+      {/* ── KPIs Secundarios ── */}
+      <section className="grid grid-cols-2 gap-3 mb-8">
+        <MiniCard 
+          label="Visitados" 
+          value={resumen.clientesVisitados} 
+          icon={<HiCheckCircle className="h-5 w-5 text-blue-400" />}
+          loading={loadingResumen}
+        />
+        <MiniCard 
+          label="Pendientes" 
+          value={resumen.asignaciones} 
+          icon={<HiClock className="h-5 w-5 text-orange-400" />}
+          loading={loadingResumen}
+        />
+      </section>
+
+      {/* ── Desglose de Métodos ── */}
+      <section className="mt-4">
+        <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 px-4">Detalle por Método</h3>
+        <div className="rounded-[32px] bg-white/5 border border-white/5 p-6 backdrop-blur-md space-y-5">
+          <MetodoItem label="Efectivo" value={fmtCurrency(resumen.efectivo)} color="text-emerald-400" />
+          <MetodoItem label="Mercado Pago" value={fmtCurrency(resumen.mercadopago)} color="text-blue-400" />
+          <MetodoItem label="Transferencia" value={fmtCurrency(resumen.transferencia)} color="text-sky-400" />
+        </div>
+      </section>
+
+      {/* ── Planificación Semanal ── */}
+      <section className="mt-10">
+        <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 px-4">Cobros Semanales</h3>
+        <div className="grid grid-cols-3 gap-2">
+            <FlatCard label="Diarios" value={resumen.pagosDiarios} color="yellow" />
+            <FlatCard label="Semanales" value={resumen.pagosSemanales} color="blue" />
+            <FlatCard label="Quinc." value={resumen.pagosQuincenales} color="indigo" />
+        </div>
+      </section>
+
       {errorResumen && (
-        <div className="p-4 bg-[color:var(--ios-red-bg)] rounded-xl border border-[rgba(255,59,48,0.2)] text-[color:var(--ios-red)] text-[14px] font-bold">
+        <div className="mt-8 p-4 bg-red-500/10 rounded-2xl border border-red-500/20 text-red-500 text-xs font-black text-center uppercase tracking-widest">
           {errorResumen}
-        </div>
-      )}
-
-      {/* ── Indicadores de cobro ── */}
-      {!errorResumen && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Indicador icon={<HiCreditCard style={{ width: "18px", height: "18px", color: "#007AFF" }} />} label="Cobrado por MP" color="#007AFF" valor={loadingResumen ? null : fmtCurrency(resumen.mercadopago)} />
-          <Indicador icon={<HiCash style={{ width: "18px", height: "18px", color: "#34C759" }} />} label="Efectivo" color="#34C759" valor={loadingResumen ? null : fmtCurrency(resumen.efectivo)} />
-          <Indicador icon={<HiCreditCard style={{ width: "18px", height: "18px", color: "#32ADE6" }} />} label="Transferencias" color="#32ADE6" valor={loadingResumen ? null : fmtCurrency(resumen.transferencia)} />
-          <Indicador icon={<HiClipboardList style={{ width: "18px", height: "18px", color: "#FF9500" }} />} label="Pagos diarios" color="#FF9500" valor={loadingResumen ? null : fmtNumber(resumen.pagosDiarios)} />
-          <Indicador icon={<HiCalendar style={{ width: "18px", height: "18px", color: "#AF52DE" }} />} label="Semanales" color="#AF52DE" valor={loadingResumen ? null : fmtNumber(resumen.pagosSemanales)} />
-          <Indicador icon={<HiCalendar style={{ width: "18px", height: "18px", color: "#5856D6" }} />} label="Quincenales" color="#5856D6" valor={loadingResumen ? null : fmtNumber(resumen.pagosQuincenales)} />
-          <Indicador icon={<HiCalendar style={{ width: "18px", height: "18px", color: "#FF3B30" }} />} label="Mensuales" color="#FF3B30" valor={loadingResumen ? null : fmtNumber(resumen.pagosMensuales)} />
-        </div>
-      )}
-
-      {/* ── Resumen del día ── */}
-      {!loadingResumen && !errorResumen && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <DatoResumen label="Total cobrado hoy" value={fmtCurrency(resumen.totalCobrado)} accent="#34C759" />
-          <DatoResumen label="Clientes visitados" value={fmtNumber(resumen.clientesVisitados)} accent="#007AFF" />
-          <DatoResumen label="Créditos por cobrar hoy" value={fmtNumber(resumen.asignaciones)} accent="#FF9500" />
-          <DatoResumen label="Estado del trayecto" value={estadoTrayecto} accent={estadoColor} />
         </div>
       )}
 
@@ -209,33 +238,45 @@ export default function DashboardCobrador() {
           onConfirm={toast.onConfirm} onCancel={() => setToast(null)} onClose={() => setToast(null)}
         />
       )}
-    </div>
-  );
-}
-
-function Indicador({ icon, label, color, valor }) {
-  return (
-    <div className="ios-card px-4 pt-4 pb-5">
-      <div className="flex items-center justify-between mb-2.5">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--ios-label-ter)] m-0">{label}</p>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: `${color}18` }} className="flex items-center justify-center flex-shrink-0">
-          {icon}
-        </div>
       </div>
-      {valor === null ? (
-        <div className="skeleton h-[22px] w-4/5 rounded-md" />
-      ) : (
-        <p className="text-[18px] font-bold text-[color:var(--ios-label)] m-0 tracking-tight break-words">{valor}</p>
-      )}
     </div>
   );
 }
 
-function DatoResumen({ label, value, accent }) {
+function MiniCard({ label, value, icon, loading }) {
   return (
-    <div className="bg-[color:var(--ios-bg-card)] rounded-2xl shadow-sm p-4 border-l-4" style={{ borderLeftColor: accent }}>
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--ios-label-ter)] mb-1">{label}</p>
-      <p className="text-[18px] font-bold text-[color:var(--ios-label)] m-0 tracking-tight break-words">{value}</p>
+    <div className="rounded-3xl bg-white/5 border border-white/10 p-5 backdrop-blur-xl">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</p>
+        {icon}
+      </div>
+      <p className="text-2xl font-black text-white">
+        {loading ? "---" : value}
+      </p>
     </div>
   );
+}
+
+function MetodoItem({ label, value, color }) {
+    return (
+        <div className="flex items-center justify-between">
+            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">{label}</p>
+            <p className={`text-lg font-black ${color}`}>{value}</p>
+        </div>
+    );
+}
+
+function FlatCard({ label, value, color }) {
+    const colors = {
+        yellow: "text-orange-400 bg-orange-400/5 border-orange-400/10",
+        blue: "text-blue-400 bg-blue-400/5 border-blue-400/10",
+        indigo: "text-indigo-400 bg-indigo-400/5 border-indigo-400/10"
+    };
+
+    return (
+        <div className={`rounded-2xl border ${colors[color]} p-4 text-center`}>
+            <p className="text-[8px] font-black uppercase tracking-tighter mb-1 opacity-70">{label}</p>
+            <p className="text-xl font-black tracking-tight">{value}</p>
+        </div>
+    );
 }

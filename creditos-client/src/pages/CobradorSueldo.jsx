@@ -115,229 +115,197 @@ export default function SueldoCobrador() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
-
-      {/* Header */}
-      <div className="ios-card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: "14px" }}>
-          <div>
-            <h1 style={{ fontSize: "22px", fontWeight: 800, color: "var(--ios-label)", margin: "0 0 4px", letterSpacing: "-0.025em" }}>
-              Sueldo semanal
-            </h1>
-            <p style={{ fontSize: "14px", color: "var(--ios-label-sec)", margin: "0 0 2px" }}>{cobrador.name}</p>
-            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>
-              Tipo de salario: {salaryTypeLabel} · Día de cobro: <strong>Sábado</strong>
-            </p>
-          </div>
-          <button
-            type="button" onClick={generarResumenPago}
-            disabled={!esSabado || generandoResumen}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "8px",
-              padding: "12px 20px", borderRadius: "12px", border: "none",
-              background: !esSabado || generandoResumen ? "var(--ios-fill)" : "var(--ios-blue)",
-              color: !esSabado || generandoResumen ? "var(--ios-label-ter)" : "#fff",
-              fontSize: "14px", fontWeight: 700, cursor: !esSabado || generandoResumen ? "not-allowed" : "pointer",
-              boxShadow: esSabado && !generandoResumen ? "0 4px 12px rgba(0,122,255,0.3)" : "none",
-              transition: "all 0.15s",
-            }}
-          >
-            <HiDocumentText style={{ width: "16px", height: "16px" }} />
-            {generandoResumen ? "Generando..." : "Generar resumen semanal"}
-          </button>
-        </div>
-
-        {!esSabado && (
-          <div style={{ marginTop: "14px", borderRadius: "10px", background: "#FFFBEB", border: "1.5px solid #F59E0B40", padding: "10px 14px" }}>
-            <p style={{ fontSize: "13px", color: "#7C4A00", margin: 0 }}>
-              ⚠️ El resumen para pago al administrador solo se genera los sábados.
-            </p>
-          </div>
-        )}
-
-        {pagoRegistradoSemana ? (
-          <div style={{ marginTop: "14px", borderRadius: "10px", background: "#E8F8ED", border: "1.5px solid #34C75940", padding: "12px 14px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+    <div className="min-h-screen bg-[#060b1d] text-white" 
+         style={{ backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)", backgroundAttachment: "fixed" }}>
+      
+      <div className="mx-auto max-w-2xl px-4 py-8 pb-32 animate-fade-in space-y-6">
+        
+        {/* ── Header ── */}
+        <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl -mr-16 -mt-16" />
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="flex justify-between items-start">
               <div>
-                <p style={{ fontSize: "14px", fontWeight: 700, color: "#1A6B36", margin: "0 0 2px" }}>Pago registrado esta semana</p>
-                <p style={{ fontSize: "13px", color: "#1A6B36", margin: 0 }}>
-                  Administración registró tu pago el {formatDate(pagoRegistradoSemana.paidAt)} · Total: {formatCurrency(pagoRegistradoSemana.totalPaid)}
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Mi Sueldo</p>
+                <h1 className="text-3xl font-black tracking-tight text-white">{cobrador.name}</h1>
+                <p className="text-xs text-slate-400 font-medium mt-1">
+                  Salario: <span className="text-white font-bold">{salaryTypeLabel}</span> · Cobro: <span className="text-white font-bold">Sábados</span>
                 </p>
               </div>
-              <span style={{ padding: "4px 12px", borderRadius: "99px", background: "#C6F6D5", color: "#1A6B36", fontSize: "12px", fontWeight: 700 }}>
-                {pagoRegistradoSemana.commissionPaid ? "Con comisión" : "Sin comisión"}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div style={{ marginTop: "14px", borderRadius: "10px", background: "var(--ios-fill)", border: "1.5px solid var(--ios-sep-opaque)", padding: "10px 14px" }}>
-            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>
-              Todavía no hay un pago registrado por administración para esta semana.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
-        {[
-          { label: "Sueldo semanal", value: formatCurrency(salarioBaseSemanal), icon: HiCurrencyDollar, color: "#004299", bg: "#EBF3FF" },
-          { label: "Comisión", value: formatCurrency(totalComisionSemana), hint: `${porcentajeComision}% por crédito`, icon: HiTrendingUp, color: "#1A6B36", bg: "#E8F8ED" },
-          { label: "Total cobrado", value: formatCurrency(totalPagosSemana), hint: "Esta semana", icon: HiCalendar, color: "#5C2B8C", bg: "#F5EAFF" },
-          { label: "Total a pagar", value: formatCurrency(totalSemana), hint: "Sueldo + comisión", icon: HiCheckCircle, color: "#7C4A00", bg: "#FFF3E0" },
-        ].map(kpi => (
-          <div key={kpi.label} className="ios-card" style={{ padding: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-              <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: 0 }}>{kpi.label}</p>
-              <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: kpi.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <kpi.icon style={{ width: "16px", height: "16px", color: kpi.color }} />
+              <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-400">
+                <HiCurrencyDollar className="h-7 w-7" />
               </div>
             </div>
-            <p style={{ fontSize: "20px", fontWeight: 800, color: "var(--ios-label)", margin: 0 }}>{kpi.value}</p>
-            {kpi.hint && <p style={{ fontSize: "11px", color: "var(--ios-label-ter)", margin: "4px 0 0" }}>{kpi.hint}</p>}
+
+            <button
+              onClick={generarResumenPago}
+              disabled={!esSabado || generandoResumen}
+              className={`h-14 w-full rounded-2xl font-black text-sm tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 ${
+                !esSabado || generandoResumen 
+                ? "bg-white/5 text-slate-500 border border-white/5 grayscale" 
+                : "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-xl shadow-blue-500/20"
+              }`}
+            >
+              <HiDocumentText className="h-5 w-5" />
+              {generandoResumen ? "GENERANDO..." : "GENERAR RESUMEN SEMANAL"}
+            </button>
+
+            {!esSabado && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                Solo disponible los Sábados
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-
-      {resumenSemanal && (
-        <div style={{ borderRadius: "12px", background: "#E8F8ED", border: "1.5px solid #34C75940", padding: "14px 16px" }}>
-          <p style={{ fontSize: "14px", color: "#1A6B36", margin: 0, fontWeight: 600 }}>
-            {resumenSemanal.alreadyGenerated
-              ? "✓ Resumen ya existente. El administrador ya lo tiene en Mensajes."
-              : "✓ Resumen generado correctamente. El administrador puede verlo en Mensajes."}
-          </p>
         </div>
-      )}
 
-      {/* Detalle semanal */}
-      <div className="ios-card" style={{ padding: "20px" }}>
-        <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 14px" }}>
-          Detalle por crédito creado
-        </h2>
-        {loading ? (
-          <div className="skeleton" style={{ height: "80px", borderRadius: "12px" }} />
-        ) : error ? (
-          <p style={{ color: "#8B0000", fontSize: "14px" }}>{error}</p>
-        ) : creditosConComision.length > 0 ? (
-          <>
-            {/* Desktop table */}
-            <div className="hidden sm:block" style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--ios-sep-opaque)" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    {["Fecha", "Cliente", "Crédito/Producto", "Monto cobrado", "Comisión"].map((h, i) => (
-                      <th key={h} style={{ padding: "10px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: i === 4 ? "right" : "left" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {detallePaginado.map((item) => (
-                    <tr key={item.creditId} style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      <td style={{ padding: "12px 14px", fontSize: "14px", color: "var(--ios-label-sec)" }}>{new Date(item.date).toLocaleDateString("es-AR")}</td>
-                      <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "var(--ios-label)" }}>{item.cliente}</td>
-                      <td style={{ padding: "12px 14px", fontSize: "14px", color: "var(--ios-label-sec)" }}>{item.producto}</td>
-                      <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 700, color: "var(--ios-label)" }}>${item.amount.toLocaleString("es-AR")}</td>
-                      <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 700, color: "#1A6B36", textAlign: "right" }}>${item.comision.toLocaleString("es-AR")}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* ── KPIs Grid ── */}
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { label: "Salario Base", value: formatCurrency(salarioBaseSemanal), icon: HiCurrencyDollar, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
+            { label: "Comisiones", value: formatCurrency(totalComisionSemana), hint: `${porcentajeComision}% variable`, icon: HiTrendingUp, color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+            { label: "Total Cobrado", value: formatCurrency(totalPagosSemana), hint: "Esta semana", icon: HiCalendar, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" },
+            { label: "Mi Ganancia", value: formatCurrency(totalSemana), hint: "A liquidar", icon: HiCheckCircle, color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20" },
+          ].map(kpi => (
+            <div key={kpi.label} className="rounded-[28px] bg-white/5 border border-white/10 p-5 backdrop-blur-xl space-y-3 relative overflow-hidden">
+              <div className={`absolute top-0 right-0 p-3 ${kpi.color} opacity-20`}>
+                <kpi.icon className="h-12 w-12" />
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{kpi.label}</p>
+              <div>
+                <p className="text-2xl font-black text-white tracking-tighter">{kpi.value}</p>
+                {kpi.hint && <p className="text-[10px] text-slate-500 font-bold italic">{kpi.hint}</p>}
+              </div>
             </div>
+          ))}
+        </div>
 
-            {/* Mobile cards */}
-            <div className="sm:hidden" style={{ flexDirection: "column", gap: "10px" }}>
+        {/* ── Status Alerts ── */}
+        {pagoRegistradoSemana && (
+            <div className="rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 p-5 flex items-center gap-4 animate-ios-notification backdrop-blur-md">
+                <div className="h-11 w-11 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-inner">
+                    <HiCheckCircle className="h-7 w-7" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-0.5">Pago Registrado</p>
+                    <p className="text-[13px] text-white font-bold tracking-tight">Liquidados {formatCurrency(pagoRegistradoSemana.totalPaid)}</p>
+                    <p className="text-[10px] text-emerald-500/60 font-medium italic">El día {formatDate(pagoRegistradoSemana.paidAt)}</p>
+                </div>
+            </div>
+        )}
+
+        {resumenSemanal && (
+          <div className="rounded-3xl bg-blue-500/10 border border-blue-500/20 p-5 text-center animate-slide-up">
+            <p className="text-xs font-black text-blue-400 uppercase tracking-widest">
+              {resumenSemanal.alreadyGenerated ? "RESUMEN EXISTENTE" : "RESUMEN ENVIADO"}
+            </p>
+            <p className="text-sm text-slate-300 font-medium mt-1">El administrador ya tiene el reporte en su panel de mensajes.</p>
+          </div>
+        )}
+
+        {/* ── Detalle List ── */}
+        <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-xl space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Detalle por Crédito</h2>
+            <span className="text-[10px] font-bold text-slate-600 italic">{creditosConComision.length} registros</span>
+          </div>
+
+          {loading ? (
+            <div className="space-y-4">
+              <div className="h-20 w-full rounded-2xl bg-white/5 animate-pulse" />
+              <div className="h-20 w-full rounded-2xl bg-white/5 animate-pulse" />
+            </div>
+          ) : creditosConComision.length > 0 ? (
+            <div className="space-y-4">
               {detallePaginado.map((item) => (
-                <div key={item.creditId} style={{ background: "var(--ios-fill)", borderRadius: "12px", padding: "14px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "8px" }}>
+                <div key={item.creditId} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.08] transition-all group">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 2px" }}>{item.cliente}</p>
-                      <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: 0 }}>{item.producto} · {formatDate(item.date)}</p>
+                      <p className="font-black text-white text-lg tracking-tight">{item.cliente}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{item.producto} · {formatDate(item.date)}</p>
                     </div>
-                    <span style={{ padding: "4px 10px", borderRadius: "99px", background: "#E8F8ED", color: "#1A6B36", fontSize: "12px", fontWeight: 700 }}>
-                      ${item.comision.toLocaleString("es-AR")}
-                    </span>
+                    <div className="text-right">
+                      <p className="text-md font-black text-emerald-400">+ ${item.comision.toLocaleString("es-AR")}</p>
+                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Comisión</p>
+                    </div>
                   </div>
-                  <p style={{ fontSize: "13px", color: "var(--ios-label-sec)", margin: 0 }}>Monto cobrado: <strong>${item.amount.toLocaleString("es-AR")}</strong></p>
+                  <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                    <p className="text-[10px] text-slate-400 font-medium">Cobrado: <span className="text-white font-bold">${item.amount.toLocaleString("es-AR")}</span></p>
+                  </div>
                 </div>
               ))}
-            </div>
-
-            <div style={{ marginTop: "14px" }}>
-              <Pagination
-                page={detallePageSafe} pageSize={detallePageSize}
-                totalItems={creditosConComision.length} totalPages={detalleTotalPages}
-                onPageChange={setDetallePage}
-                onPageSizeChange={(size) => { setDetallePageSize(size); setDetallePage(1); }}
-                pageSizeOptions={[5, 10, 20]}
-              />
-            </div>
-          </>
-        ) : (
-          <p style={{ fontSize: "14px", color: "var(--ios-label-ter)", textAlign: "center", padding: "24px" }}>
-            No se registraron créditos creados esta semana.
-          </p>
-        )}
-      </div>
-
-      {/* Historial */}
-      <div className="ios-card" style={{ padding: "20px" }}>
-        <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 14px" }}>
-          Resúmenes anteriores
-        </h2>
-        {loading ? (
-          <div className="skeleton" style={{ height: "80px", borderRadius: "12px" }} />
-        ) : historialParaMostrar.length === 0 ? (
-          <p style={{ fontSize: "14px", color: "var(--ios-label-ter)", textAlign: "center", padding: "24px" }}>
-            No hay resúmenes históricos para mostrar.
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {historialPaginado.map((item) => (
-              <div key={item.payrollKey} style={{ borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "10px" }}>
-                  <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>
-                    Semana del {formatDate(item.weekStart)} al {formatDate(item.weekEnd)}
-                  </p>
-                  <span style={{
-                    padding: "4px 12px", borderRadius: "99px", fontSize: "12px", fontWeight: 700,
-                    background: item.generated ? "#E8F8ED" : "#FFF3E0",
-                    color: item.generated ? "#1A6B36" : "#7C4A00",
-                  }}>
-                    {item.generated ? "Generado" : "No generado"}
-                  </span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "8px" }}>
-                  {[
-                    { label: "Sueldo", value: formatCurrency(item.weeklySalary) },
-                    { label: "Comisión", value: formatCurrency(item.totalCommission) },
-                    { label: "Total payout", value: formatCurrency(item.weeklyPayout) },
-                    { label: "Estado", value: item.payment ? "Pagado" : "Pendiente" },
-                    { label: "Com. pagada", value: item.payment?.commissionPaid ? "Sí" : "No" },
-                    { label: "Pagado", value: item.payment ? formatCurrency(item.payment.totalPaid) : "—" },
-                  ].map(f => (
-                    <div key={f.label}>
-                      <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 2px" }}>{f.label}</p>
-                      <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label)", margin: 0 }}>{f.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--ios-label-ter)" }}>
-                  Créditos con comisión: {Array.isArray(item.items) ? item.items.length : 0}
-                </p>
+              
+              <div className="pt-4">
+                <Pagination
+                  page={detallePageSafe} pageSize={detallePageSize}
+                  totalItems={creditosConComision.length} totalPages={detalleTotalPages}
+                  onPageChange={setDetallePage}
+                  onPageSizeChange={(size) => { setDetallePageSize(size); setDetallePage(1); }}
+                  pageSizeOptions={[5, 10, 20]}
+                  variant="dark"
+                />
               </div>
-            ))}
-            <Pagination
-              page={historialPageSafe} pageSize={historialPageSize}
-              totalItems={historialParaMostrar.length} totalPages={historialTotalPages}
-              onPageChange={setHistorialPage}
-              onPageSizeChange={(size) => { setHistorialPageSize(size); setHistorialPage(1); }}
-              pageSizeOptions={[4, 8, 12]}
-            />
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <p className="text-sm text-slate-500 font-bold italic">No se registraron cobros con comisión esta semana.</p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Historial ── */}
+        <div className="rounded-[32px] bg-white/5 border border-white/10 p-8 backdrop-blur-2xl shadow-xl space-y-6">
+          <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Resúmenes Históricos</h2>
+          
+          {historialParaMostrar.length === 0 ? (
+            <p className="text-center text-sm text-slate-600 font-bold italic py-8">Sin historial acumulado.</p>
+          ) : (
+            <div className="space-y-4">
+              {historialPaginado.map((item) => (
+                <div key={item.payrollKey} className="p-6 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-xs font-black text-white uppercase tracking-widest">
+                      SEMANA {formatDate(item.weekStart)}
+                    </p>
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.15em] ${
+                      item.generated ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                    }`}>
+                      {item.generated ? "GENERADO" : "PENDIENTE"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">SUELDO</p>
+                      <p className="text-sm font-bold text-white">{formatCurrency(item.weeklySalary)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">COMISIÓN</p>
+                      <p className="text-sm font-bold text-emerald-400">{formatCurrency(item.totalCommission)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">PAGADO</p>
+                      <p className={`text-sm font-bold ${item.payment ? "text-blue-400" : "text-slate-500"}`}>
+                        {item.payment ? formatCurrency(item.payment.totalPaid) : "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <div className="pt-4">
+                <Pagination
+                  page={historialPageSafe} pageSize={historialPageSize}
+                  totalItems={historialParaMostrar.length} totalPages={historialTotalPages}
+                  onPageChange={setHistorialPage}
+                  onPageSizeChange={(size) => { setHistorialPageSize(size); setHistorialPage(1); }}
+                  pageSizeOptions={[4, 8, 12]}
+                  variant="dark"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

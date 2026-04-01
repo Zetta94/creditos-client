@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -1160,10 +1160,10 @@ export default function CreditoNuevo() {
                                 {/* Modo */}
                                 <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
                                     <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 10px" }}>¿El crédito es nuevo o ya estaba en curso?</p>
-                                    <div style={{ display: "flex", gap: "10px" }}>
+                                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                                         {[["NEW", "Crédito nuevo"], ["EXISTING", "Crédito existente"]].map(([val, lbl]) => (
                                             <button key={val} type="button" onClick={() => setCreditMode(val)}
-                                                style={{ flex: 1, height: "44px", borderRadius: "12px", border: `1.5px solid ${creditMode === val ? "var(--ios-blue)" : "var(--ios-sep-opaque)"}`, background: creditMode === val ? "#EBF3FF" : "#fff", color: creditMode === val ? "var(--ios-blue)" : "var(--ios-label-sec)", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>
+                                                style={{ flex: "1 1 140px", height: "44px", borderRadius: "12px", border: `1.5px solid ${creditMode === val ? "var(--ios-blue)" : "var(--ios-sep-opaque)"}`, background: creditMode === val ? "#EBF3FF" : "#fff", color: creditMode === val ? "var(--ios-blue)" : "var(--ios-label-sec)", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>
                                                 {lbl}
                                             </button>
                                         ))}
@@ -1173,10 +1173,10 @@ export default function CreditoNuevo() {
                                 {/* Plan */}
                                 <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
                                     <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 10px" }}>Tipo de cobro</p>
-                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px" }}>
                                         {PLAN_OPTIONS.map(opt => (
                                             <button key={opt.value} type="button" onClick={() => setForm(prev => ({ ...prev, plan: opt.value }))}
-                                                style={{ height: "44px", borderRadius: "12px", border: `1.5px solid ${form.plan === opt.value ? "var(--ios-blue)" : "var(--ios-sep-opaque)"}`, background: form.plan === opt.value ? "#EBF3FF" : "#fff", color: form.plan === opt.value ? "var(--ios-blue)" : "var(--ios-label-sec)", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+                                                style={{ height: "44px", borderRadius: "12px", border: `1.5px solid ${form.plan === opt.value ? "var(--ios-blue)" : "var(--ios-sep-opaque)"}`, background: form.plan === opt.value ? "#EBF3FF" : "#fff", color: form.plan === opt.value ? "var(--ios-blue)" : "var(--ios-label-sec)", fontSize: "13px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", padding: "0 8px" }}>
                                                 {opt.label}
                                             </button>
                                         ))}
@@ -1186,7 +1186,7 @@ export default function CreditoNuevo() {
                                 {/* Fechas */}
                                 <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
                                     <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 12px" }}>Fechas del crédito</p>
-                                    <div style={{ display: "grid", gridTemplateColumns: isSinglePayment ? "1fr" : "1fr 1fr", gap: "12px" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
                                         <div>
                                             <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>{primaryDateLabel}</label>
                                             <input name="startDate" type="date" value={form.startDate} onChange={handleChange} min={isNewCredit ? todayIso : undefined}
@@ -1260,7 +1260,7 @@ export default function CreditoNuevo() {
                                 {/* Importes */}
                                 <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
                                     <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 12px" }}>Importes y cuotas</p>
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                                         {[
                                             { lbl: "Monto base", name: "monto", step: "100", placeholder: "Ej: 100000" },
                                             { lbl: "Interés (%)", name: "interes", step: "1", placeholder: "Ej: 150" },
@@ -1283,7 +1283,7 @@ export default function CreditoNuevo() {
                                     </div>
 
                                     <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "16px 0 12px" }}>Responsables</p>
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                                         {[
                                             { lbl: "Cobrador asignado", name: "cobradorId" },
                                             { lbl: "Cobrador comisión", name: "cobradorComisionId" },
@@ -1442,7 +1442,7 @@ export default function CreditoNuevo() {
                             <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 4px" }}>Confirmación final</h2>
                             <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>Revisá todo antes de crear el crédito.</p>
 
-                            <div style={{ marginTop: "18px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                            <div style={{ marginTop: "18px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
                                 <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
                                     <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 10px" }}>Datos principales</p>
                                     {[

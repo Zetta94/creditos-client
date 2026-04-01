@@ -125,46 +125,73 @@ function AssignmentOrderList({ title, subtitle, droppableId, items, editable, sa
                         {...dragProvided.draggableProps}
                         {...(editable ? dragProvided.dragHandleProps : {})}
                         style={{
-                          borderRadius: "12px",
-                          border: `1.5px solid ${snapshot.isDragging ? "var(--ios-blue)" : "var(--ios-sep-opaque)"}`,
-                          background: snapshot.isDragging ? "#EBF3FF" : "var(--ios-fill)",
-                          padding: "12px 14px",
-                          transition: "border-color 0.15s, background 0.15s",
-                          boxShadow: snapshot.isDragging ? "0 4px 16px rgba(0,122,255,0.18)" : "none",
+                          borderRadius: "20px",
+                          border: snapshot.isDragging ? "2px solid var(--ios-blue)" : "1.5px solid var(--ios-sep-opaque)",
+                          background: snapshot.isDragging ? "#fff" : "var(--ios-bg-card)",
+                          padding: "16px",
+                          transition: snapshot.isDragging ? "none" : "border-color 0.15s, background 0.15s, box-shadow 0.15s",
+                          boxShadow: snapshot.isDragging 
+                            ? "0 15px 30px -5px rgba(0,122,255,0.3)" 
+                            : "var(--ios-shadow-sm)",
+                          userSelect: "none",
+                          marginBottom: "8px",
                           ...dragProvided.draggableProps.style,
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              <span style={{ color: "var(--ios-blue)", marginRight: "6px" }}>#{index + 1}</span>
-                              {item.nombre}
-                            </p>
-                            <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: 0 }}>
-                              {String(item.tipoPagoReal || item.tipoPago || "-").toUpperCase()} · Próxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
-                            </p>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 0 }}>
+                            <div style={{ 
+                              width: "32px", height: "32px", borderRadius: "10px", 
+                              background: "rgba(0,122,255,0.1)", color: "var(--ios-blue)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: "13px", fontWeight: 800, flexShrink: 0
+                            }}>
+                              {index + 1}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {item.nombre}
+                              </p>
+                              <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: 0 }}>
+                                <span style={{ color: "var(--ios-blue)", fontWeight: 600 }}>{String(item.tipoPagoReal || item.tipoPago || "-").toUpperCase()}</span> · Próxima visita: {item.nextVisitDate ? new Date(item.nextVisitDate).toLocaleDateString("es-AR") : "-"}
+                              </p>
+                            </div>
                           </div>
-                          <span style={{ fontSize: "11px", color: "var(--ios-label-ter)", whiteSpace: "nowrap", flexShrink: 0 }}>
-                            Orden: {item.orden}
-                          </span>
+                          {editable && (
+                            <div style={{ 
+                              width: "24px", height: "24px", borderRadius: "6px", 
+                              background: "var(--ios-fill)", display: "flex", flexDirection: "column", 
+                              gap: "2px", alignItems: "center", justifyContent: "center", opacity: 0.5 
+                            }}>
+                              <div style={{ width: "12px", height: "2px", background: "var(--ios-label-ter)", borderRadius: "1px" }}></div>
+                              <div style={{ width: "12px", height: "2px", background: "var(--ios-label-ter)", borderRadius: "1px" }}></div>
+                              <div style={{ width: "12px", height: "2px", background: "var(--ios-label-ter)", borderRadius: "1px" }}></div>
+                            </div>
+                          )}
                         </div>
                         {editable && (
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                            <input
-                              type="number" min={1} max={items.length}
-                              value={positionByItemId[item.assignmentId] ?? ""}
-                              onChange={(e) => setPositionByItemId(prev => ({ ...prev, [item.assignmentId]: e.target.value }))}
-                              onKeyDown={(e) => {
-                                if (e.key !== "Enter") return;
-                                const v = Number(positionByItemId[item.assignmentId]);
-                                if (!Number.isFinite(v)) return;
-                                onMoveToPosition(item.assignmentId, v);
-                                setPositionByItemId(prev => ({ ...prev, [item.assignmentId]: "" }));
-                              }}
-                              placeholder="Mover a posición..."
-                              style={{ ...inputStyle, width: "160px", height: "34px", fontSize: "13px" }}
-                              onFocus={onFocus} onBlur={onBlur}
-                            />
+                          <div style={{ 
+                            display: "flex", alignItems: "center", gap: "8px", marginTop: "14px", 
+                            paddingTop: "14px", borderTop: "1px solid var(--ios-sep-light)" 
+                          }}>
+                            <div style={{ position: "relative", flex: 1 }}>
+                              <input
+                                type="number" min={1} max={items.length}
+                                value={positionByItemId[item.assignmentId] ?? ""}
+                                onChange={(e) => setPositionByItemId(prev => ({ ...prev, [item.assignmentId]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key !== "Enter") return;
+                                  e.preventDefault();
+                                  const v = Number(positionByItemId[item.assignmentId]);
+                                  if (!Number.isFinite(v) || v < 1) return;
+                                  onMoveToPosition(item.assignmentId, v);
+                                  setPositionByItemId(prev => ({ ...prev, [item.assignmentId]: "" }));
+                                }}
+                                placeholder="Mover a..."
+                                style={{ ...inputStyle, height: "36px", fontSize: "14px" }}
+                                onFocus={onFocus} onBlur={onBlur}
+                              />
+                            </div>
                             <button
                               type="button"
                               onClick={() => {
@@ -174,10 +201,13 @@ function AssignmentOrderList({ title, subtitle, droppableId, items, editable, sa
                                 setPositionByItemId(prev => ({ ...prev, [item.assignmentId]: "" }));
                               }}
                               style={{
-                                height: "34px", padding: "0 14px", borderRadius: "8px", border: "none",
-                                background: "var(--ios-blue)", color: "#fff",
-                                fontSize: "13px", fontWeight: 700, cursor: "pointer",
+                                height: "36px", padding: "0 18px", borderRadius: "10px", border: "none",
+                                background: "rgba(0,122,255,1)", color: "#fff",
+                                fontSize: "13px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s",
+                                boxShadow: "0 4px 10px rgba(0,122,255,0.25)"
                               }}
+                              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                              onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
                             >
                               Ir
                             </button>
@@ -331,19 +361,37 @@ export default function OrdenClientes({ cobradorId }) {
             {clientesHoy.length} clientes asignados para hoy
           </p>
         </div>
-        <button
-          onClick={() => setEditando((e) => !e)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            padding: "9px 16px", borderRadius: "10px", border: "none",
-            background: editando ? "#FFF3E0" : "var(--ios-blue)",
-            color: editando ? "#7C4A00" : "#fff",
-            fontSize: "13px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s",
-          }}
-        >
-          <HiArrowsUpDown style={{ width: "15px", height: "15px" }} />
-          {editando ? "Salir de edición" : "Editar orden"}
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {editando && (
+            <button
+              onClick={guardarHoy}
+              disabled={guardandoHoy || clientesHoy.length === 0}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                padding: "9px 16px", borderRadius: "10px", border: "none",
+                background: guardandoHoy ? "var(--ios-fill)" : "#34C759",
+                color: "#fff",
+                fontSize: "13px", fontWeight: 700, cursor: guardandoHoy ? "not-allowed" : "pointer",
+                transition: "all 0.15s", boxShadow: "0 4px 12px rgba(52,199,89,0.2)",
+              }}
+            >
+              {guardandoHoy ? "Guardando..." : "Guardar orden"}
+            </button>
+          )}
+          <button
+            onClick={() => setEditando((e) => !e)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              padding: "9px 16px", borderRadius: "10px", border: "none",
+              background: editando ? "var(--ios-fill)" : "var(--ios-blue)",
+              color: editando ? "var(--ios-label-sec)" : "#fff",
+              fontSize: "13px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s",
+            }}
+          >
+            <HiArrowsUpDown style={{ width: "15px", height: "15px" }} />
+            {editando ? "Cerrar edición" : "Editar orden"}
+          </button>
+        </div>
       </div>
 
       {/* Selector cobrador */}

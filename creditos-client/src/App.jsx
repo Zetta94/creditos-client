@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import { HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { store } from "./store";
+import { Toaster } from "react-hot-toast";
 import { fetchCurrentUser } from "./store/authSlice";
 import { DialogProvider } from "./components/DialogProvider.jsx";
 
@@ -209,6 +210,7 @@ export default function App() {
     <Provider store={store}>
       <HashRouter>
         <DialogProvider>
+          <Toaster position="top-center" reverseOrder={false} />
           <AppRouter />
         </DialogProvider>
       </HashRouter>

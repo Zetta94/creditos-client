@@ -164,7 +164,11 @@ export default function Usuarios() {
       </div>
 
       {/* ═══ MOBILE: Cards ═══ */}
-      <div className="sm:hidden" style={{ flexDirection: "column", gap: "10px" }}>
+      <div style={{ 
+        display: window.innerWidth < 640 ? "flex" : "none", 
+        flexDirection: "column", 
+        gap: "10px" 
+      }}>
         {loading ? (
           [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: "130px", borderRadius: "16px" }} />)
         ) : rows.length === 0 ? (
@@ -202,7 +206,13 @@ export default function Usuarios() {
       </div>
 
       {/* ═══ DESKTOP: Tabla ═══ */}
-      <div className="hidden sm:block" style={{ background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)", overflow: "hidden" }}>
+      <div style={{ 
+        display: window.innerWidth >= 640 ? "block" : "none",
+        background: "var(--ios-bg-card)", 
+        borderRadius: "16px", 
+        boxShadow: "var(--ios-shadow-sm)", 
+        overflow: "hidden" 
+      }}>
         <table className="ios-table" style={{ borderRadius: 0 }}>
           <thead>
             <tr>

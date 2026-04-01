@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { HiOutlineArrowLeft, HiOutlinePrinter } from "react-icons/hi2";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { fetchReport } from "../services/reportsService";
+import { fetchReport, finalizeReportById } from "../services/reportsService";
 
 const currency = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -35,25 +35,28 @@ export default function ReporteDetalle() {
 
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [finalizing, setFinalizing] = useState(false);
     const [error, setError] = useState(null);
+
+    const loadReport = async (id, mounted = true) => {
+        try {
+            const response = await fetchReport(id);
+            if (mounted) setData(response.data);
+        } catch (err) {
+            if (mounted) {
+                const message = err?.response?.data?.error || "No se pudo cargar el reporte.";
+                setError(message);
+            }
+        } finally {
+            if (mounted) setLoading(false);
+        }
+    };
 
     useEffect(() => {
         let mounted = true;
         setLoading(true);
         setError(null);
-        fetchReport(reportId)
-            .then((response) => {
-                if (!mounted) return;
-                setData(response.data);
-            })
-            .catch((err) => {
-                if (!mounted) return;
-                const message = err?.response?.data?.error || "No se pudo cargar el reporte.";
-                setError(message);
-            })
-            .finally(() => {
-                if (mounted) setLoading(false);
-            });
+        loadReport(reportId, mounted);
         return () => {
             mounted = false;
         };
@@ -90,6 +93,20 @@ export default function ReporteDetalle() {
     }, [payments]);
 
     const handleBack = () => navigate(-1);
+
+    const handleFinalize = async () => {
+        if (!window.confirm("¿Estás seguro de que deseas finalizar este reporte manualmente? Se recalcularán los totales basados en los pagos de este día.")) return;
+        
+        try {
+            setFinalizing(true);
+            await finalizeReportById(reportId);
+            await loadReport(reportId);
+        } catch (err) {
+            alert(err?.response?.data?.error || "Error al finalizar el reporte.");
+        } finally {
+            setFinalizing(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -226,150 +243,140 @@ export default function ReporteDetalle() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4 sm:px-4 sm:py-6">
-            <div className="mx-auto max-w-6xl space-y-6">
-                {/* Header */}
-                <div className="flex flex-col gap-3 rounded-[28px] border border-slate-700/80 bg-slate-900/85 p-4 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)] sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-slate-100">Detalle del reporte</h1>
-                        <p className="text-sm text-slate-400">Generado el {fecha}</p>
-                        <p className="text-sm text-slate-400">Cobrador: {userName} ({userEmail})</p>
+        <div className="min-h-screen bg-[#060b1d] text-white" style={{ 
+            backgroundImage: "radial-gradient(circle at 50% -20%, #1a2b5a 0%, #060b1d 80%)",
+            backgroundAttachment: "fixed"
+        }}>
+            <div className="mx-auto max-w-[600px] px-4 py-8 pb-32 animate-fade-in">
+                
+                {/* Header Compacto Estilo iOS */}
+                <header className="mb-8 flex items-center justify-between gap-4">
+                    <button
+                        onClick={handleBack}
+                        className="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/10 active:scale-90 transition-transform"
+                    >
+                        <HiOutlineArrowLeft className="h-5 w-5" />
+                    </button>
+                    <div className="flex-1 text-center">
+                        <h1 className="text-lg font-bold tracking-tight">Detalle del reporte</h1>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{fecha}</p>
                     </div>
-                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                        <button
-                            onClick={handleDownloadPdf}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        >
-                            <HiOutlinePrinter className="h-4 w-4" />
-                            Descargar PDF
-                        </button>
-                        <button
-                            onClick={handleBack}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-300"
-                        >
-                            <HiOutlineArrowLeft className="h-4 w-4" />
-                            Volver
-                        </button>
+                    <button
+                        onClick={handleDownloadPdf}
+                        className="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/10 active:scale-90 transition-transform"
+                    >
+                        <HiOutlinePrinter className="h-5 w-5" />
+                    </button>
+                </header>
+
+                {/* Tarjeta de identificación del cobrador */}
+                <div className="mb-8 rounded-[32px] bg-white/5 border border-white/10 p-5 backdrop-blur-xl flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xl font-black">
+                        {userName[0]}
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-white">{userName}</p>
+                        <p className="text-xs text-slate-400">{userEmail}</p>
                     </div>
                 </div>
 
-                {/* Resumen */}
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <SummaryCard label="Total cobrado" value={currency.format(data.total ?? breakdown.total)} variant="primary" />
-                    <SummaryCard label="Clientes visitados" value={data.clientsVisited ?? data.clientsPaid ?? clientsCobranza.length} />
-                    <SummaryCard label="Pagos registrados" value={data.paymentsCount ?? payments.length} />
-                    <SummaryCard label="Estado" value={finalized ? "Finalizado" : "En progreso"} variant={finalized ? "success" : "warning"} detail={finalizedAt ? `Finalizado el ${finalizedAt}` : undefined} />
+                {/* Resumen Principal */}
+                <section className="grid gap-3">
+                    <PremiumCard 
+                        label="TOTAL COBRADO" 
+                        value={currency.format(totalCobrado)} 
+                        highlight 
+                    />
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                        <PremiumCard label="VISITADOS" value={clientesVisitados} small />
+                        <PremiumCard label="PAGOS" value={pagosRegistrados} small />
+                    </div>
+
+                    <PremiumCard 
+                        label="ESTADO DEL REPORTE" 
+                        value={finalized ? "FINALIZADO" : "EN PROGRESO"} 
+                        variant={finalized ? "success" : "warning"} 
+                        detail={finalizedAt ? `Completado: ${finalizedAt}` : "Todavía en ruta"} 
+                    >
+                        {!finalized && role === "admin" && (
+                            <button
+                                onClick={handleFinalize}
+                                disabled={finalizing}
+                                className="mt-4 w-full h-11 rounded-2xl bg-blue-500 text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50"
+                            >
+                                {finalizing ? "FINALIZANDO..." : "FINALIZAR REPORTE"}
+                            </button>
+                        )}
+                    </PremiumCard>
                 </section>
 
-                {/* Detalle de montos */}
-                <section className="rounded-[28px] border border-slate-700/80 bg-slate-900/82 p-4 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-100">Desglose por método</h2>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <SummaryCard label="Efectivo" value={currency.format(breakdown.efectivo)} />
-                        <SummaryCard label="MercadoPago" value={currency.format(breakdown.mercadopago)} />
-                        <SummaryCard label="Transferencia" value={currency.format(breakdown.transferencia)} />
-                        <SummaryCard label="Total" value={currency.format(breakdown.total)} />
+                {/* Desglose de Métodos */}
+                <section className="mt-8">
+                    <h2 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 px-4">Desglose por método</h2>
+                    <div className="rounded-[32px] bg-white/5 border border-white/5 p-6 backdrop-blur-md space-y-4">
+                        <MethodRow label="Efectivo" value={currency.format(breakdown.efectivo)} />
+                        <MethodRow label="Mercado Pago" value={currency.format(breakdown.mercadopago)} />
+                        <MethodRow label="Transferencia" value={currency.format(breakdown.transferencia)} />
+                        <div className="pt-4 border-t border-white/10">
+                            <MethodRow label="TOTAL NETO" value={currency.format(breakdown.total)} isTotal />
+                        </div>
                     </div>
                 </section>
 
-                {/* Clientes cobrados */}
-                <section className="rounded-[28px] border border-slate-700/80 bg-slate-900/82 p-4 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-100">Clientes cobrados</h2>
-                    {clientsCobranza.length === 0 ? (
-                        <p className="mt-2 text-sm text-slate-400">No se registraron pagos para clientes en este día.</p>
-                    ) : (
-                        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-                            {clientsCobranza.map((client) => (
-                                <li key={client.id} className="rounded-2xl border border-slate-700/80 bg-slate-950/30 px-3 py-3 text-sm text-slate-300">
-                                    <span className="font-medium">{client.name}</span>
-                                    {client.document ? <span className="block text-xs text-slate-400">Documento: {client.document}</span> : null}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </section>
-
-                {/* Pagos */}
-                <section className="rounded-[28px] border border-slate-700/80 bg-slate-900/82 p-3 shadow-sm sm:p-4">
-                    <h2 className="px-2 text-lg font-semibold text-slate-100">Pagos registrados</h2>
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="mt-3 min-w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                                <tr>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">Fecha</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">Cliente</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">Crédito</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">Monto</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">Efectivo</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">MercadoPago</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">Transferencia</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3">Resumen</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {payments.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                            No se registraron pagos para este reporte.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    payments.map((payment) => {
-                                        const date = payment.date ? dateTimeFormatter.format(new Date(payment.date)) : "";
-                                        const clientName = payment.credit?.client?.name ?? "-";
-                                        const creditLabel = payment.credit?.id ?? "-";
-                                        const efectivo = payment.efectivoAmount ?? 0;
-                                        const mercadopago = payment.mercadopagoAmount ?? 0;
-                                        const transferencia = payment.transferenciaAmount ?? 0;
-                                        const usesBreakdown = efectivo + mercadopago + transferencia > 0;
-                                        const efectivoShown = usesBreakdown ? efectivo : payment.amount ?? 0;
-
-                                        return (
-                                            <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-700 dark:text-gray-200">{date}</td>
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-900 dark:text-gray-100">{clientName}</td>
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 text-xs text-gray-500 dark:text-gray-400">{creditLabel}</td>
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 font-semibold text-gray-900 dark:text-gray-100">{currency.format(payment.amount ?? 0)}</td>
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-700 dark:text-gray-200">{currency.format(efectivoShown)}</td>
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-700 dark:text-gray-200">{currency.format(usesBreakdown ? mercadopago : 0)}</td>
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-700 dark:text-gray-200">{currency.format(usesBreakdown ? transferencia : 0)}</td>
-                                                <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-600 dark:text-gray-300">{payment.methodSummary || "-"}</td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="mt-3 space-y-3 md:hidden">
-                        {payments.length === 0 ? (
-                            <div className="rounded-2xl border border-slate-700/80 bg-slate-950/30 px-4 py-8 text-center text-sm text-slate-400">
-                                No se registraron pagos para este reporte.
-                            </div>
+                {/* Clientes Cobrados */}
+                <section className="mt-10">
+                    <h2 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 px-4">Clientes con pagos</h2>
+                    <div className="flex flex-col gap-2">
+                        {clientsCobranza.length === 0 ? (
+                            <div className="p-8 text-center text-slate-500 text-sm">No hay registros hoy</div>
                         ) : (
-                            payments.map((payment) => {
-                                const date = payment.date ? dateTimeFormatter.format(new Date(payment.date)) : "";
-                                const clientName = payment.credit?.client?.name ?? "-";
-                                const efectivo = payment.efectivoAmount ?? 0;
-                                const mercadopago = payment.mercadopagoAmount ?? 0;
-                                const transferencia = payment.transferenciaAmount ?? 0;
-                                const usesBreakdown = efectivo + mercadopago + transferencia > 0;
-                                const efectivoShown = usesBreakdown ? efectivo : payment.amount ?? 0;
+                            clientsCobranza.map((client) => (
+                                <div key={client.id} className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 flex justify-between items-center">
+                                    <div>
+                                        <p className="text-[15px] font-bold">{client.name}</p>
+                                        <p className="text-[11px] text-slate-500 font-medium">DNI: {client.document || "-"}</p>
+                                    </div>
+                                    <div className="h-6 w-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </section>
 
-                                return (
-                                    <article key={payment.id} className="rounded-2xl border border-slate-700/80 bg-slate-950/30 p-4">
-                                        <p className="text-xs text-slate-400">{date}</p>
-                                        <p className="mt-1 text-sm font-semibold text-slate-100">{clientName}</p>
-                                        <p className="mt-2 text-sm text-slate-300">Total: <span className="font-semibold text-slate-100">{currency.format(payment.amount ?? 0)}</span></p>
-                                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                                            <div className="rounded-xl border border-slate-700/70 bg-slate-900/70 p-2 text-slate-300">Efectivo: {currency.format(efectivoShown)}</div>
-                                            <div className="rounded-xl border border-slate-700/70 bg-slate-900/70 p-2 text-slate-300">MP: {currency.format(usesBreakdown ? mercadopago : 0)}</div>
-                                            <div className="rounded-xl border border-slate-700/70 bg-slate-900/70 p-2 text-slate-300">Transferencia: {currency.format(usesBreakdown ? transferencia : 0)}</div>
-                                            <div className="rounded-xl border border-slate-700/70 bg-slate-900/70 p-2 text-slate-300">Resumen: {payment.methodSummary || "-"}</div>
+                {/* Detalle de todos los pagos */}
+                <section className="mt-10">
+                    <div className="flex items-center justify-between mb-4 px-4">
+                        <h2 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Pagos registrados</h2>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">
+                            {pagosRegistrados} TOTAL
+                        </span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {payments.length === 0 ? (
+                            <div className="p-12 text-center text-slate-600 font-medium italic">Sin movimientos</div>
+                        ) : (
+                            payments.map((payment) => (
+                                <div key={payment.id} className="group rounded-[24px] bg-gradient-to-r from-white/5 to-transparent border border-white/5 p-4 active:scale-[0.98] transition-transform">
+                                    <div className="flex justify-between items-center">
+                                        <div className="min-w-0">
+                                            <p className="text-[15px] font-black truncate">{payment.credit?.client?.name ?? "-"}</p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
+                                                {payment.date ? dateTimeFormatter.format(new Date(payment.date)) : ""}
+                                            </p>
                                         </div>
-                                    </article>
-                                );
-                            })
+                                        <div className="text-right">
+                                            <p className="text-[16px] font-black text-blue-400">{currency.format(payment.amount ?? 0)}</p>
+                                            <div className="inline-block px-1.5 py-0.5 rounded-md bg-white/5 mt-1">
+                                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-tighter">{payment.methodSummary || "efectivo"}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </section>
@@ -378,26 +385,47 @@ export default function ReporteDetalle() {
     );
 }
 
-function SummaryCard({ label, value, variant = "default", detail }) {
-    const variantStyles = {
-        default: "border-slate-700/80",
-        primary: "border-blue-500/35",
-        success: "border-emerald-500/35",
-        warning: "border-yellow-500/35"
+function PremiumCard({ label, value, variant = "default", detail, highlight, small, children }) {
+    const variants = {
+        default: {
+            border: "border-white/10",
+            bg: "bg-white/5",
+            color: "text-white"
+        },
+        warning: {
+            border: "border-yellow-500/50",
+            bg: "bg-yellow-500/5",
+            color: "text-yellow-400"
+        },
+        success: {
+            border: "border-emerald-500/50",
+            bg: "bg-emerald-500/5",
+            color: "text-emerald-400"
+        }
     };
 
-    const textStyles = {
-        default: "text-slate-100",
-        primary: "text-blue-300",
-        success: "text-emerald-300",
-        warning: "text-yellow-300"
-    };
+    const cfg = variants[variant];
 
     return (
-        <div className={`rounded-[24px] border bg-slate-900/82 p-4 shadow-sm ${variantStyles[variant] ?? variantStyles.default}`}>
-            <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-            <p className={`mt-1 text-lg font-semibold ${textStyles[variant] ?? textStyles.default}`}>{value}</p>
-            {detail ? <p className="mt-1 text-xs text-slate-400">{detail}</p> : null}
+        <div className={`rounded-[28px] border ${cfg.border} ${cfg.bg} ${small ? "p-4" : "p-6"} backdrop-blur-xl shadow-2xl relative overflow-hidden`}>
+            {highlight && (
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl -mr-16 -mt-16" />
+            )}
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{label}</p>
+            <p className={`mt-2 font-black tracking-tight ${highlight ? "text-4xl text-blue-400" : `${small ? "text-xl" : "text-2xl"} ${cfg.color}`}`}>
+                {value}
+            </p>
+            {detail && <p className="mt-2 text-[10px] text-slate-500 font-bold uppercase tracking-tight">{detail}</p>}
+            {children}
+        </div>
+    );
+}
+
+function MethodRow({ label, value, isTotal }) {
+    return (
+        <div className="flex items-center justify-between">
+            <p className={`text-xs font-bold uppercase tracking-wider ${isTotal ? "text-white" : "text-slate-500"}`}>{label}</p>
+            <p className={`text-[17px] font-black ${isTotal ? "text-blue-400" : "text-slate-200"}`}>{value}</p>
         </div>
     );
 }
