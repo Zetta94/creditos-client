@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import OrdenarClientes from "../pages/OrdenarClientes.jsx";
-import { HiOutlineArrowLeft, HiPencil } from "react-icons/hi2";
+import { HiArrowLeft, HiPencil, HiCurrencyDollar, HiCollection, HiChartBar } from "react-icons/hi";
 import { fetchUser } from "../services/usersService";
 import { fetchCredits } from "../services/creditsService";
 import { fetchPayments } from "../services/paymentsService";
@@ -9,521 +9,350 @@ import { fetchClients } from "../services/clientsService";
 import { fetchUpcomingStarts } from "../services/assignmentsService";
 import Pagination from "../components/Pagination";
 
-export default function UsuarioDetalle() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const assignedPortfolioRef = useRef(null);
-
-    const [usuario, setUsuario] = useState(null);
-    const [creditos, setCreditos] = useState([]);
-    const [pagos, setPagos] = useState([]);
-    const [clientes, setClientes] = useState([]);
-    const [upcomingStarts, setUpcomingStarts] = useState([]);
-    const [upcomingMeta, setUpcomingMeta] = useState({ page: 1, pageSize: 8, totalItems: 0, totalPages: 1 });
-    const [upcomingPage, setUpcomingPage] = useState(1);
-    const [upcomingPageSize, setUpcomingPageSize] = useState(8);
-    const [loadingUpcoming, setLoadingUpcoming] = useState(false);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!id) return; // Salir si no hay id
-
-        const load = async () => {
-            setLoading(true);
-            try {
-                const u = await fetchUser(id).then(r => r.data);
-                const [cr, pa, cl] = await Promise.all([
-                    fetchCredits({ page: 1, pageSize: 2000 }).then(r => r.data?.data ?? []),
-                    fetchPayments({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
-                    fetchClients({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
-                ]);
-                setUsuario({
-                    ...u,
-                    status: (u.status || "ACTIVE").toUpperCase(),
-                    phone: u.phone || "—",
-                    alternatePhone: u.alternatePhone || "—",
-                    address: u.address || "—",
-                    document: u.document || "—",
-                    responsability: u.responsability || "MEDIA",
-                    salary: u.salary ?? 0,
-                    salaryType: u.salaryType || "N_A",
-                    comisions: u.comisions ?? 0,
-                    birthDate: u.birthDate || null,
-                });
-                setCreditos(cr);
-                setPagos(pa);
-                setClientes(cl);
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
-    }, [id]);
-
-    useEffect(() => {
-        setUpcomingPage(1);
-    }, [id]);
-
-    useEffect(() => {
-        const role = (usuario?.role || "").toUpperCase();
-        const isCollector = role === "COBRADOR" || role === "EMPLOYEE";
-        if (!id || !isCollector) {
-            setUpcomingStarts([]);
-            setUpcomingMeta({ page: 1, pageSize: upcomingPageSize, totalItems: 0, totalPages: 1 });
-            return;
-        }
-
-        const loadUpcoming = async () => {
-            setLoadingUpcoming(true);
-            try {
-                const res = await fetchUpcomingStarts({
-                    cobradorId: id,
-                    page: upcomingPage,
-                    pageSize: upcomingPageSize
-                });
-                const data = Array.isArray(res?.data?.data) ? res.data.data : [];
-                const meta = res?.data?.meta || { page: upcomingPage, pageSize: upcomingPageSize, totalItems: data.length, totalPages: 1 };
-                setUpcomingStarts(data);
-                setUpcomingMeta(meta);
-            } finally {
-                setLoadingUpcoming(false);
-            }
-        };
-
-        loadUpcoming();
-    }, [id, usuario?.role, upcomingPage, upcomingPageSize]);
-
-    const cobrosUsuario = useMemo(() => {
-        return pagos
-            .filter((p) => p.employeeId === id)
-            .map((p) => {
-                const credito = creditos.find((cr) => cr.id === p.creditId);
-                const cliente = clientes.find((c) => c.id === credito?.clientId);
-                return {
-                    id: p.id,
-                    fecha: p.date,
-                    monto: p.amount,
-                    cliente: cliente ? cliente.name : "Cliente desconocido",
-                };
-            });
-    }, [pagos, creditos, clientes, id]);
-
-    const inicioSemana = useMemo(() => {
-        const now = new Date();
-        const start = new Date(now);
-        const day = start.getDay();
-        const diff = day === 0 ? 6 : day - 1;
-        start.setDate(start.getDate() - diff);
-        start.setHours(0, 0, 0, 0);
-        return start;
-    }, []);
-
-    const cobrosSemana = cobrosUsuario
-        .filter((c) => {
-            const fechaPago = new Date(c.fecha);
-            return !Number.isNaN(fechaPago.getTime()) && fechaPago >= inicioSemana;
-        });
-
-    const totalCobradoSemana = cobrosSemana.reduce((acc, c) => acc + c.monto, 0);
-    const creditosCargados = creditos.filter((c) => {
-        if (c.userId !== id) return false;
-        const fechaCredito = new Date(c.createdAt || c.startDate);
-        return !Number.isNaN(fechaCredito.getTime()) && fechaCredito >= inicioSemana;
-    }).length;
-    const pagosRecibidos = cobrosSemana.length;
-
-    if (loading) {
-        return (
-            <div className="mx-auto max-w-6xl px-4 py-6">
-                <p className="text-center text-gray-500 dark:text-gray-400">Cargando usuario...</p>
-            </div>
-        );
-    }
-
-    if (!usuario)
-        return (
-            <div className="text-center text-red-400 mt-10">
-                Usuario no encontrado.
-            </div>
-        );
-
-    const roleDisplay = (usuario.role || "").toUpperCase();
-    const statusDisplay = usuario.status || "ACTIVE";
-    const isCollector = roleDisplay === "COBRADOR" || roleDisplay === "EMPLOYEE";
-    const birthDateDisplay = (() => {
-        if (!usuario.birthDate) return "—";
-        const parsed = new Date(usuario.birthDate);
-        if (Number.isNaN(parsed.getTime())) return "—";
-        return parsed.toLocaleDateString("es-AR", { timeZone: "UTC" });
-    })();
-    const detailItems = [
-        { label: "Telefono", value: usuario.phone },
-        { label: "Telefono alternativo", value: usuario.alternatePhone },
-        { label: "Direccion", value: usuario.address },
-        { label: "Documento", value: usuario.document },
-        { label: "Cumpleanos", value: birthDateDisplay },
-        { label: "Responsabilidad", value: usuario.responsability },
-        { label: "Sueldo", value: `$${usuario.salary?.toLocaleString("es-AR")}` },
-        { label: "Tipo de sueldo", value: usuario.salaryType },
-        { label: "Comision por credito o cliente nuevo", value: formatCommissionValue(usuario.comisions) },
-    ];
-
-    const handleBack = () => {
-        if (window.history.length > 2) {
-            navigate(-1);
-        } else {
-            navigate("/usuarios");
-        }
-    };
-
-    const handleGoToAssignedPortfolio = () => {
-        assignedPortfolioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
-
-    return (
-        <div className="mx-auto max-w-7xl px-4 py-6 space-y-8 sm:px-6 xl:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
-                        Usuario
-                    </p>
-                    <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                        Perfil y rendimiento
-                    </h1>
-                    <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-                        Visualiza la informacion principal del usuario, sus indicadores semanales y accesos rapidos a gestion y reportes.
-                    </p>
-                </div>
-                <button
-                    onClick={handleBack}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:text-white"
-                >
-                    <HiOutlineArrowLeft className="h-4 w-4" />
-                    Volver
-                </button>
-            </div>
-
-            <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-slate-950">
-                <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_42%),linear-gradient(135deg,_rgba(15,23,42,1),_rgba(30,41,59,0.96))] px-6 py-7 text-white sm:px-8 lg:px-10">
-                    <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0 space-y-4 xl:max-w-xl 2xl:max-w-2xl">
-                            <div>
-                                <h2 className="max-w-full break-words text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-[2.1rem]">
-                                    {usuario.name}
-                                </h2>
-                                <p className="mt-1 text-sm text-slate-300">{usuario.email}</p>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-100">
-                                    ID {usuario.id?.slice?.(0, 8) || usuario.id}
-                                </span>
-                                <span
-                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] ${roleDisplay === "ADMIN"
-                                        ? "border-fuchsia-300/25 bg-fuchsia-400/15 text-fuchsia-100"
-                                        : "border-amber-300/25 bg-amber-400/15 text-amber-100"
-                                        }`}
-                                >
-                                    {isCollector ? "Cobrador" : roleDisplay}
-                                </span>
-                                <span
-                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] ${statusDisplay === "ACTIVE"
-                                        ? "border-emerald-300/25 bg-emerald-400/15 text-emerald-100"
-                                        : "border-slate-300/20 bg-slate-200/10 text-slate-200"
-                                        }`}
-                                >
-                                    {statusDisplay === "ACTIVE" ? "Activo" : "Inactivo"}
-                                </span>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                <HighlightCard
-                                    label="Rol operativo"
-                                    value={isCollector ? "Cobrador" : roleDisplay}
-                                    tone="blue"
-                                />
-                                <HighlightCard
-                                    label="Responsabilidad"
-                                    value={usuario.responsability}
-                                    tone="emerald"
-                                />
-                                <HighlightCard
-                                    label="Esquema salarial"
-                                    value={usuario.salaryType}
-                                    tone="amber"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid w-full gap-3 sm:grid-cols-3 xl:max-w-[34rem]">
-                            <Kpi label="Creditos cargados" value={creditosCargados} hint="Esta semana" accent="blue" />
-                            <Kpi label="Pagos recibidos" value={pagosRecibidos} hint="Esta semana" accent="emerald" />
-                            <Kpi
-                                label="Total cobrado"
-                                value={totalCobradoSemana.toLocaleString("es-AR", {
-                                    style: "currency",
-                                    currency: "ARS",
-                                    maximumFractionDigits: 0,
-                                })}
-                                hint="Semana actual"
-                                accent="amber"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-[minmax(0,1.4fr)_340px] lg:px-10 lg:py-8">
-                    <div className="space-y-4">
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-                                Ficha personal
-                            </p>
-                            <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                                Informacion del usuario
-                            </h3>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            {detailItems.map((item) => (
-                                <DetailItem key={item.label} label={item.label} value={item.value} />
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-4 rounded-[24px] border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900/70">
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-                                Acciones
-                            </p>
-                            <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
-                                Gestion rapida
-                            </h3>
-                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                                Actualiza la ficha del usuario o entra directo a sus reportes sin salir de esta vista.
-                            </p>
-                        </div>
-
-                        <div className="grid gap-3">
-                            {isCollector ? (
-                                <>
-                                    <ActionButton
-                                        onClick={handleGoToAssignedPortfolio}
-                                        tone="amber"
-                                    >
-                                        Ordenar clientes asignados
-                                    </ActionButton>
-
-                                    <ActionButton
-                                        onClick={() => navigate(`/usuarios/${usuario.id}/sueldo`)}
-                                        tone="emerald"
-                                    >
-                                        Sueldo y comision
-                                    </ActionButton>
-                                </>
-                            ) : null}
-
-                            <ActionButton
-                                onClick={() => navigate(`/usuarios/${usuario.id}/reportes`)}
-                                tone="blue"
-                            >
-                                Ver reportes
-                            </ActionButton>
-
-                            <ActionButton
-                                onClick={() => navigate(`/usuarios/${usuario.id}/editar`)}
-                                tone="neutral"
-                                icon={<HiPencil className="h-4 w-4" />}
-                            >
-                                Editar informacion
-                            </ActionButton>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {isCollector ? (
-                <div ref={assignedPortfolioRef} className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_45px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950">
-                    <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-6">
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-                            Cartera asignada
-                        </p>
-                        <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
-                            Orden de clientes del cobrador
-                        </h3>
-                    </div>
-                    <OrdenarClientes cobradorId={usuario.id} />
-                </div>
-            ) : null}
-
-            {isCollector && (
-                <section className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_18px_45px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950 sm:p-6">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-                                Inicio futuro
-                            </p>
-                            <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-                                Creditos asignados aun no iniciados
-                            </h3>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-                            {upcomingMeta.totalItems ?? upcomingStarts.length} pendientes
-                        </div>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        Esta seccion es visible para administracion y muestra los creditos de este cobrador que inician en el futuro.
-                    </p>
-                    {loadingUpcoming ? (
-                        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Cargando creditos pendientes de inicio...</p>
-                    ) : upcomingStarts.length === 0 ? (
-                        <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-                            No hay creditos pendientes de inicio.
-                        </div>
-                    ) : (
-                        <div className="mt-4 space-y-4">
-                            <div className="grid gap-3 sm:hidden">
-                                {upcomingStarts.map((item) => (
-                                    <article
-                                        key={item.creditId}
-                                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                                    >
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                            {item.client?.name || "Cliente"}
-                                        </p>
-                                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
-                                            <span className="font-medium">Producto</span>
-                                            <span className="text-right">{item.product || "Credito"}</span>
-                                            <span className="font-medium">Monto</span>
-                                            <span className="text-right">${Number(item.amount || 0).toLocaleString("es-AR")}</span>
-                                            <span className="font-medium">Inicio cobro</span>
-                                            <span className="text-right">{item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "-"}</span>
-                                            <span className="font-medium">Proxima visita</span>
-                                            <span className="text-right">{item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "-"}</span>
-                                        </div>
-                                    </article>
-                                ))}
-                            </div>
-                            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 sm:block dark:border-slate-800">
-                                <table className="min-w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-                                            <th className="px-3 py-2">Cliente</th>
-                                            <th className="px-3 py-2">Producto</th>
-                                            <th className="px-3 py-2">Monto</th>
-                                            <th className="px-3 py-2">Inicio cobro</th>
-                                            <th className="px-3 py-2">Proxima visita</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {upcomingStarts.map((item) => (
-                                            <tr key={item.creditId} className="border-b border-slate-100 dark:border-slate-900">
-                                                <td className="px-3 py-3 text-slate-900 dark:text-slate-100">{item.client?.name || "Cliente"}</td>
-                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">{item.product || "Credito"}</td>
-                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">${Number(item.amount || 0).toLocaleString("es-AR")}</td>
-                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">{item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "-"}</td>
-                                                <td className="px-3 py-3 text-slate-700 dark:text-slate-300">{item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "-"}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <Pagination
-                                page={upcomingMeta.page ?? upcomingPage}
-                                pageSize={upcomingMeta.pageSize ?? upcomingPageSize}
-                                totalItems={upcomingMeta.totalItems ?? upcomingStarts.length}
-                                totalPages={upcomingMeta.totalPages ?? 1}
-                                onPageChange={setUpcomingPage}
-                                onPageSizeChange={(size) => {
-                                    setUpcomingPageSize(size);
-                                    setUpcomingPage(1);
-                                }}
-                            />
-                        </div>
-                    )}
-                </section>
-            )}
-
-
-        </div>
-    );
-}
-
 function formatCommissionValue(value) {
-    const numericValue = Number(value);
-    if (!Number.isFinite(numericValue) || numericValue <= 0) {
-        return "Sin comision";
-    }
-
-    if (numericValue <= 100) {
-        return `${numericValue}%`;
-    }
-
-    return formatCurrency(numericValue);
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "Sin comisión";
+  return n <= 100 ? `${n}%` : `$ ${n.toLocaleString("es-AR")}`;
 }
 
-function DetailItem({ label, value }) {
-    return (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/80">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{label}</div>
-            <div className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100 break-words">
-                {value}
-            </div>
+const ROL_CONFIG = {
+  ADMIN:    { bg: "#F5EAFF", color: "#5C2B8C", label: "Admin"    },
+  COBRADOR: { bg: "#FFF3E0", color: "#7C4A00", label: "Cobrador" },
+  EMPLOYEE: { bg: "#FFF3E0", color: "#7C4A00", label: "Cobrador" },
+};
+
+const RESP_CONFIG = {
+  EXCELENTE: { bg: "#E8F8ED", color: "#1A6B36" },
+  ALTA:      { bg: "#FFF3E0", color: "#7C4A00" },
+  BUENA:     { bg: "#EBF3FF", color: "#004299" },
+  MEDIA:     { bg: "#EBF3FF", color: "#004299" },
+  MALA:      { bg: "#FFEBEA", color: "#8B0000" },
+};
+
+function Pill({ bg, color, label }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 12px", borderRadius: "99px", background: bg, color, fontSize: "13px", fontWeight: 700, minWidth: "84px", whiteSpace: "nowrap" }}>
+      {label}
+    </span>
+  );
+}
+
+function InfoRow({ label, value }) {
+  if (!value || value === "—") return null;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
+      <span style={{ fontSize: "14px", color: "var(--ios-label-sec)", fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: "14px", color: "var(--ios-label)", fontWeight: 600 }}>{value}</span>
+    </div>
+  );
+}
+
+function KpiCard({ label, value, hint, color = "#007AFF", bg = "#EBF3FF", icon: Icon }) {
+  return (
+    <div className="ios-card" style={{ padding: "16px", textAlign: "center" }}>
+      {Icon && (
+        <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: bg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
+          <Icon style={{ width: "18px", height: "18px", color }} />
         </div>
-    );
+      )}
+      <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 6px" }}>{label}</p>
+      <p style={{ fontSize: "22px", fontWeight: 800, color: "var(--ios-label)", margin: 0 }}>{value}</p>
+      {hint && <p style={{ fontSize: "11px", color: "var(--ios-label-ter)", margin: "4px 0 0" }}>{hint}</p>}
+    </div>
+  );
 }
 
-function HighlightCard({ label, value, tone = "blue" }) {
-    const toneClasses = {
-        blue: "border-blue-300/20 bg-blue-400/10 text-blue-50",
-        emerald: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50",
-        amber: "border-amber-300/20 bg-amber-400/10 text-amber-50",
-    };
-
-    return (
-        <div className={`rounded-2xl border px-4 py-3 backdrop-blur ${toneClasses[tone] || toneClasses.blue}`}>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">{label}</div>
-            <div className="mt-1 text-sm font-semibold text-white">{value}</div>
-        </div>
-    );
+function ActionBtn({ children, onClick, color = "#004299", bg = "#EBF3FF", hoverBg = "#C8E0FF" }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ width: "100%", padding: "13px", borderRadius: "12px", border: "none", background: bg, color, fontSize: "15px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+      onMouseEnter={e => e.currentTarget.style.background = hoverBg}
+      onMouseLeave={e => e.currentTarget.style.background = bg}
+    >
+      {children}
+    </button>
+  );
 }
 
-function ActionButton({ children, onClick, tone = "neutral", icon = null }) {
-    const toneClasses = {
-        blue: "border-blue-400/35 bg-blue-500/10 text-blue-100 hover:border-blue-300/50 hover:bg-blue-500/16",
-        emerald: "border-emerald-400/35 bg-emerald-500/10 text-emerald-100 hover:border-emerald-300/50 hover:bg-emerald-500/16",
-        amber: "border-amber-400/35 bg-amber-500/10 text-amber-100 hover:border-amber-300/50 hover:bg-amber-500/16",
-        neutral: "border-slate-300/80 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-900 dark:hover:text-white",
-    };
+export default function UsuarioDetalle() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const assignedPortfolioRef = useRef(null);
 
-    return (
+  const [usuario, setUsuario] = useState(null);
+  const [creditos, setCreditos] = useState([]);
+  const [pagos, setPagos] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [upcomingStarts, setUpcomingStarts] = useState([]);
+  const [upcomingMeta, setUpcomingMeta] = useState({ page: 1, pageSize: 8, totalItems: 0, totalPages: 1 });
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const [upcomingPageSize, setUpcomingPageSize] = useState(8);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const u = await fetchUser(id).then(r => r.data);
+        const [cr, pa, cl] = await Promise.all([
+          fetchCredits({ page: 1, pageSize: 2000 }).then(r => r.data?.data ?? []),
+          fetchPayments({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+          fetchClients({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+        ]);
+        setUsuario({ ...u, status: (u.status || "ACTIVE").toUpperCase(), phone: u.phone || "—", alternatePhone: u.alternatePhone || "—", address: u.address || "—", document: u.document || "—", responsability: u.responsability || "MEDIA", salary: u.salary ?? 0, salaryType: u.salaryType || "N_A", comisions: u.comisions ?? 0, birthDate: u.birthDate || null });
+        setCreditos(cr); setPagos(pa); setClientes(cl);
+      } finally { setLoading(false); }
+    };
+    load();
+  }, [id]);
+
+  useEffect(() => { setUpcomingPage(1); }, [id]);
+
+  useEffect(() => {
+    const role = (usuario?.role || "").toUpperCase();
+    const isCollector = role === "COBRADOR" || role === "EMPLOYEE";
+    if (!id || !isCollector) { setUpcomingStarts([]); setUpcomingMeta({ page: 1, pageSize: upcomingPageSize, totalItems: 0, totalPages: 1 }); return; }
+    const loadUpcoming = async () => {
+      setLoadingUpcoming(true);
+      try {
+        const res = await fetchUpcomingStarts({ cobradorId: id, page: upcomingPage, pageSize: upcomingPageSize });
+        const data = Array.isArray(res?.data?.data) ? res.data.data : [];
+        setUpcomingStarts(data);
+        setUpcomingMeta(res?.data?.meta || { page: upcomingPage, pageSize: upcomingPageSize, totalItems: data.length, totalPages: 1 });
+      } finally { setLoadingUpcoming(false); }
+    };
+    loadUpcoming();
+  }, [id, usuario?.role, upcomingPage, upcomingPageSize]);
+
+  const inicioSemana = useMemo(() => {
+    const now = new Date(), s = new Date(now), day = s.getDay(), diff = day === 0 ? 6 : day - 1;
+    s.setDate(s.getDate() - diff); s.setHours(0, 0, 0, 0); return s;
+  }, []);
+
+  const cobrosUsuario = useMemo(() =>
+    pagos.filter(p => p.employeeId === id).map(p => {
+      const cr = creditos.find(c => c.id === p.creditId);
+      const cl = clientes.find(c => c.id === cr?.clientId);
+      return { id: p.id, fecha: p.date, monto: p.amount, cliente: cl?.name || "Cliente desconocido" };
+    }), [pagos, creditos, clientes, id]
+  );
+
+  const cobrosSemana = cobrosUsuario.filter(c => { const d = new Date(c.fecha); return !Number.isNaN(d.getTime()) && d >= inicioSemana; });
+  const totalCobradoSemana = cobrosSemana.reduce((acc, c) => acc + c.monto, 0);
+  const creditosCargados = creditos.filter(c => { if (c.userId !== id) return false; const d = new Date(c.createdAt || c.startDate); return !Number.isNaN(d.getTime()) && d >= inicioSemana; }).length;
+  const handleBack = () => window.history.length > 2 ? navigate(-1) : navigate("/usuarios");
+
+  if (loading) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: "140px", borderRadius: "16px" }} />)}
+    </div>
+  );
+
+  if (!usuario) return (
+    <div style={{ textAlign: "center", padding: "60px", color: "var(--ios-red)", fontSize: "16px" }}>Usuario no encontrado.</div>
+  );
+
+  const roleDisplay = (usuario.role || "").toUpperCase();
+  const isCollector = roleDisplay === "COBRADOR" || roleDisplay === "EMPLOYEE";
+  const rolCfg = ROL_CONFIG[roleDisplay] || ROL_CONFIG.COBRADOR;
+  const respCfg = RESP_CONFIG[(usuario.responsability || "").toUpperCase()] || RESP_CONFIG.MEDIA;
+  const initials = usuario.name?.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase() || "?";
+  const birthDateDisplay = (() => { if (!usuario.birthDate) return null; const d = new Date(usuario.birthDate); return !Number.isNaN(d.getTime()) ? d.toLocaleDateString("es-AR", { timeZone: "UTC" }) : null; })();
+
+  const detailItems = [
+    { label: "Teléfono",            value: usuario.phone          },
+    { label: "Tel. alternativo",    value: usuario.alternatePhone },
+    { label: "Dirección",           value: usuario.address        },
+    { label: "Documento",           value: usuario.document       },
+    { label: "Cumpleaños",          value: birthDateDisplay       },
+    { label: "Responsabilidad",     value: usuario.responsability },
+    { label: "Sueldo base",         value: `$${(usuario.salary || 0).toLocaleString("es-AR")}` },
+    { label: "Tipo de sueldo",      value: usuario.salaryType     },
+    { label: "Comisión",            value: formatCommissionValue(usuario.comisions) },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
+
+      {/* Header de nav */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         <button
-            onClick={onClick}
-            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5 ${toneClasses[tone] || toneClasses.neutral}`}
+          onClick={handleBack}
+          style={{ width: "40px", height: "40px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg-card)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
         >
-            {icon}
-            {children}
+          <HiArrowLeft style={{ width: "18px", height: "18px", color: "var(--ios-label-sec)" }} />
         </button>
-    );
-}
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label-sec)", margin: 0 }}>Usuarios</p>
+        <span style={{ color: "var(--ios-label-ter)" }}>›</span>
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label)", margin: 0 }}>{usuario.name}</p>
+      </div>
 
-function Kpi({ label, value, hint, accent = "blue" }) {
-    const accentClasses = {
-        blue: "border-blue-400/30 bg-blue-500/10",
-        emerald: "border-emerald-400/30 bg-emerald-500/10",
-        amber: "border-amber-400/30 bg-amber-500/10",
-    };
-
-    return (
-        <div className={`rounded-[22px] border p-4 text-left shadow-[0_16px_35px_-32px_rgba(15,23,42,0.75)] ${accentClasses[accent] || accentClasses.blue}`}>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-300">{label}</div>
-            <div className="mt-3 text-2xl font-black tracking-tight text-white sm:text-[1.9rem]">
-                {value}
-            </div>
-            {hint ? (
-                <div className="mt-2 text-xs font-medium text-slate-300/80">
-                    {hint}
+      {/* Hero card */}
+      <div className="ios-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ background: "linear-gradient(135deg, #1C1C1E, #3A3A3C)", padding: "24px 20px 36px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", minWidth: 0 }}>
+              <div style={{ width: "64px", height: "64px", borderRadius: "18px", background: "linear-gradient(135deg, #007AFF, #32ADE6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: 900, color: "#fff", flexShrink: 0 }}>
+                {initials}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.02em" }}>{usuario.name}</h1>
+                <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", margin: "4px 0 0" }}>{usuario.email}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                  <Pill bg="rgba(255,255,255,0.12)" color="rgba(255,255,255,0.9)" label={`ID ${(usuario.id || "").slice(0, 8)}`} />
+                  <Pill bg={rolCfg.bg} color={rolCfg.color} label={rolCfg.label} />
+                  <Pill
+                    bg={usuario.status === "ACTIVE" ? "#E8F8ED" : "#F2F2F7"}
+                    color={usuario.status === "ACTIVE" ? "#34C759" : "#AEAEB2"}
+                    label={usuario.status === "ACTIVE" ? "Activo" : "Inactivo"}
+                  />
                 </div>
-            ) : null}
+              </div>
+            </div>
+            <button
+              onClick={() => navigate(`/usuarios/${id}/editar`)}
+              style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+            >
+              <HiPencil style={{ width: "16px", height: "16px", color: "#fff" }} />
+            </button>
+          </div>
         </div>
-    );
+
+        {/* Info rows */}
+        <div style={{ marginTop: "-16px", background: "var(--ios-bg-card)", borderRadius: "16px 16px 0 0" }}>
+          <div style={{ padding: "16px 16px 4px", display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            <Pill bg={respCfg.bg} color={respCfg.color} label={`Responsabilidad: ${usuario.responsability || "—"}`} />
+            <Pill bg="var(--ios-fill)" color="var(--ios-label-sec)" label={`Sueldo: ${usuario.salaryType || "—"}`} />
+          </div>
+          {detailItems.map(item => <InfoRow key={item.label} label={item.label} value={item.value} />)}
+        </div>
+      </div>
+
+      {/* KPIs semana */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
+        <KpiCard label="Créditos cargados" value={creditosCargados} hint="Esta semana" color="#007AFF" bg="#EBF3FF" icon={HiCollection} />
+        <KpiCard label="Pagos recibidos" value={cobrosSemana.length} hint="Esta semana" color="#34C759" bg="#E8F8ED" icon={HiChartBar} />
+        <KpiCard
+          label="Total cobrado"
+          value={totalCobradoSemana.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })}
+          hint="Semana actual"
+          color="#FF9500" bg="#FFF3E0"
+          icon={HiCurrencyDollar}
+        />
+      </div>
+
+      {/* Acciones rápidas */}
+      <div style={{ display: "grid", gridTemplateColumns: isCollector ? "1fr 1fr" : "1fr", gap: "10px" }}>
+        {isCollector && (
+          <>
+            <ActionBtn onClick={() => assignedPortfolioRef.current?.scrollIntoView({ behavior: "smooth" })} color="#7C4A00" bg="#FFF3E0" hoverBg="#FFE5A0">
+              Ordenar clientes
+            </ActionBtn>
+            <ActionBtn onClick={() => navigate(`/usuarios/${id}/sueldo`)} color="#1A6B36" bg="#E8F8ED" hoverBg="#B8F0CC">
+              Sueldo y comisión
+            </ActionBtn>
+          </>
+        )}
+        <ActionBtn onClick={() => navigate(`/usuarios/${id}/reportes`)} color="#004299" bg="#EBF3FF" hoverBg="#C8E0FF">
+          Ver reportes
+        </ActionBtn>
+        {!isCollector && (
+          <ActionBtn onClick={() => navigate(`/usuarios/${id}/editar`)} color="#3A3A3C" bg="var(--ios-fill)" hoverBg="#E5E5EA">
+            Editar información
+          </ActionBtn>
+        )}
+      </div>
+
+      {/* Cartera asignada */}
+      {isCollector && (
+        <div ref={assignedPortfolioRef} className="ios-card" style={{ overflow: "hidden" }}>
+          <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
+            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>Orden de clientes</h2>
+            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: "4px 0 0" }}>Cartera asignada al cobrador</p>
+          </div>
+          <OrdenarClientes cobradorId={usuario.id} />
+        </div>
+      )}
+
+      {/* Créditos próximos */}
+      {isCollector && (
+        <div className="ios-card" style={{ padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+            <div>
+              <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>Créditos por iniciar</h2>
+              <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: "4px 0 0" }}>Créditos asignados aún no iniciados</p>
+            </div>
+            <span style={{ padding: "5px 12px", borderRadius: "99px", background: "var(--ios-fill)", fontSize: "13px", fontWeight: 700, color: "var(--ios-label-sec)" }}>
+              {upcomingMeta.totalItems ?? upcomingStarts.length}
+            </span>
+          </div>
+
+          {loadingUpcoming ? (
+            <div className="skeleton" style={{ height: "80px", borderRadius: "12px" }} />
+          ) : upcomingStarts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "32px", color: "var(--ios-label-ter)", fontSize: "14px" }}>
+              No hay créditos pendientes de inicio.
+            </div>
+          ) : (
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden" style={{ flexDirection: "column", gap: "10px" }}>
+                {upcomingStarts.map(item => (
+                  <div key={item.creditId} style={{ background: "var(--ios-fill)", borderRadius: "12px", padding: "14px" }}>
+                    <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 8px" }}>{item.client?.name || "Cliente"}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                      {[
+                        { l: "Monto", v: `$${Number(item.amount || 0).toLocaleString("es-AR")}` },
+                        { l: "Inicio", v: item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "—" },
+                        { l: "Próx. visita", v: item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "—" },
+                      ].map(i => (
+                        <div key={i.l}>
+                          <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ios-label-ter)", margin: "0 0 2px" }}>{i.l}</p>
+                          <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label)", margin: 0 }}>{i.v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block" style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--ios-sep-opaque)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      {["Cliente", "Monto", "Inicio cobro", "Próxima visita"].map(h => (
+                        <th key={h} style={{ padding: "10px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: "left" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {upcomingStarts.map((item, i) => (
+                      <tr key={item.creditId} style={{ borderBottom: i < upcomingStarts.length - 1 ? "1px solid var(--ios-sep-opaque)" : "none" }}>
+                        <td style={{ padding: "12px 14px", fontWeight: 600, color: "var(--ios-label)" }}>{item.client?.name || "Cliente"}</td>
+                        <td style={{ padding: "12px 14px", color: "var(--ios-label-sec)" }}>${Number(item.amount || 0).toLocaleString("es-AR")}</td>
+                        <td style={{ padding: "12px 14px", color: "var(--ios-label-sec)" }}>{item.startDate ? new Date(item.startDate).toLocaleDateString("es-AR") : "—"}</td>
+                        <td style={{ padding: "12px 14px", color: "var(--ios-label-sec)" }}>{item.assignment?.nextVisitDate ? new Date(item.assignment.nextVisitDate).toLocaleDateString("es-AR") : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: "12px" }}>
+                <Pagination
+                  page={upcomingMeta.page ?? upcomingPage} pageSize={upcomingMeta.pageSize ?? upcomingPageSize}
+                  totalItems={upcomingMeta.totalItems ?? upcomingStarts.length}
+                  totalPages={upcomingMeta.totalPages ?? 1}
+                  onPageChange={setUpcomingPage}
+                  onPageSizeChange={size => { setUpcomingPageSize(size); setUpcomingPage(1); }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -1,3 +1,8 @@
+/* ============================================================
+   TIPOGRAFÍA — Inter desde Google Fonts (debe ir primero)
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 /* Tailwind v4: importa todo (preflight + utilities) */
 @import "tailwindcss";
 
@@ -9,100 +14,107 @@
 @source "../node_modules/flowbite";
 @source "../node_modules/flowbite-react";
 
-/* opcional: tus globales */
+/* ============================================================
+   TOKENS DE DISEÑO — iOS 17 Style System
+   ============================================================ */
+:root {
+  /* Colores primarios */
+  --ios-blue:        #007AFF;
+  --ios-blue-dark:   #0062CC;
+  --ios-blue-light:  #EBF3FF;
+  --ios-blue-mid:    #C8E0FF;
+
+  /* Fondos */
+  --ios-bg:          #F2F2F7;
+  --ios-bg-card:     #FFFFFF;
+  --ios-bg-grouped:  #F2F2F7;
+  --ios-fill:        #F3F3F6;
+  --ios-fill-sec:    #EBEBF0;
+
+  /* Texto */
+  --ios-label:       #1C1C1E;
+  --ios-label-sec:   #636366;
+  --ios-label-ter:   #AEAEB2;
+  --ios-label-quat:  #C7C7CC;
+
+  /* Separadores */
+  --ios-separator:   #C6C6C8;
+  --ios-sep-opaque:  #E5E5EA;
+
+  /* Semánticos */
+  --ios-green:       #34C759;
+  --ios-green-bg:    #E8F8ED;
+  --ios-red:         #FF3B30;
+  --ios-red-bg:      #FFEBEA;
+  --ios-orange:      #FF9500;
+  --ios-orange-bg:   #FFF3E0;
+  --ios-purple:      #AF52DE;
+  --ios-purple-bg:   #F5EAFF;
+  --ios-cyan:        #32ADE6;
+  --ios-cyan-bg:     #E6F6FD;
+
+  /* Sombras */
+  --ios-shadow-sm:   0 1px 3px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.05);
+  --ios-shadow-md:   0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+  --ios-shadow-lg:   0 8px 24px rgba(0,0,0,0.10), 0 24px 48px rgba(0,0,0,0.08);
+  --ios-shadow-float:0 -1px 0 rgba(0,0,0,0.05), 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+
+  /* Blur (glassmorphism) */
+  --ios-blur:        blur(20px) saturate(180%);
+
+  /* Radios */
+  --ios-r-sm:        8px;
+  --ios-r-md:        12px;
+  --ios-r-lg:        16px;
+  --ios-r-xl:        20px;
+  --ios-r-full:      9999px;
+
+  /* Transiciones */
+  --ios-ease:        cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ============================================================
+   BASE GLOBAL
+   ============================================================ */
 html,
 body {
   overflow-x: hidden;
   min-height: 100%;
-  background-color: #0f172a;
-  color: #f8fafc;
+  background-color: var(--ios-bg);
+  color: var(--ios-label);
   margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
-/* Tema oscuro global para toda la app (admin + cobrador) dentro del layout autenticado */
+/* Scroll momentum iOS */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================================
+   APP SHELL — Tema Claro iOS
+   ============================================================ */
 .app-shell {
-  background: linear-gradient(180deg, #08122f 0%, #0b1f55 100%);
+  background-color: var(--ios-bg);
+  color: var(--ios-label);
 }
 
-.app-shell .bg-white,
-.app-shell .bg-white\/90,
-.app-shell .bg-gray-50,
-.app-shell .bg-gray-100,
-.app-shell .bg-slate-50,
-.app-shell .from-slate-50,
-.app-shell .to-slate-100 {
-  background-color: rgba(15, 23, 42, 0.82) !important;
-  background-image: none !important;
-}
+/* ============================================================
+   ANIMACIONES
+   ============================================================ */
 
-.app-shell .border-gray-200,
-.app-shell .border-gray-300,
-.app-shell .border-slate-200,
-.app-shell .border-slate-300 {
-  border-color: #334155 !important;
-}
-
-.app-shell .text-gray-900,
-.app-shell .text-slate-900 {
-  color: #f1f5f9 !important;
-}
-
-.app-shell .text-gray-800,
-.app-shell .text-slate-800 {
-  color: #e2e8f0 !important;
-}
-
-.app-shell .text-gray-700,
-.app-shell .text-slate-700 {
-  color: #cbd5e1 !important;
-}
-
-.app-shell .text-gray-600,
-.app-shell .text-gray-500,
-.app-shell .text-slate-600,
-.app-shell .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-.app-shell input,
-.app-shell select,
-.app-shell textarea {
-  background-color: #1e293b !important;
-  border-color: #475569 !important;
-  color: #f1f5f9 !important;
-}
-
-.app-shell input::placeholder,
-.app-shell textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-@media (max-width: 768px) {
-  .app-shell button.bg-white,
-  .app-shell button.bg-gray-100,
-  .app-shell button.bg-gray-200,
-  .app-shell button.bg-slate-100,
-  .app-shell button.bg-slate-200 {
-    background-color: #1e293b !important;
-    border-color: #475569 !important;
-    color: #e2e8f0 !important;
-  }
-
-  .app-shell button.bg-white:hover,
-  .app-shell button.bg-gray-100:hover,
-  .app-shell button.bg-gray-200:hover,
-  .app-shell button.bg-slate-100:hover,
-  .app-shell button.bg-slate-200:hover {
-    background-color: #334155 !important;
-  }
-}
-
+/* Slide up desde abajo (toasts, bottom sheets) */
 @keyframes slide-up {
   from {
     opacity: 0;
-    transform: translate(-50%, 100%);
+    transform: translate(-50%, 16px);
   }
-
   to {
     opacity: 1;
     transform: translate(-50%, 0);
@@ -110,5 +122,283 @@ body {
 }
 
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.28s var(--ios-ease);
+}
+
+/* Fade in suave */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.32s var(--ios-ease);
+}
+
+/* Scale in (modales) */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.25s var(--ios-ease);
+}
+
+/* Shimmer para skeletons */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f5 25%,
+    #e8e8ef 50%,
+    #f0f0f5 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   SCROLLBAR — Estilo iOS (minimalista)
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ios-sep-opaque);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ios-separator);
+}
+
+/* ============================================================
+   BOTONES — Estados iOS
+   ============================================================ */
+.ios-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--ios-r-md);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.18s var(--ios-ease);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  border: none;
+  outline: none;
+}
+
+.ios-btn:active {
+  transform: scale(0.97);
+  opacity: 0.88;
+}
+
+.ios-btn-primary {
+  background: var(--ios-blue);
+  color: #fff;
+  padding: 13px 20px;
+}
+
+.ios-btn-primary:hover {
+  background: var(--ios-blue-dark);
+}
+
+.ios-btn-secondary {
+  background: var(--ios-fill);
+  color: var(--ios-blue);
+  padding: 13px 20px;
+}
+
+.ios-btn-secondary:hover {
+  background: var(--ios-fill-sec);
+}
+
+.ios-btn-danger {
+  background: var(--ios-red-bg);
+  color: var(--ios-red);
+  padding: 13px 20px;
+}
+
+.ios-btn-ghost {
+  background: transparent;
+  color: var(--ios-blue);
+  padding: 13px 20px;
+}
+
+/* ============================================================
+   INPUTS — Estilo iOS
+   ============================================================ */
+.ios-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: var(--ios-r-md);
+  border: 1.5px solid transparent;
+  background: var(--ios-fill);
+  color: var(--ios-label);
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.18s var(--ios-ease), background 0.18s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ios-input::placeholder {
+  color: var(--ios-label-ter);
+}
+
+.ios-input:focus {
+  border-color: var(--ios-blue);
+  background: var(--ios-bg-card);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+/* ============================================================
+   CARDS — Estilo iOS
+   ============================================================ */
+.ios-card {
+  background: var(--ios-bg-card);
+  border-radius: var(--ios-r-lg);
+  box-shadow: var(--ios-shadow-sm);
+  transition: box-shadow 0.2s var(--ios-ease), transform 0.2s var(--ios-ease);
+}
+
+.ios-card:hover {
+  box-shadow: var(--ios-shadow-md);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   NAV BOTTOM FLOTANTE — Compartido
+   ============================================================ */
+.ios-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 8px 16px max(12px, env(safe-area-inset-bottom)) 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.ios-bottom-nav-inner {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: var(--ios-blur);
+  -webkit-backdrop-filter: var(--ios-blur);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 28px;
+  box-shadow: var(--ios-shadow-float);
+  padding: 8px;
+  display: grid;
+}
+
+.ios-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ios-label-ter);
+  text-decoration: none;
+  transition: all 0.18s var(--ios-ease);
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.01em;
+  min-height: 56px;
+  cursor: pointer;
+}
+
+.ios-nav-item:active {
+  transform: scale(0.93);
+}
+
+.ios-nav-item.active {
+  color: var(--ios-blue);
+  background: rgba(0, 122, 255, 0.10);
+}
+
+.ios-nav-item:not(.active):hover {
+  background: var(--ios-fill);
+  color: var(--ios-label-sec);
+}
+
+/* ============================================================
+   BADGES / CHIPS
+   ============================================================ */
+.ios-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ============================================================
+   TABLAS — Estilo iOS List
+   ============================================================ */
+.ios-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--ios-bg-card);
+  border-radius: var(--ios-r-lg);
+  overflow: hidden;
+  box-shadow: var(--ios-shadow-sm);
+}
+
+.ios-table thead th {
+  background: var(--ios-fill);
+  color: var(--ios-label-sec);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--ios-sep-opaque);
+}
+
+.ios-table tbody tr {
+  transition: background 0.15s;
+}
+
+.ios-table tbody tr:hover {
+  background: var(--ios-fill);
+}
+
+.ios-table tbody td {
+  padding: 14px 16px;
+  color: var(--ios-label);
+  font-size: 14px;
+  border-bottom: 1px solid var(--ios-sep-opaque);
+}
+
+.ios-table tbody tr:last-child td {
+  border-bottom: none;
 }

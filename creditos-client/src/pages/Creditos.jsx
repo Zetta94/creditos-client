@@ -1,432 +1,381 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { HiPlus, HiEye, HiSearch, HiFilter, HiBan } from "react-icons/hi";
+import { HiPlus, HiEye, HiSearch, HiBan } from "react-icons/hi";
 import { loadCredits } from "../store/creditsSlice";
 import Pagination from "../components/Pagination";
 
 const CREDIT_TYPE_OPTIONS = [
-    { value: "todos", label: "Todos" },
-    { value: "ONE_TIME", label: "Pago único" },
-    { value: "DAILY", label: "Diario" },
-    { value: "WEEKLY", label: "Semanal" },
-    { value: "QUINCENAL", label: "Quincenal" },
-    { value: "MONTHLY", label: "Mensual" }
+  { value: "todos",     label: "Todos"      },
+  { value: "ONE_TIME",  label: "Pago único"  },
+  { value: "DAILY",     label: "Diario"      },
+  { value: "WEEKLY",    label: "Semanal"     },
+  { value: "QUINCENAL", label: "Quincenal"   },
+  { value: "MONTHLY",   label: "Mensual"     },
 ];
 
-export default function Creditos() {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const { list: creditos, loading, meta } = useSelector(state => state.credits) || { list: [], loading: false, meta: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 } };
+/* ── Estado → config visual iOS ── */
+const ESTADO_CONFIG = {
+  PENDING:  { label: "Pendiente", bg: "#FFF3E0", color: "#7C4A00", dot: "#FF9500" },
+  PAID:     { label: "Pagado",    bg: "#E8F8ED", color: "#1A6B36", dot: "#34C759" },
+  CANCELED: { label: "Cancelado", bg: "#EBF3FF", color: "#004299", dot: "#007AFF" },
+  OVERDUE:  { label: "Vencido",   bg: "#FFEBEA", color: "#8B0000", dot: "#FF3B30" },
+};
 
-    // === Estados ===
-    const [q, setQ] = useState("");
-    const [estado, setEstado] = useState("todos");
-    const [tipo, setTipo] = useState("todos");
-    const [showFilters, setShowFilters] = useState(false);
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-
-    useEffect(() => {
-        setPage(meta?.page ?? 1);
-    }, [meta?.page]);
-
-    // Cargar créditos al montar
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            const params = { page, pageSize };
-            const search = q.trim();
-            if (search) params.q = search;
-            if (estado !== "todos") params.status = estado;
-            if (tipo !== "todos") params.type = tipo;
-            dispatch(loadCredits(params));
-        }, 200);
-        return () => clearTimeout(timeout);
-    }, [dispatch, page, pageSize, q, estado, tipo]);
-
-    useEffect(() => {
-        setPage(1);
-    }, [q, estado, tipo]);
-
-    // === Construcción de datos combinados ===
-    const creditosMock = useMemo(
-        () =>
-            creditos.map((cr, index) => {
-                const monto = Number(cr.amount) || 0;
-                const totalInstallments = Number(cr.totalInstallments || 0);
-                const paidInstallments = Number(cr.paidInstallments || 0);
-                const isClosed = String(cr.status || "").toUpperCase() === "PAID";
-                const installmentAmount = Number(cr.installmentAmount || 0);
-                const targetTotal = totalInstallments > 0 && installmentAmount > 0
-                    ? installmentAmount * totalInstallments
-                    : monto;
-                const receivedAmount = Number(cr.receivedAmount || 0);
-                const isCanceled = isClosed && (
-                    (totalInstallments > 0 && paidInstallments < totalInstallments) ||
-                    (targetTotal > 0 && receivedAmount < targetTotal)
-                );
-                const shownPaidInstallments = isClosed && totalInstallments > 0
-                    ? totalInstallments
-                    : paidInstallments;
-                const safeTotal = totalInstallments > 0 ? totalInstallments : 1;
-                const progress = isClosed
-                    ? 100
-                    : Math.min(100, Math.max(0, (shownPaidInstallments / safeTotal) * 100));
-                const key = cr.id || `temp-${cr.clientId || ""}-${cr.startDate || index}`;
-                return {
-                    id: cr.id,
-                    key,
-                    cliente: cr.client?.name || "Cliente desconocido",
-                    documento: cr.client?.document || "",
-                    telefono: cr.client?.phone || "",
-                    telefonoAlternativo: cr.client?.alternatePhone || "",
-                    monto,
-                    cuotas: totalInstallments,
-                    pagadas: shownPaidInstallments,
-                    estado: cr.status,
-                    estadoVisual: isCanceled ? "CANCELED" : cr.status,
-                    fechaInicio: cr.startDate,
-                    progress,
-                    progressLabel: `${shownPaidInstallments}/${totalInstallments || 0}`
-                };
-            }),
-        [creditos]
-    );
-
-    // === Filtrado ===
-    const rows = useMemo(() => creditosMock, [creditosMock]);
-    const canCancelCredit = (credit) => credit.estado !== "PAID";
-
-    return (
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-            {/* === Header === */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Créditos</h1>
-
-                <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Toggle filtros en móvil */}
-                    <button
-                        onClick={() => setShowFilters((s) => !s)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 sm:hidden"
-                        aria-expanded={showFilters}
-                    >
-                        <HiFilter className="h-4 w-4" />
-                        Filtros
-                    </button>
-
-                    {/* Nuevo crédito */}
-                    <button
-                        onClick={() => navigate("/creditos/nuevo")}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-[0.98]"
-                    >
-                        <HiPlus className="h-5 w-5" />
-                        Nuevo crédito
-                    </button>
-                </div>
-            </div>
-
-            {/* === Filtros === */}
-            <div className="grid gap-3">
-                {/* Panel móvil plegable */}
-                <div
-                    className={`grid gap-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:hidden ${showFilters ? "grid" : "hidden"
-                        }`}
-                >
-                    <SearchInput q={q} setQ={setQ} />
-                    <EstadoSelect estado={estado} setEstado={setEstado} />
-                    <TipoSelect tipo={tipo} setTipo={setTipo} />
-                </div>
-
-                {/* Filtros visibles en desktop */}
-                <div className="hidden items-end gap-3 sm:flex">
-                    <SearchInput q={q} setQ={setQ} />
-                    <EstadoSelect estado={estado} setEstado={setEstado} />
-                    <TipoSelect tipo={tipo} setTipo={setTipo} />
-                </div>
-            </div>
-
-            {/* ===== MOBILE: Cards ===== */}
-            <div className="grid gap-3 sm:hidden">
-                {rows.length === 0 ? (
-                    <EmptyState onCreate={() => navigate("/creditos/nuevo")} />
-                ) : (
-                    rows.map((c) => (
-                        <CreditoCard
-                            key={c.key}
-                            data={c}
-                            onView={() => navigate(`/creditos/${c.id}`)}
-                            onCancel={() => navigate(`/creditos/${c.id}/cancelar`)}
-                            canCancel={canCancelCredit(c)}
-                        />
-                    ))
-                )}
-            </div>
-
-            {/* ===== DESKTOP: Tabla ===== */}
-            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white shadow-lg dark:border-slate-700/60 dark:from-slate-900/70 dark:via-slate-900/40 dark:to-slate-900 sm:block">
-                <table className="w-full text-left text-sm">
-                    <thead className="sticky top-0 z-10 bg-white/70 text-slate-500 backdrop-blur-lg dark:bg-slate-900/70 dark:text-slate-200">
-                        <tr>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap min-w-[200px]">
-                                Cliente
-                            </th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap min-w-[140px]">
-                                Monto total
-                            </th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap min-w-[100px]">
-                                Cuotas
-                            </th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap min-w-[160px]">
-                                Pagadas
-                            </th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap min-w-[120px]">
-                                Estado
-                            </th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap min-w-[220px]">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800">
-                        {rows.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={6}
-                                    className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400"
-                                >
-                                    No se encontraron créditos.
-                                </td>
-                            </tr>
-                        ) : (
-                            rows.map((c) => (
-                                <tr
-                                    key={c.key}
-                                    className="transition hover:bg-sky-50/40 odd:bg-white/95 even:bg-slate-50/80 dark:odd:bg-slate-900/55 dark:even:bg-slate-900/35 dark:hover:bg-slate-900"
-                                >
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center align-middle text-slate-700 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-100">
-                                        {c.cliente}
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center align-middle text-slate-700 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-100">
-                                        ${c.monto.toLocaleString("es-AR")}
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center align-middle text-slate-600 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-200">{c.cuotas}</td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center align-middle first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-200">
-                                            <span className="font-medium">{c.progressLabel}</span>
-                                            <Progress value={c.progress} />
-                                        </div>
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center align-middle first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <EstadoPill estado={c.estadoVisual || c.estado} />
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center align-middle first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <div className="flex justify-center gap-2 text-sm">
-                                            <button
-                                                onClick={() => navigate(`/creditos/${c.id}`)}
-                                                className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border border-sky-200 bg-white/80 px-3 py-1.5 font-semibold text-sky-600 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
-                                            >
-                                                <HiEye className="h-4 w-4" /> Ver
-                                            </button>
-                                            {canCancelCredit(c) ? (
-                                                <button
-                                                    onClick={() => navigate(`/creditos/${c.id}/cancelar`)}
-                                                    className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border border-rose-200 bg-white/80 px-3 py-1.5 font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-200 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
-                                                >
-                                                    <HiBan className="h-4 w-4" /> Cancelar
-                                                </button>
-                                            ) : (
-                                                <span className="inline-flex min-w-[118px] items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700 shadow-sm dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
-                                                    Cancelado
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            <div className="mt-6">
-                <Pagination
-                    page={page}
-                    pageSize={pageSize}
-                    totalItems={meta?.totalItems ?? creditos.length}
-                    totalPages={meta?.totalPages ?? 1}
-                    onPageChange={setPage}
-                    onPageSizeChange={(size) => {
-                        setPageSize(size);
-                        setPage(1);
-                    }}
-                />
-            </div>
-        </div>
-    );
-}
-
-/* ===== Subcomponentes ===== */
-
-function SearchInput({ q, setQ }) {
-    return (
-        <div className="relative w-full sm:max-w-xs">
-            <HiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por cliente, documento o teléfono..."
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            />
-        </div>
-    );
-}
-
-function EstadoSelect({ estado, setEstado }) {
-    return (
-        <div className="grid gap-1">
-            <label className="text-xs text-gray-500 dark:text-gray-400">Estado</label>
-            <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            >
-                <option value="todos">Todos</option>
-                <option value="PENDING">Pendiente</option>
-                <option value="PAID">Pagado</option>
-                <option value="OVERDUE">Vencido</option>
-            </select>
-        </div>
-    );
-}
-
-function TipoSelect({ tipo, setTipo }) {
-    return (
-        <div className="grid gap-1">
-            <label className="text-xs text-gray-500 dark:text-gray-400">Tipo</label>
-            <select
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value)}
-                className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            >
-                {CREDIT_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
-        </div>
-    );
+function EstadoPill({ estado }) {
+  const cfg = ESTADO_CONFIG[estado] || ESTADO_CONFIG.PENDING;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      padding: "4px 10px", borderRadius: "99px",
+      background: cfg.bg, color: cfg.color,
+      fontSize: "12px", fontWeight: 700, whiteSpace: "nowrap",
+      minWidth: "90px",
+    }}>
+      {cfg.label}
+    </span>
+  );
 }
 
 function Progress({ value }) {
-    return (
-        <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-            <div
-                className="h-full bg-blue-600 transition-[width] duration-300 ease-out"
-                style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-            />
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <div style={{ height: "5px", width: "80px", background: "#E5E5EA", borderRadius: "99px", overflow: "hidden", flexShrink: 0 }}>
+      <div style={{
+        height: "100%", width: `${pct}%`,
+        background: pct === 100 ? "#34C759" : "#007AFF",
+        borderRadius: "99px", transition: "width 0.3s",
+      }} />
+    </div>
+  );
+}
+
+const inputStyle = {
+  height: "40px", padding: "0 12px", borderRadius: "10px",
+  border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+  fontSize: "14px", color: "var(--ios-label)", outline: "none",
+  fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s",
+  WebkitAppearance: "none", appearance: "none", width: "100%",
+};
+
+const onFocus = e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; };
+const onBlur  = e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; };
+
+export default function Creditos() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { list: creditos, loading, meta } = useSelector(state => state.credits) || { list: [], loading: false, meta: {} };
+
+  const [q, setQ] = useState("");
+  const [estado, setEstado] = useState("todos");
+  const [tipo, setTipo] = useState("todos");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => { setPage(meta?.page ?? 1); }, [meta?.page]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const params = { page, pageSize };
+      if (q.trim()) params.q = q.trim();
+      if (estado !== "todos") params.status = estado;
+      if (tipo !== "todos") params.type = tipo;
+      dispatch(loadCredits(params));
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [dispatch, page, pageSize, q, estado, tipo]);
+
+  useEffect(() => { setPage(1); }, [q, estado, tipo]);
+
+  const rows = useMemo(() =>
+    creditos.map((cr, index) => {
+      const monto = Number(cr.amount) || 0;
+      const totalInstallments = Number(cr.totalInstallments || 0);
+      const paidInstallments = Number(cr.paidInstallments || 0);
+      const isClosed = String(cr.status || "").toUpperCase() === "PAID";
+      const installmentAmount = Number(cr.installmentAmount || 0);
+      const targetTotal = totalInstallments > 0 && installmentAmount > 0 ? installmentAmount * totalInstallments : monto;
+      const receivedAmount = Number(cr.receivedAmount || 0);
+      const isCanceled = isClosed && ((totalInstallments > 0 && paidInstallments < totalInstallments) || (targetTotal > 0 && receivedAmount < targetTotal));
+      const shownPaidInstallments = isClosed && totalInstallments > 0 ? totalInstallments : paidInstallments;
+      const safeTotal = totalInstallments > 0 ? totalInstallments : 1;
+      const progress = isClosed ? 100 : Math.min(100, Math.max(0, (shownPaidInstallments / safeTotal) * 100));
+      const key = cr.id || `temp-${cr.clientId || ""}-${cr.startDate || index}`;
+      return {
+        id: cr.id, key,
+        cliente: cr.client?.name || "Cliente desconocido",
+        monto, cuotas: totalInstallments,
+        pagadas: shownPaidInstallments,
+        estado: cr.status,
+        estadoVisual: isCanceled ? "CANCELED" : cr.status,
+        fechaInicio: cr.startDate,
+        progress,
+        progressLabel: `${shownPaidInstallments}/${totalInstallments || 0}`,
+      };
+    }),
+    [creditos]
+  );
+
+  const canCancel = cr => cr.estado !== "PAID";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
+
+      {/* Header */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+        <div>
+          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.025em" }}>Créditos</h1>
+          <p style={{ fontSize: "14px", color: "var(--ios-label-sec)", margin: "4px 0 0" }}>{meta?.totalItems ?? creditos.length} registros</p>
         </div>
-    );
-}
-
-function estadoClasses(estado) {
-    return {
-        PENDING:
-            "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
-        PAID:
-            "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700",
-        CANCELED:
-            "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700",
-        OVERDUE:
-            "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800",
-    }[estado];
-}
-
-function EstadoPill({ estado }) {
-    const label =
-        estado === "PENDING"
-            ? "Pendiente"
-            : estado === "PAID"
-                ? "Pagado"
-                : estado === "CANCELED"
-                    ? "Cancelado"
-                : "Vencido";
-    return (
-        <span
-            className={`inline-flex min-w-[110px] items-center justify-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold tracking-wide ${estadoClasses(
-                estado
-            )}`}
+        <button
+          onClick={() => navigate("/creditos/nuevo")}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            padding: "11px 18px", borderRadius: "12px", border: "none",
+            background: "var(--ios-blue)", color: "#fff",
+            fontSize: "15px", fontWeight: 700, cursor: "pointer",
+            transition: "all 0.18s", boxShadow: "0 4px 12px rgba(0,122,255,0.3)",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "var(--ios-blue-dark)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "var(--ios-blue)"; e.currentTarget.style.transform = "translateY(0)"; }}
         >
-            {label}
-        </span>
-    );
+          <HiPlus style={{ width: "18px", height: "18px" }} />
+          Nuevo crédito
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <div className="ios-card" style={{ padding: "16px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "flex-end" }}>
+        {/* Search */}
+        <div style={{ position: "relative", flex: "1 1 220px", minWidth: "180px" }}>
+          <HiSearch style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", width: "16px", height: "16px", color: "var(--ios-label-ter)", pointerEvents: "none" }} />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Buscar cliente, documento..."
+            style={{ ...inputStyle, paddingLeft: "38px" }}
+            onFocus={onFocus}
+            onBlur={onBlur}
+          />
+        </div>
+
+        {/* Estado */}
+        <div style={{ flex: "0 0 auto" }}>
+          <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--ios-label-ter)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "5px" }}>Estado</label>
+          <select value={estado} onChange={e => setEstado(e.target.value)} style={{ ...inputStyle, width: "auto", minWidth: "130px" }} onFocus={onFocus} onBlur={onBlur}>
+            <option value="todos">Todos</option>
+            <option value="PENDING">Pendiente</option>
+            <option value="PAID">Pagado</option>
+            <option value="OVERDUE">Vencido</option>
+          </select>
+        </div>
+
+        {/* Tipo */}
+        <div style={{ flex: "0 0 auto" }}>
+          <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--ios-label-ter)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "5px" }}>Tipo</label>
+          <select value={tipo} onChange={e => setTipo(e.target.value)} style={{ ...inputStyle, width: "auto", minWidth: "130px" }} onFocus={onFocus} onBlur={onBlur}>
+            {CREDIT_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* ═══ MOBILE: Cards ═══ */}
+      <div className="sm:hidden" style={{ flexDirection: "column", gap: "10px" }}>
+        {loading ? (
+          [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: "160px", borderRadius: "16px" }} />)
+        ) : rows.length === 0 ? (
+          <EmptyState onCreate={() => navigate("/creditos/nuevo")} />
+        ) : (
+          rows.map(c => (
+            <CreditoCard
+              key={c.key} data={c}
+              onView={() => navigate(`/creditos/${c.id}`)}
+              onCancel={() => navigate(`/creditos/${c.id}/cancelar`)}
+              canCancel={canCancel(c)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* ═══ DESKTOP: Tabla iOS ═══ */}
+      <div className="hidden sm:block" style={{ background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)", overflow: "hidden" }}>
+        <table className="ios-table" style={{ borderRadius: 0 }}>
+          <thead>
+            <tr>
+              {["Cliente", "Monto", "Cuotas", "Progreso", "Estado", "Acciones"].map((h, i) => (
+                <th key={h} style={{ textAlign: i === 5 ? "right" : "left", padding: "12px 16px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center" }}>
+                <div className="skeleton" style={{ height: "18px", width: "200px", margin: "0 auto", borderRadius: "6px" }} />
+              </td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: "var(--ios-label-ter)", fontSize: "15px" }}>
+                No se encontraron créditos.
+              </td></tr>
+            ) : rows.map((c) => (
+              <tr key={c.key} style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <td style={{ padding: "14px 16px", fontWeight: 600, color: "var(--ios-label)", textAlign: "left" }}>{c.cliente}</td>
+                <td style={{ padding: "14px 16px", fontWeight: 700, color: "var(--ios-label)", textAlign: "left" }}>
+                  ${c.monto.toLocaleString("es-AR")}
+                </td>
+                <td style={{ padding: "14px 16px", color: "var(--ios-label-sec)", textAlign: "left" }}>{c.cuotas}</td>
+                <td style={{ padding: "14px 16px", textAlign: "left" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--ios-label-sec)" }}>{c.progressLabel}</span>
+                    <Progress value={c.progress} />
+                  </div>
+                </td>
+                <td style={{ padding: "14px 16px", textAlign: "left" }}>
+                  <EstadoPill estado={c.estadoVisual || c.estado} />
+                </td>
+                <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                    <ActionBtn onClick={() => navigate(`/creditos/${c.id}`)} color="#004299" icon={<HiEye style={{ width: "14px", height: "14px" }} />} label="Ver" />
+                    {canCancel(c)
+                      ? <ActionBtn onClick={() => navigate(`/creditos/${c.id}/cancelar`)} color="#8B0000" icon={<HiBan style={{ width: "14px", height: "14px" }} />} label="Cancelar" />
+                      : <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "88px", height: "30px", padding: "0", borderRadius: "8px", background: "#E8F8ED", color: "#1A6B36", fontSize: "12px", fontWeight: 700 }}>✓ Cerrado</span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Pagination
+        page={page} pageSize={pageSize}
+        totalItems={meta?.totalItems ?? creditos.length}
+        totalPages={meta?.totalPages ?? 1}
+        onPageChange={setPage}
+        onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+      />
+    </div>
+  );
 }
 
-function CreditoCard({ data, onView, onCancel, canCancel = true }) {
-    return (
-        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-4 shadow-lg dark:border-slate-700/60 dark:from-slate-900/70 dark:via-slate-900/40 dark:to-slate-900">
-            <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{data.cliente}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                        Inicio: {data.fechaInicio}
-                    </div>
-                </div>
-                <EstadoPill estado={data.estadoVisual || data.estado} />
-            </div>
+/* ── Botón de acción en tabla ── */
+function ActionBtn({ onClick, color, icon, label }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "5px",
+        padding: "6px 0", borderRadius: "8px", border: "none",
+        background: `${color}18`, color,
+        fontSize: "12px", fontWeight: 700,
+        cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+        minWidth: "88px", height: "30px",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = `${color}28`; e.currentTarget.style.transform = "translateY(-1px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = `${color}18`; e.currentTarget.style.transform = "translateY(0)"; }}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
-            <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Monto</div>
-                <div className="font-medium text-slate-700 dark:text-slate-100">${data.monto.toLocaleString("es-AR")}</div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Cuotas</div>
-                <div className="font-medium text-slate-700 dark:text-slate-100">{data.cuotas}</div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Pagadas</div>
-                <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-100">
-                    {data.progressLabel}
-                    <Progress value={data.progress} />
-                </div>
-            </div>
-
-            <div className="mt-4 flex gap-2">
-                <button
-                    onClick={onView}
-                    className="flex-1 min-w-[118px] rounded-full border border-sky-200 bg-white/80 px-3 py-2 text-sm font-semibold text-sky-600 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
-                >
-                    <span className="inline-flex items-center gap-1">
-                        <HiEye className="h-4 w-4" />
-                        Ver
-                    </span>
-                </button>
-                {canCancel ? (
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 min-w-[118px] rounded-full border border-rose-200 bg-white/80 px-3 py-2 text-sm font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-200 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
-                    >
-                        <span className="inline-flex items-center gap-1">
-                            <HiBan className="h-4 w-4" />
-                            Cancelar
-                        </span>
-                    </button>
-                ) : (
-                    <span className="flex-1 min-w-[118px] rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-700 shadow-sm dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
-                        Cancelado
-                    </span>
-                )}
-            </div>
+/* ── Card mobile de crédito ── */
+function CreditoCard({ data, onView, onCancel, canCancel }) {
+  return (
+    <div
+      className="ios-card"
+      style={{ padding: "16px" }}
+    >
+      {/* Top */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "12px", gap: "8px" }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {data.cliente}
+          </p>
+          {data.fechaInicio && (
+            <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: 0 }}>Inicio: {data.fechaInicio}</p>
+          )}
         </div>
-    );
+        <EstadoPill estado={data.estadoVisual || data.estado} />
+      </div>
+
+      {/* Info grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" }}>
+        <InfoCell label="Monto" value={`$${data.monto.toLocaleString("es-AR")}`} />
+        <InfoCell label="Cuotas" value={data.cuotas} />
+      </div>
+
+      {/* Progreso */}
+      <div style={{ marginBottom: "14px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-ter)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Progreso</span>
+          <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--ios-label-sec)" }}>{data.progressLabel}</span>
+        </div>
+        <div style={{ height: "5px", background: "#E5E5EA", borderRadius: "99px", overflow: "hidden" }}>
+          <div style={{
+            height: "100%", width: `${data.progress}%`,
+            background: data.progress === 100 ? "#34C759" : "#007AFF",
+            borderRadius: "99px", transition: "width 0.3s",
+          }} />
+        </div>
+      </div>
+
+      {/* Acciones */}
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          onClick={onView}
+          style={{ flex: 1, padding: "11px", borderRadius: "12px", border: "none", background: "#EBF3FF", color: "#007AFF", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", transition: "all 0.15s" }}
+          onMouseEnter={e => e.currentTarget.style.background = "#C8E0FF"}
+          onMouseLeave={e => e.currentTarget.style.background = "#EBF3FF"}
+        >
+          <HiEye style={{ width: "16px", height: "16px" }} /> Ver
+        </button>
+        {canCancel ? (
+          <button
+            onClick={onCancel}
+            style={{ flex: 1, padding: "11px", borderRadius: "12px", border: "none", background: "#FFEBEA", color: "#FF3B30", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", transition: "all 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#FFCCC9"}
+            onMouseLeave={e => e.currentTarget.style.background = "#FFEBEA"}
+          >
+            <HiBan style={{ width: "16px", height: "16px" }} /> Cancelar
+          </button>
+        ) : (
+          <span style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#E8F8ED", color: "#34C759", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            Cancelado
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InfoCell({ label, value }) {
+  return (
+    <div style={{ background: "var(--ios-fill)", borderRadius: "10px", padding: "10px 12px" }}>
+      <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ios-label-ter)", margin: "0 0 3px" }}>{label}</p>
+      <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>{value}</p>
+    </div>
+  );
 }
 
 function EmptyState({ onCreate }) {
-    return (
-        <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            No se encontraron créditos.{" "}
-            <button
-                onClick={onCreate}
-                className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-            >
-                Crear nuevo
-            </button>
-        </div>
-    );
+  return (
+    <div style={{ textAlign: "center", padding: "60px 20px", background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)" }}>
+      <p style={{ fontSize: "40px", margin: "0 0 12px" }}>💳</p>
+      <p style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 8px" }}>Sin créditos</p>
+      <p style={{ fontSize: "14px", color: "var(--ios-label-ter)", margin: "0 0 20px" }}>No se encontraron créditos con esos filtros.</p>
+      <button
+        onClick={onCreate}
+        style={{ padding: "11px 22px", borderRadius: "12px", background: "var(--ios-blue)", color: "#fff", border: "none", fontSize: "15px", fontWeight: 700, cursor: "pointer" }}
+      >
+        Crear nuevo crédito
+      </button>
+    </div>
+  );
 }

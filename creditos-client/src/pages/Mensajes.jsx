@@ -1,230 +1,211 @@
 import { useEffect, useState } from "react";
-import {
-    HiFilter,
-    HiX,
-} from "react-icons/hi";
+import { HiSearch } from "react-icons/hi";
 import { fetchMessages } from "../services/messagesService";
 import Pagination from "../components/Pagination";
 import MessageCard from "../components/messages/MessageCard";
 
 const TYPE_OPTIONS = [
-    { value: "TODOS", label: "Todos" },
-    { value: "PAGO", label: "Pagos recibidos" },
-    { value: "VENCIMIENTO", label: "Próximos vencimientos" },
-    { value: "IMPAGO", label: "Clientes en mora" },
-    { value: "TRAYECTO_INICIADO", label: "Trayectos iniciados" },
-    { value: "TRAYECTO_FINALIZADO", label: "Trayectos finalizados" },
+  { value: "TODOS",               label: "Todos"                },
+  { value: "PAGO",                label: "Pagos recibidos"      },
+  { value: "VENCIMIENTO",         label: "Próximos vencimientos"},
+  { value: "IMPAGO",              label: "Clientes en mora"     },
+  { value: "TRAYECTO_INICIADO",   label: "Trayectos iniciados"  },
+  { value: "TRAYECTO_FINALIZADO", label: "Trayectos finalizados"},
 ];
 
 function normalizarMensajes(items) {
-    return (Array.isArray(items) ? items : []).map((item) => {
-        const fechaDate = item.fecha ? new Date(item.fecha) : null;
-        return {
-            ...item,
-            clienteNombre: item.client?.name ?? null,
-            fechaDate: fechaDate instanceof Date && !Number.isNaN(fechaDate.getTime()) ? fechaDate : null,
-        };
-    });
+  return (Array.isArray(items) ? items : []).map((item) => {
+    const fechaDate = item.fecha ? new Date(item.fecha) : null;
+    return {
+      ...item,
+      clienteNombre: item.client?.name ?? null,
+      fechaDate: fechaDate instanceof Date && !Number.isNaN(fechaDate.getTime()) ? fechaDate : null,
+    };
+  });
 }
+
+/* ── Label + input stack ── */
+function Field({ label, children }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+      <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", letterSpacing: "0.01em" }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle = {
+  height: "40px",
+  width: "100%",
+  padding: "0 12px",
+  borderRadius: "10px",
+  border: "1.5px solid var(--ios-sep-opaque)",
+  background: "var(--ios-fill)",
+  fontSize: "14px",
+  color: "var(--ios-label)",
+  outline: "none",
+  fontFamily: "inherit",
+  transition: "border-color 0.15s, box-shadow 0.15s",
+  WebkitAppearance: "none",
+  appearance: "none",
+};
 
 export default function Mensajes() {
-    const [filtros, setFiltros] = useState({
-        desde: "",
-        hasta: "",
-        tipo: "TODOS", // PAGO | VENCIMIENTO | IMPAGO | TODOS
-        soloImportantes: false,
-    });
-    const [openFilters, setOpenFilters] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [meta, setMeta] = useState({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1 });
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const { desde, hasta, tipo, soloImportantes } = filtros;
+  const [filtros, setFiltros] = useState({ desde: "", hasta: "", tipo: "TODOS", soloImportantes: false });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [meta, setMeta] = useState({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1 });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { desde, hasta, tipo, soloImportantes } = filtros;
 
-    useEffect(() => {
-        let active = true;
-        setLoading(true);
-        const params = {
-            page,
-            pageSize,
-            ...(tipo !== "TODOS" ? { tipo } : {}),
-            ...(desde ? { desde } : {}),
-            ...(hasta ? { hasta } : {}),
-            ...(soloImportantes ? { importante: true } : {})
-        };
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    const params = {
+      page, pageSize,
+      ...(tipo !== "TODOS" ? { tipo } : {}),
+      ...(desde ? { desde } : {}),
+      ...(hasta ? { hasta } : {}),
+      ...(soloImportantes ? { importante: true } : {}),
+    };
+    fetchMessages(params)
+      .then(res => {
+        if (!active) return;
+        setMessages(normalizarMensajes(res.data?.data));
+        setMeta(res.data?.meta || { page: 1, pageSize, totalItems: 0, totalPages: 1 });
+        setError(null);
+      })
+      .catch(() => { if (!active) return; setError("No se pudieron cargar los mensajes."); })
+      .finally(() => { if (!active) return; setLoading(false); });
+    return () => { active = false; };
+  }, [page, pageSize, desde, hasta, tipo, soloImportantes]);
 
-        fetchMessages(params)
-            .then((res) => {
-                if (!active) return;
-                setMessages(normalizarMensajes(res.data?.data));
-                setMeta(res.data?.meta || { page: 1, pageSize, totalItems: 0, totalPages: 1 });
-                setError(null);
-            })
-            .catch(() => {
-                if (!active) return;
-                setError("No se pudieron cargar los mensajes.");
-            })
-            .finally(() => {
-                if (!active) return;
-                setLoading(false);
-            });
+  useEffect(() => { setPage(meta.page ?? 1); setPageSize(meta.pageSize ?? 10); }, [meta.page, meta.pageSize]);
+  useEffect(() => { setPage(1); }, [desde, hasta, tipo, soloImportantes]);
 
-        return () => {
-            active = false;
-        };
-    }, [page, pageSize, desde, hasta, tipo, soloImportantes]);
+  const reset = () => setFiltros({ desde: "", hasta: "", tipo: "TODOS", soloImportantes: false });
 
-    useEffect(() => {
-        setPage(meta.page ?? 1);
-        setPageSize(meta.pageSize ?? 10);
-    }, [meta.page, meta.pageSize]);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
 
-    useEffect(() => {
-        setPage(1);
-    }, [desde, hasta, tipo, soloImportantes]);
+      {/* Header */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+        <div>
+          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.025em" }}>Mensajes</h1>
+          <p style={{ fontSize: "14px", color: "var(--ios-label-sec)", margin: "4px 0 0" }}>Actividad y notificaciones del sistema</p>
+        </div>
+        <button
+          onClick={reset}
+          style={{
+            padding: "9px 16px", borderRadius: "10px", border: "1.5px solid var(--ios-sep-opaque)",
+            background: "var(--ios-bg-card)", fontSize: "14px", fontWeight: 600,
+            color: "var(--ios-blue)", cursor: "pointer", transition: "all 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+          onMouseLeave={e => e.currentTarget.style.background = "var(--ios-bg-card)"}
+        >
+          Limpiar filtros
+        </button>
+      </div>
 
-    const reset = () =>
-        setFiltros({ desde: "", hasta: "", tipo: "TODOS", soloImportantes: false });
+      {/* Panel de filtros  */}
+      <div className="ios-card" style={{ padding: "18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "14px" }}>
+          <Field label="Desde">
+            <input
+              type="date"
+              value={filtros.desde}
+              onChange={e => setFiltros(f => ({ ...f, desde: e.target.value }))}
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; }}
+              onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; }}
+            />
+          </Field>
 
-    return (
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Mensajes del sistema</h1>
+          <Field label="Hasta">
+            <input
+              type="date"
+              value={filtros.hasta}
+              onChange={e => setFiltros(f => ({ ...f, hasta: e.target.value }))}
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; }}
+              onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; }}
+            />
+          </Field>
 
-                <div className="flex items-center gap-2">
-                    {/* Toggle filtros (solo mobile) */}
-                    <button
-                        onClick={() => setOpenFilters((v) => !v)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 sm:hidden"
-                        aria-expanded={openFilters}
-                    >
-                        {openFilters ? <HiX className="h-4 w-4" /> : <HiFilter className="h-4 w-4" />}
-                        Filtros
-                    </button>
-
-                    <button
-                        onClick={reset}
-                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
-                    >
-                        Limpiar filtros
-                    </button>
-                </div>
-            </div>
-
-            {/* Filtros móvil */}
-            <div
-                className={`grid gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:hidden ${openFilters ? "grid" : "hidden"}`}
+          <Field label="Tipo">
+            <select
+              value={filtros.tipo}
+              onChange={e => setFiltros(f => ({ ...f, tipo: e.target.value }))}
+              disabled={filtros.soloImportantes}
+              style={{ ...inputStyle, opacity: filtros.soloImportantes ? 0.5 : 1, cursor: filtros.soloImportantes ? "not-allowed" : "pointer" }}
+              onFocus={e => { if (!filtros.soloImportantes) { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; } }}
+              onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; }}
             >
-                <Filters filtros={filtros} setFiltros={setFiltros} />
-            </div>
+              {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
 
-            {/* Filtros desktop */}
-            <div className="hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:block">
-                <Filters filtros={filtros} setFiltros={setFiltros} />
-            </div>
-
-            {/* Lista */}
-            <div className="grid grid-cols-1 gap-3">
-                {loading ? (
-                    <div className="col-span-full rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                        Cargando mensajes...
-                    </div>
-                ) : error ? (
-                    <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-600 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
-                        {error}
-                    </div>
-                ) : messages.length === 0 ? (
-                    <div className="col-span-full rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                        No hay mensajes con los filtros seleccionados.
-                    </div>
-                ) : (
-                    messages.map((m) => <MensajeItem key={m.id} m={m} />)
-                )}
-            </div>
-
-            <div className="mt-6">
-                <Pagination
-                    page={meta.page ?? page}
-                    pageSize={meta.pageSize ?? pageSize}
-                    totalItems={meta.totalItems ?? messages.length}
-                    totalPages={meta.totalPages ?? 1}
-                    onPageChange={setPage}
-                    onPageSizeChange={(size) => {
-                        setPageSize(size);
-                        setPage(1);
-                    }}
-                />
-            </div>
+          {/* Toggle solo importantes */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "5px", justifyContent: "flex-end" }}>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)" }}>Filtrar</label>
+            <label
+              style={{
+                display: "flex", alignItems: "center", gap: "10px",
+                height: "40px", padding: "0 12px",
+                borderRadius: "10px", border: "1.5px solid var(--ios-sep-opaque)",
+                background: filtros.soloImportantes ? "var(--ios-blue-light)" : "var(--ios-fill)",
+                cursor: "pointer", fontSize: "14px", fontWeight: 500,
+                color: filtros.soloImportantes ? "var(--ios-blue)" : "var(--ios-label-sec)",
+                transition: "all 0.15s", userSelect: "none",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={filtros.soloImportantes}
+                onChange={e => setFiltros(f => ({ ...f, soloImportantes: e.target.checked, tipo: e.target.checked ? "TODOS" : f.tipo }))}
+                style={{ width: "16px", height: "16px", accentColor: "var(--ios-blue)", cursor: "pointer" }}
+              />
+              Solo importantes
+            </label>
+          </div>
         </div>
-    );
-}
+      </div>
 
-/* === Subcomponentes === */
+      {/* Lista de mensajes */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {loading ? (
+          [1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="skeleton" style={{ height: "80px", borderRadius: "14px" }} />
+          ))
+        ) : error ? (
+          <div style={{ padding: "20px", background: "var(--ios-red-bg)", borderRadius: "14px", color: "var(--ios-red)", fontSize: "14px", fontWeight: 600 }}>
+            {error}
+          </div>
+        ) : messages.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 20px" }}>
+            <p style={{ fontSize: "40px", margin: "0 0 12px" }}>✉️</p>
+            <p style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 6px" }}>Sin mensajes</p>
+            <p style={{ fontSize: "14px", color: "var(--ios-label-ter)", margin: 0 }}>No hay mensajes con los filtros seleccionados.</p>
+          </div>
+        ) : (
+          messages.map(m => <MessageCard key={m.id} message={m} />)
+        )}
+      </div>
 
-function Filters({ filtros, setFiltros }) {
-    return (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
-            <div className="grid gap-1">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Desde</label>
-                <input
-                    type="date"
-                    value={filtros.desde}
-                    onChange={(e) => setFiltros((f) => ({ ...f, desde: e.target.value }))}
-                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-            </div>
-
-            <div className="grid gap-1">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Hasta</label>
-                <input
-                    type="date"
-                    value={filtros.hasta}
-                    onChange={(e) => setFiltros((f) => ({ ...f, hasta: e.target.value }))}
-                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-            </div>
-
-            <div className="grid gap-1">
-                <label className="text-sm text-gray-600 dark:text-gray-300">Tipo</label>
-                <select
-                    value={filtros.tipo}
-                    onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value }))}
-                    disabled={filtros.soloImportantes}
-                    className={`h-10 w-full rounded-lg border bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:bg-gray-900 dark:text-gray-100 ${filtros.soloImportantes ? "border-dashed border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500" : "border-gray-300 dark:border-gray-700"}`}
-                >
-                    {TYPE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Toggle importantes */}
-            <div className="sm:col-span-2 flex items-end">
-                <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-                    <input
-                        type="checkbox"
-                        checked={filtros.soloImportantes}
-                        onChange={(e) =>
-                            setFiltros((f) => ({
-                                ...f,
-                                soloImportantes: e.target.checked,
-                                tipo: e.target.checked ? "TODOS" : f.tipo
-                            }))
-                        }
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
-                    />
-                    Solo importantes
-                </label>
-            </div>
-        </div>
-    );
-}
-
-function MensajeItem({ m }) {
-    return <MessageCard message={m} />;
+      {/* Paginación */}
+      <Pagination
+        page={meta.page ?? page}
+        pageSize={meta.pageSize ?? pageSize}
+        totalItems={meta.totalItems ?? messages.length}
+        totalPages={meta.totalPages ?? 1}
+        onPageChange={setPage}
+        onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+      />
+    </div>
+  );
 }

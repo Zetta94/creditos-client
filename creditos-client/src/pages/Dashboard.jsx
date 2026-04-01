@@ -6,10 +6,22 @@ export default function Dashboard() {
   const isCollectorRoute = location.pathname.startsWith("/cobrador");
 
   return (
-    <div className="app-shell min-h-screen bg-[#08122f] text-slate-100">
+    <div className="app-shell min-h-screen" style={{ background: "var(--ios-bg)", color: "var(--ios-label)" }}>
       <Sidebar />
-      <main className={`${isCollectorRoute ? "pb-28" : "pb-4"} p-4 pt-20 sm:ml-64 sm:pb-4`}>
-        <Outlet />
+      {/* En mobile siempre hay bottom nav flotante, hay que darle espacio al contenido */}
+      <main
+        className="sm:ml-64"
+        style={{
+          paddingTop: "64px",
+          paddingBottom: "calc(88px + max(12px, env(safe-area-inset-bottom)))",
+          paddingLeft: "0",
+          paddingRight: "0",
+          minHeight: "100vh",
+        }}
+      >
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 sm:pb-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

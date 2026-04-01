@@ -6,288 +6,276 @@ import { loadUsers } from "../store/employeeSlice";
 import { loadCredits } from "../store/creditsSlice";
 import Pagination from "../components/Pagination";
 
-export default function Usuarios() {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const { list: usuarios, loading, meta } = useSelector(state => state.employees) || { list: [], loading: false, meta: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 } };
-    const { list: creditos } = useSelector(state => state.credits) || { list: [] };
+/* ── Badges iOS ── */
+const ROL_CONFIG = {
+  ADMIN:    { bg: "#F5EAFF", color: "#5C2B8C", label: "Admin"    },
+  COBRADOR: { bg: "#FFF3E0", color: "#7C4A00", label: "Cobrador" },
+  EMPLOYEE: { bg: "#FFF3E0", color: "#7C4A00", label: "Cobrador" },
+};
 
-    const [q, setQ] = useState("");
-    const [rol, setRol] = useState("todos");
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+const NIVEL_CONFIG = {
+  EXCELENTE: { bg: "#E8F8ED", color: "#1A6B36", label: "Excelente" },
+  ALTA:      { bg: "#FFF3E0", color: "#7C4A00", label: "Alta"      },
+  BUENA:     { bg: "#EBF3FF", color: "#004299", label: "Buena"     },
+  MEDIA:     { bg: "#EBF3FF", color: "#004299", label: "Media"     },
+  MALA:      { bg: "#FFEBEA", color: "#8B0000", label: "Mala"      },
+};
 
-    useEffect(() => {
-        setPage(meta?.page ?? 1);
-        setPageSize(meta?.pageSize ?? 10);
-    }, [meta?.page, meta?.pageSize]);
-
-    const lastRequestRef = useRef({ page: null, pageSize: null, q: null });
-
-    useEffect(() => {
-        const normalizedQuery = q.trim() ? q.trim() : undefined;
-        const params = { page, pageSize, q: normalizedQuery };
-        const last = lastRequestRef.current;
-        const sameRequest =
-            last.page === params.page &&
-            last.pageSize === params.pageSize &&
-            last.q === params.q;
-
-        if (sameRequest) {
-            return;
-        }
-
-        const timeout = setTimeout(() => {
-            lastRequestRef.current = params;
-            dispatch(loadUsers(params));
-        }, 200);
-
-        return () => {
-            clearTimeout(timeout);
-        };
-    }, [dispatch, page, pageSize, q]);
-
-    useEffect(() => {
-        dispatch(loadCredits({ page: 1, pageSize: 500 }));
-    }, [dispatch]);
-
-    useEffect(() => {
-        setPage(1);
-    }, [q, rol]);
-
-    const usuariosConDatos = useMemo(() => {
-        return (usuarios || []).map((u) => {
-            const creditosUsuario = creditos.filter((c) => c.userId === u.id);
-            const totalCreditos = creditosUsuario.length;
-
-            return {
-                id: u.id,
-                nombre: u.name,
-                rol: (u.role || "").toUpperCase(),
-                status: (u.status || "ACTIVE").toUpperCase(),
-                creditos: totalCreditos,
-                nivel: u.responsability?.toUpperCase() || "MEDIA",
-            };
-        });
-    }, [usuarios, creditos]);
-
-    const rows = useMemo(() => {
-        const qn = q.trim().toLowerCase();
-        return usuariosConDatos.filter((u) => {
-            const textOk = !qn || u.nombre.toLowerCase().includes(qn);
-            const rolOk = rol === "todos" || u.rol === rol;
-            return textOk && rolOk;
-        });
-    }, [q, rol, usuariosConDatos]);
-
-    return (
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-            {/* === Toolbar === */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Usuarios</h1>
-                <button
-                    onClick={() => navigate("/usuarios/nuevo")}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                    <HiPlus className="h-5 w-5" />
-                    Agregar Usuario
-                </button>
-            </div>
-
-            {/* === Filtros === */}
-            <div className="grid gap-3 sm:flex sm:items-end">
-                <SearchInput q={q} setQ={setQ} />
-                <div className="grid gap-1 sm:w-48">
-                    <label className="text-xs text-gray-500 dark:text-gray-400">Rol</label>
-                    <select
-                        value={rol}
-                        onChange={(e) => setRol(e.target.value)}
-                        className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                    >
-                        <option value="todos">Todos</option>
-                        <option value="ADMIN">Admin</option>
-                        <option value="COBRADOR">Cobrador</option>
-                        <option value="EMPLOYEE">Employee</option>
-                    </select>
-                </div>
-            </div>
-
-            {/* === Mobile: Cards === */}
-            <div className="grid gap-4 sm:hidden">
-                {loading ? (
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                        Cargando usuarios...
-                    </div>
-                ) : rows.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                        No se encontraron usuarios.
-                    </div>
-                ) : (
-                    rows.map((u) => (
-                        <div
-                            key={u.id}
-                            className="rounded-2xl border border-gray-700 bg-gray-900/60 backdrop-blur-sm p-4 shadow-lg"
-                        >
-                            {/* HEADER */}
-                            <div className="flex items-start justify-between mb-2">
-                                <div>
-                                    <p className="font-semibold text-lg text-white leading-tight">
-                                        {u.nombre}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => navigate(`/usuarios/${u.id}`)}
-                                    className="rounded-full bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500 transition"
-                                >
-                                    <HiEye className="inline-block h-4 w-4" />
-                                </button>
-                            </div>
-
-                            {/* PILLS */}
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                <RolPill rol={u.rol} />
-                                <NivelPill nivel={u.nivel} />
-                                <EstadoPill status={u.status} />
-                            </div>
-
-                            {/* INFO */}
-                            <div className="flex justify-between items-center text-sm text-gray-300">
-                                <span className="font-semibold center">Créditos asignados:</span>
-                                <span className="font-medium text-white mr-0.5">{u.creditos}</span>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* === Desktop: Tabla === */}
-            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl dark:border-slate-700 dark:bg-slate-900/80 sm:block">
-                <table className="w-full text-left text-sm">
-                    <thead className="sticky top-0 z-10 bg-white/70 text-slate-500 backdrop-blur-lg dark:bg-slate-900/70 dark:text-slate-200">
-                        <tr>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[200px]">Nombre</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[150px]">Créditos asignados</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[160px]">Responsabilidad</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[120px]">Rol</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[150px]">Estado</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300 min-w-[160px]">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800/80">
-                        {loading ? (
-                            <tr>
-                                <td colSpan={6} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
-                                    Cargando usuarios...
-                                </td>
-                            </tr>
-                        ) : rows.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
-                                    No se encontraron usuarios.
-                                </td>
-                            </tr>
-                        ) : (
-                            rows.map((u) => (
-                                <tr
-                                    key={u.id}
-                                    className="transition hover:bg-sky-50/40 odd:bg-white/95 even:bg-slate-50/80 dark:odd:bg-slate-900/50 dark:even:bg-slate-900/35 dark:hover:bg-slate-900/55"
-                                >
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-700 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-100">{u.nombre}</td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-600 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-200">{u.creditos}</td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <NivelPill nivel={u.nivel} />
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <RolPill rol={u.rol} />
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <EstadoPill status={u.status} />
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <button
-                                            onClick={() => navigate(`/usuarios/${u.id}`)}
-                                            className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border border-sky-200 bg-white/80 px-3 py-1.5 font-semibold text-sky-600 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
-                                        >
-                                            <HiEye className="h-4 w-4" />
-                                            Ver
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            <div className="mt-6">
-                <Pagination
-                    page={meta?.page ?? page}
-                    pageSize={meta?.pageSize ?? pageSize}
-                    totalItems={meta?.totalItems ?? usuarios.length}
-                    totalPages={meta?.totalPages ?? 1}
-                    onPageChange={setPage}
-                    onPageSizeChange={(size) => {
-                        setPageSize(size);
-                        setPage(1);
-                    }}
-                />
-            </div>
-        </div>
-    );
+function Pill({ bg, color, label }) {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      padding: "4px 10px", borderRadius: "99px",
+      background: bg, color, fontSize: "12px", fontWeight: 700,
+      minWidth: "84px", whiteSpace: "nowrap",
+    }}>
+      {label}
+    </span>
+  );
 }
 
-/* ==== Subcomponentes ==== */
-
-function SearchInput({ q, setQ }) {
-    return (
-        <div className="relative w-full sm:max-w-xs">
-            <HiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por nombre…"
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            />
-        </div>
-    );
-}
-
-function RolPill({ rol }) {
-    const cls =
-        rol === "ADMIN"
-            ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700"
-            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700";
-    return (
-        <span className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide text-center ${cls}`}>
-            {rol === "EMPLOYEE" ? "Cobrador" : rol}
-        </span>
-    );
-}
-
-function NivelPill({ nivel }) {
-    const colors = {
-        ALTA: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
-        EXCELENTE: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700",
-        MEDIA: "bg-sky-50 text-sky-700 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700",
-        MALA: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700",
-    };
-    return (
-        <span className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide text-center ${colors[nivel] || colors.MEDIA}`}>
-            {nivel}
-        </span>
-    );
-}
-
+function RolPill({ rol })   { const c = ROL_CONFIG[rol]   || ROL_CONFIG.COBRADOR;  return <Pill {...c} />; }
+function NivelPill({ nivel }){ const c = NIVEL_CONFIG[nivel]|| NIVEL_CONFIG.MEDIA;  return <Pill {...c} />; }
 function EstadoPill({ status }) {
-    const isActive = status === "ACTIVE";
-    const cls = isActive
-        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
-        : "bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700";
-    const label = isActive ? "Activo" : "Inactivo";
+  const isActive = status === "ACTIVE";
+  return <Pill bg={isActive ? "#E8F8ED" : "#F2F2F7"} color={isActive ? "#1A6B36" : "#636366"} label={isActive ? "Activo" : "Inactivo"} />;
+}
 
-    return (
-        <span className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide text-center ${cls}`}>
-            {label}
-        </span>
-    );
+const inputStyle = {
+  height: "40px", padding: "0 12px", borderRadius: "10px",
+  border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+  fontSize: "14px", color: "var(--ios-label)", outline: "none",
+  fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s",
+  WebkitAppearance: "none", appearance: "none", width: "100%",
+};
+const onFocus = e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; };
+const onBlur  = e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; };
+
+/* ── Avatar con iniciales ── */
+function Avatar({ name }) {
+  const initials = name ? name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase() : "?";
+  return (
+    <div style={{
+      width: "36px", height: "36px", borderRadius: "50%",
+      background: "linear-gradient(135deg, #007AFF, #32ADE6)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: "14px", fontWeight: 700, color: "#fff", flexShrink: 0,
+    }}>
+      {initials}
+    </div>
+  );
+}
+
+export default function Usuarios() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { list: usuarios, loading, meta } = useSelector(state => state.employees) || { list: [], loading: false, meta: {} };
+  const { list: creditos } = useSelector(state => state.credits) || { list: [] };
+
+  const [q, setQ] = useState("");
+  const [rol, setRol] = useState("todos");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => { setPage(meta?.page ?? 1); setPageSize(meta?.pageSize ?? 10); }, [meta?.page, meta?.pageSize]);
+
+  const lastRequestRef = useRef({ page: null, pageSize: null, q: null });
+  useEffect(() => {
+    const normalizedQuery = q.trim() ? q.trim() : undefined;
+    const params = { page, pageSize, q: normalizedQuery };
+    const last = lastRequestRef.current;
+    if (last.page === params.page && last.pageSize === params.pageSize && last.q === params.q) return;
+    const timeout = setTimeout(() => {
+      lastRequestRef.current = params;
+      dispatch(loadUsers(params));
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [dispatch, page, pageSize, q]);
+
+  useEffect(() => { dispatch(loadCredits({ page: 1, pageSize: 500 })); }, [dispatch]);
+  useEffect(() => { setPage(1); }, [q, rol]);
+
+  const rows = useMemo(() => {
+    const qn = q.trim().toLowerCase();
+    return (usuarios || [])
+      .map(u => ({
+        id: u.id,
+        nombre: u.name,
+        rol: (u.role || "").toUpperCase(),
+        status: (u.status || "ACTIVE").toUpperCase(),
+        creditos: creditos.filter(c => c.userId === u.id).length,
+        nivel: u.responsability?.toUpperCase() || "MEDIA",
+      }))
+      .filter(u => {
+        const textOk = !qn || u.nombre.toLowerCase().includes(qn);
+        const rolOk = rol === "todos" || u.rol === rol;
+        return textOk && rolOk;
+      });
+  }, [q, rol, usuarios, creditos]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
+
+      {/* Header */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+        <div>
+          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.025em" }}>Usuarios</h1>
+          <p style={{ fontSize: "14px", color: "var(--ios-label-sec)", margin: "4px 0 0" }}>{meta?.totalItems ?? usuarios.length} miembros</p>
+        </div>
+        <button
+          onClick={() => navigate("/usuarios/nuevo")}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            padding: "11px 18px", borderRadius: "12px", border: "none",
+            background: "var(--ios-blue)", color: "#fff",
+            fontSize: "15px", fontWeight: 700, cursor: "pointer",
+            transition: "all 0.18s", boxShadow: "0 4px 12px rgba(0,122,255,0.3)",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "var(--ios-blue-dark)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "var(--ios-blue)"; e.currentTarget.style.transform = "translateY(0)"; }}
+        >
+          <HiPlus style={{ width: "18px", height: "18px" }} />
+          Agregar usuario
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <div className="ios-card" style={{ padding: "16px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "flex-end" }}>
+        <div style={{ position: "relative", flex: "1 1 220px", minWidth: "180px" }}>
+          <HiSearch style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", width: "16px", height: "16px", color: "var(--ios-label-ter)", pointerEvents: "none" }} />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Buscar por nombre…"
+            style={{ ...inputStyle, paddingLeft: "38px" }}
+            onFocus={onFocus}
+            onBlur={onBlur}
+          />
+        </div>
+        <div style={{ flex: "0 0 auto" }}>
+          <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--ios-label-ter)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "5px" }}>Rol</label>
+          <select value={rol} onChange={e => setRol(e.target.value)} style={{ ...inputStyle, width: "auto", minWidth: "130px" }} onFocus={onFocus} onBlur={onBlur}>
+            <option value="todos">Todos</option>
+            <option value="ADMIN">Admin</option>
+            <option value="COBRADOR">Cobrador</option>
+            <option value="EMPLOYEE">Employee</option>
+          </select>
+        </div>
+      </div>
+
+      {/* ═══ MOBILE: Cards ═══ */}
+      <div className="sm:hidden" style={{ flexDirection: "column", gap: "10px" }}>
+        {loading ? (
+          [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: "130px", borderRadius: "16px" }} />)
+        ) : rows.length === 0 ? (
+          <EmptyState />
+        ) : rows.map(u => (
+          <div key={u.id} className="ios-card" style={{ padding: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                <Avatar name={u.nombre} />
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--ios-label)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {u.nombre}
+                  </p>
+                  <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: "2px 0 0" }}>
+                    {u.creditos} créditos asignados
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate(`/usuarios/${u.id}`)}
+                style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#EBF3FF", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#C8E0FF"}
+                onMouseLeave={e => e.currentTarget.style.background = "#EBF3FF"}
+              >
+                <HiEye style={{ width: "16px", height: "16px", color: "#007AFF" }} />
+              </button>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              <RolPill rol={u.rol} />
+              <NivelPill nivel={u.nivel} />
+              <EstadoPill status={u.status} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ═══ DESKTOP: Tabla ═══ */}
+      <div className="hidden sm:block" style={{ background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)", overflow: "hidden" }}>
+        <table className="ios-table" style={{ borderRadius: 0 }}>
+          <thead>
+            <tr>
+              {["Nombre", "Créditos", "Responsabilidad", "Rol", "Estado", "Acciones"].map((h, i) => (
+                <th key={h} style={{ textAlign: i === 5 ? "right" : "left", padding: "12px 16px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center" }}>
+                <div className="skeleton" style={{ height: "18px", width: "200px", margin: "0 auto", borderRadius: "6px" }} />
+              </td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: "var(--ios-label-ter)" }}>
+                No se encontraron usuarios.
+              </td></tr>
+            ) : rows.map(u => (
+              <tr key={u.id} style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <td style={{ padding: "14px 16px", textAlign: "left" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Avatar name={u.nombre} />
+                    <span style={{ fontWeight: 600, color: "var(--ios-label)" }}>{u.nombre}</span>
+                  </div>
+                </td>
+                <td style={{ padding: "14px 16px", fontWeight: 600, color: "var(--ios-label-sec)", textAlign: "left" }}>{u.creditos}</td>
+                <td style={{ padding: "14px 16px", textAlign: "left" }}><NivelPill nivel={u.nivel} /></td>
+                <td style={{ padding: "14px 16px", textAlign: "left" }}><RolPill rol={u.rol} /></td>
+                <td style={{ padding: "14px 16px", textAlign: "left" }}><EstadoPill status={u.status} /></td>
+                <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                  <button
+                    onClick={() => navigate(`/usuarios/${u.id}`)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "5px",
+                      padding: "7px 14px", borderRadius: "8px", border: "none",
+                      background: "#EBF3FF", color: "#007AFF",
+                      fontSize: "13px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s", marginLeft: "auto",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#C8E0FF"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#EBF3FF"; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <HiEye style={{ width: "14px", height: "14px" }} />
+                    Ver
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Pagination
+        page={meta?.page ?? page} pageSize={meta?.pageSize ?? pageSize}
+        totalItems={meta?.totalItems ?? usuarios.length}
+        totalPages={meta?.totalPages ?? 1}
+        onPageChange={setPage}
+        onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+      />
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div style={{ textAlign: "center", padding: "60px 20px", background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)" }}>
+      <p style={{ fontSize: "40px", margin: "0 0 12px" }}>👤</p>
+      <p style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 6px" }}>Sin usuarios</p>
+      <p style={{ fontSize: "14px", color: "var(--ios-label-ter)", margin: 0 }}>No se encontraron usuarios con esos filtros.</p>
+    </div>
+  );
 }

@@ -2,426 +2,307 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
+import { HiArrowLeft, HiCheck, HiLockClosed } from "react-icons/hi";
 import { fetchCredit, updateCredit } from "../services/creditsService";
 import { loadUsers } from "../store/employeeSlice";
 
 const CREDIT_TYPES = [
-    { value: "DAILY", label: "Diario" },
-    { value: "WEEKLY", label: "Semanal" },
-    { value: "QUINCENAL", label: "Quincenal" },
-    { value: "MONTHLY", label: "Mensual" },
-    { value: "ONE_TIME", label: "Pago unico" }
+  { value: "DAILY",    label: "Diario"     },
+  { value: "WEEKLY",   label: "Semanal"    },
+  { value: "QUINCENAL",label: "Quincenal"  },
+  { value: "MONTHLY",  label: "Mensual"    },
+  { value: "ONE_TIME", label: "Pago único" },
 ];
-
 const CREDIT_STATUS = [
-    { value: "PENDING", label: "Pendiente" },
-    { value: "OVERDUE", label: "Vencido" },
-    { value: "PAID", label: "Pagado" }
+  { value: "PENDING", label: "Pendiente" },
+  { value: "OVERDUE", label: "Vencido"   },
+  { value: "PAID",    label: "Pagado"    },
 ];
 
-const toDateInput = (value) => {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+const toDateInput = value => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
 
-const computeScheduledDueDate = (baseDate, totalInstallments, type) => {
-    if (!baseDate || !totalInstallments || Number(totalInstallments) <= 0) return "";
-
-    const due = new Date(`${baseDate}T00:00:00`);
-    if (Number.isNaN(due.getTime())) return "";
-    const total = Math.max(0, Number(totalInstallments) || 0);
-
-    switch (type) {
-        case "ONE_TIME":
-            break;
-        case "DAILY":
-            due.setDate(due.getDate() + total);
-            break;
-        case "WEEKLY":
-            due.setDate(due.getDate() + total * 7);
-            break;
-        case "QUINCENAL":
-            due.setDate(due.getDate() + total * 15);
-            break;
-        case "MONTHLY":
-        default:
-            due.setMonth(due.getMonth() + total);
-            break;
-    }
-
-    return toDateInput(due);
+const computeScheduledDueDate = (baseDate, total, type) => {
+  if (!baseDate || !total || Number(total) <= 0) return "";
+  const due = new Date(`${baseDate}T00:00:00`);
+  if (Number.isNaN(due.getTime())) return "";
+  const n = Math.max(0, Number(total));
+  switch (type) {
+    case "DAILY":    due.setDate(due.getDate() + n); break;
+    case "WEEKLY":   due.setDate(due.getDate() + n * 7); break;
+    case "QUINCENAL":due.setDate(due.getDate() + n * 15); break;
+    case "MONTHLY":  default: due.setMonth(due.getMonth() + n); break;
+  }
+  return toDateInput(due);
 };
 
-const computeAdvanceDueDate = (baseDate, totalInstallments, paidInstallments, type) => {
-    if (!baseDate || !totalInstallments || Number(totalInstallments) <= 0) return "";
-
-    const start = new Date(`${baseDate}T00:00:00`);
-    if (Number.isNaN(start.getTime())) return "";
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const base = start.getTime() > today.getTime() ? start : today;
-    const due = new Date(base);
-    const total = Math.max(0, Number(totalInstallments) || 0);
-    const paid = Math.max(0, Number(paidInstallments) || 0);
-    const remaining = Math.max(0, total - paid);
-
-    switch (type) {
-        case "ONE_TIME":
-            break;
-        case "DAILY":
-            due.setDate(due.getDate() + remaining);
-            break;
-        case "WEEKLY":
-            due.setDate(due.getDate() + remaining * 7);
-            break;
-        case "QUINCENAL":
-            due.setDate(due.getDate() + remaining * 15);
-            break;
-        case "MONTHLY":
-        default:
-            due.setMonth(due.getMonth() + remaining);
-            break;
-    }
-
-    return toDateInput(due);
+const computeAdvanceDueDate = (baseDate, total, paid, type) => {
+  if (!baseDate || !total || Number(total) <= 0) return "";
+  const start = new Date(`${baseDate}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return "";
+  const today = new Date(); today.setHours(0,0,0,0);
+  const base = start > today ? start : today;
+  const due = new Date(base);
+  const remaining = Math.max(0, Number(total) - Number(paid));
+  switch (type) {
+    case "DAILY":    due.setDate(due.getDate() + remaining); break;
+    case "WEEKLY":   due.setDate(due.getDate() + remaining * 7); break;
+    case "QUINCENAL":due.setDate(due.getDate() + remaining * 15); break;
+    case "MONTHLY":  default: due.setMonth(due.getMonth() + remaining); break;
+  }
+  return toDateInput(due);
 };
 
-const inferInstallmentMode = (data) => {
-    const scheduledDueDate = computeScheduledDueDate(
-        toDateInput(data?.firstPaymentDate ?? data?.startDate),
-        data?.totalInstallments,
-        data?.type
-    );
-    const storedDueDate = toDateInput(data?.dueDate);
-
-    if (scheduledDueDate && storedDueDate && storedDueDate < scheduledDueDate) {
-        return "ADVANCE";
-    }
-
-    return "ARREARS";
+const inferInstallmentMode = data => {
+  const scheduled = computeScheduledDueDate(toDateInput(data?.firstPaymentDate ?? data?.startDate), data?.totalInstallments, data?.type);
+  const stored = toDateInput(data?.dueDate);
+  return scheduled && stored && stored < scheduled ? "ADVANCE" : "ARREARS";
 };
 
-export default function CreditoEditar() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const { list: users = [] } = useSelector((state) => state.employees ?? { list: [] });
+/* ── Field components ── */
+const inputBase = {
+  height: "46px", padding: "0 14px", borderRadius: "12px",
+  border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+  fontSize: "15px", color: "var(--ios-label)", outline: "none",
+  fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s",
+  WebkitAppearance: "none", appearance: "none", width: "100%",
+};
+const onFocus = e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; };
+const onBlur  = e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; };
 
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [credito, setCredito] = useState(null);
-    const [form, setForm] = useState({
-        userId: "",
-        type: "MONTHLY",
-        installmentMode: "ARREARS",
-        amount: "",
-        installmentAmount: "",
-        totalInstallments: "",
-        paidInstallments: "",
-        receivedAmount: "",
-        nextInstallmentToCharge: "",
-        startDate: "",
-        firstPaymentDate: "",
-        dueDate: "",
-        status: "PENDING"
-    });
-
-    const isSinglePayment = form.type === "ONE_TIME";
-    const minimumInstallments = isSinglePayment ? 1 : 2;
-    const scheduleBaseDate = isSinglePayment ? form.startDate : form.firstPaymentDate;
-    const primaryDateLabel = isSinglePayment ? "Fecha de pago" : "Fecha de otorgamiento";
-
-    const cobradores = useMemo(
-        () => users.filter((user) => user.role === "COBRADOR" || user.role === "EMPLOYEE"),
-        [users]
-    );
-
-    useEffect(() => {
-        if (!users.length) dispatch(loadUsers());
-    }, [users.length, dispatch]);
-
-    useEffect(() => {
-        if (!id) return;
-        setLoading(true);
-        fetchCredit(id)
-            .then((res) => {
-                const data = res.data;
-                setCredito(data);
-                setForm({
-                    userId: data.userId || "",
-                    type: data.type || "MONTHLY",
-                    installmentMode: inferInstallmentMode(data),
-                    amount: data.amount ?? "",
-                    installmentAmount: data.installmentAmount ?? "",
-                    totalInstallments: data.totalInstallments ?? "",
-                    paidInstallments: data.paidInstallments ?? "",
-                    receivedAmount: data.receivedAmount ?? "",
-                    nextInstallmentToCharge: data.nextInstallmentToCharge ?? "",
-                    startDate: toDateInput(data.startDate),
-                    firstPaymentDate: toDateInput(data.firstPaymentDate ?? data.startDate),
-                    dueDate: toDateInput(data.dueDate),
-                    status: data.status || "PENDING"
-                });
-            })
-            .catch(() => {
-                toast.error("No se pudo cargar el credito");
-            })
-            .finally(() => setLoading(false));
-    }, [id]);
-
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
-    };
-
-    useEffect(() => {
-        setForm((prev) => {
-            const installmentAmount = Number(prev.installmentAmount || 0);
-            const totalInstallments = Number(prev.totalInstallments || 0);
-            const paidInstallmentsRaw = Number(prev.paidInstallments || 0);
-            const normalizedPaidInstallments = totalInstallments > 0
-                ? Math.min(Math.max(0, paidInstallmentsRaw), totalInstallments)
-                : Math.max(0, paidInstallmentsRaw);
-            const normalizedTotalInstallments = totalInstallments > 0
-                ? Math.max(isSinglePayment ? 1 : 2, totalInstallments)
-                : totalInstallments;
-            const baseDate = prev.type === "ONE_TIME" ? prev.startDate : prev.firstPaymentDate;
-
-            const receivedAmount = installmentAmount > 0
-                ? installmentAmount * normalizedPaidInstallments
-                : 0;
-            const nextInstallment = normalizedTotalInstallments > 0
-                ? (normalizedPaidInstallments >= normalizedTotalInstallments ? "" : String(normalizedPaidInstallments + 1))
-                : "";
-            const dueDate = prev.installmentMode === "ADVANCE"
-                ? computeAdvanceDueDate(
-                    baseDate,
-                    normalizedTotalInstallments,
-                    normalizedPaidInstallments,
-                    prev.type
-                )
-                : computeScheduledDueDate(
-                    baseDate,
-                    normalizedTotalInstallments,
-                    prev.type
-                );
-            const status = normalizedTotalInstallments > 0 && normalizedPaidInstallments >= normalizedTotalInstallments
-                ? "PAID"
-                : prev.status === "PAID"
-                    ? "PENDING"
-                    : prev.status;
-
-            if (
-                String(prev.paidInstallments ?? "") === String(normalizedPaidInstallments) &&
-                String(prev.receivedAmount ?? "") === String(receivedAmount) &&
-                String(prev.nextInstallmentToCharge ?? "") === String(nextInstallment) &&
-                String(prev.dueDate ?? "") === String(dueDate) &&
-                String(prev.status ?? "") === String(status)
-            ) {
-                return prev;
-            }
-
-            return {
-                ...prev,
-                totalInstallments: normalizedTotalInstallments > 0 ? String(normalizedTotalInstallments) : prev.totalInstallments,
-                paidInstallments: String(normalizedPaidInstallments),
-                receivedAmount: String(receivedAmount),
-                nextInstallmentToCharge: nextInstallment,
-                dueDate,
-                status
-            };
-        });
-    }, [form.installmentAmount, form.totalInstallments, form.paidInstallments, form.startDate, form.firstPaymentDate, form.type, form.installmentMode, isSinglePayment]);
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        if (!form.amount || Number(form.amount) <= 0) {
-            toast.error("Ingresa un monto valido");
-            return;
-        }
-        if (!form.startDate) {
-            toast.error(isSinglePayment ? "La fecha de pago es obligatoria" : "La fecha de otorgamiento es obligatoria");
-            return;
-        }
-        if (!isSinglePayment && !form.firstPaymentDate) {
-            toast.error("La fecha de primer pago es obligatoria");
-            return;
-        }
-        if (!isSinglePayment && Number(form.totalInstallments || 0) < 2) {
-            toast.error("En planes recurrentes la cantidad mínima es 2 cuotas");
-            return;
-        }
-
-        const payload = {
-            userId: form.userId || null,
-            type: form.type,
-            installmentMode: form.installmentMode,
-            amount: Number(form.amount),
-            installmentAmount: form.installmentAmount === "" ? null : Number(form.installmentAmount),
-            totalInstallments: form.totalInstallments === "" ? null : Number(form.totalInstallments),
-            paidInstallments: form.paidInstallments === "" ? 0 : Number(form.paidInstallments),
-            receivedAmount: form.receivedAmount === "" ? 0 : Number(form.receivedAmount),
-            nextInstallmentToCharge: form.nextInstallmentToCharge === "" ? null : Number(form.nextInstallmentToCharge),
-            startDate: new Date(`${form.startDate}T00:00:00`).toISOString(),
-            firstPaymentDate: isSinglePayment
-                ? null
-                : (form.firstPaymentDate ? new Date(`${form.firstPaymentDate}T00:00:00`).toISOString() : null),
-            dueDate: form.dueDate ? new Date(`${form.dueDate}T00:00:00`).toISOString() : null,
-            status: form.status
-        };
-
-        try {
-            setSaving(true);
-            await updateCredit(id, payload);
-            toast.success("Credito actualizado con exito");
-            navigate(`/creditos/${id}`);
-        } catch (error) {
-            const msg = error?.response?.data?.message || "No se pudo actualizar el credito";
-            toast.error(msg);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    if (loading) {
-        return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando credito...</div>;
-    }
-
-    if (!credito) {
-        return <div className="mx-auto max-w-5xl px-4 py-6 text-red-400">Credito no encontrado.</div>;
-    }
-
-    return (
-        <div className="mx-auto max-w-5xl px-4 py-6">
-            <div className="mb-5 flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Editar credito</h1>
-                <button
-                    type="button"
-                    onClick={() => navigate(`/creditos/${id}`)}
-                    className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                >
-                    Volver
-                </button>
-            </div>
-
-            <form
-                onSubmit={handleSubmit}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-            >
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Cliente" value={credito.client?.name || "Sin cliente"} readOnly />
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Cobrador</label>
-                        <select
-                            name="userId"
-                            value={form.userId}
-                            onChange={handleChange}
-                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            <option value="">Sin asignar</option>
-                            {cobradores.map((collector) => (
-                                <option key={collector.id} value={collector.id}>
-                                    {collector.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo</label>
-                        <select
-                            name="type"
-                            value={form.type}
-                            onChange={handleChange}
-                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            {CREDIT_TYPES.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado</label>
-                        <select
-                            name="status"
-                            value={form.status}
-                            onChange={handleChange}
-                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            {CREDIT_STATUS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Aplicar cuotas como</label>
-                        <select
-                            name="installmentMode"
-                            value={form.installmentMode}
-                            onChange={handleChange}
-                            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            <option value="ARREARS">Cuotas pagadas</option>
-                            <option value="ADVANCE">Cuotas de adelanto</option>
-                        </select>
-                    </div>
-
-                    <Field label="Monto" name="amount" type="number" value={form.amount} onChange={handleChange} required />
-                    <Field label="Monto de cuota" name="installmentAmount" type="number" value={form.installmentAmount} onChange={handleChange} />
-                    <Field label="Cuotas totales" name="totalInstallments" type="number" min={minimumInstallments} value={form.totalInstallments} onChange={handleChange} />
-                    <Field label="Cuotas pagadas" name="paidInstallments" type="number" value={form.paidInstallments} onChange={handleChange} />
-                    <Field label="Monto recibido" name="receivedAmount" type="number" value={form.receivedAmount} readOnly />
-                    <Field label="Proxima cuota a cobrar" name="nextInstallmentToCharge" type="number" value={form.nextInstallmentToCharge} readOnly />
-                    <Field label={primaryDateLabel} name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
-                    {!isSinglePayment && (
-                        <Field label="Fecha de primer pago" name="firstPaymentDate" type="date" value={form.firstPaymentDate} onChange={handleChange} required />
-                    )}
-                    <Field label="Fecha vencimiento" name="dueDate" type="date" value={form.dueDate} readOnly />
-                </div>
-
-                <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <button
-                        type="button"
-                        onClick={() => navigate(`/creditos/${id}`)}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60 sm:w-auto"
-                    >
-                        {saving ? "Guardando..." : "Guardar cambios"}
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
+function Field({ label, readOnly = false, children, span2 = false }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px", gridColumn: span2 ? "1 / -1" : undefined }}>
+      <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "5px" }}>
+        {label}
+        {readOnly && <HiLockClosed style={{ width: "11px", height: "11px", color: "var(--ios-label-ter)" }} />}
+      </label>
+      {children}
+    </div>
+  );
 }
 
-function Field({ label, readOnly = false, ...props }) {
-    return (
-        <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-            <input
-                {...props}
-                readOnly={readOnly}
-                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-            />
+export default function CreditoEditar() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { list: users = [] } = useSelector(state => state.employees ?? { list: [] });
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [credito, setCredito] = useState(null);
+  const [form, setForm] = useState({
+    userId: "", type: "MONTHLY", installmentMode: "ARREARS",
+    amount: "", installmentAmount: "", totalInstallments: "", paidInstallments: "",
+    receivedAmount: "", nextInstallmentToCharge: "",
+    startDate: "", firstPaymentDate: "", dueDate: "", status: "PENDING",
+  });
+
+  const isSinglePayment = form.type === "ONE_TIME";
+  const primaryDateLabel = isSinglePayment ? "Fecha de pago" : "Fecha de otorgamiento";
+  const cobradores = useMemo(() => users.filter(u => u.role === "COBRADOR" || u.role === "EMPLOYEE"), [users]);
+
+  useEffect(() => { if (!users.length) dispatch(loadUsers()); }, [users.length, dispatch]);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    fetchCredit(id)
+      .then(res => {
+        const data = res.data;
+        setCredito(data);
+        setForm({
+          userId: data.userId || "", type: data.type || "MONTHLY",
+          installmentMode: inferInstallmentMode(data),
+          amount: data.amount ?? "", installmentAmount: data.installmentAmount ?? "",
+          totalInstallments: data.totalInstallments ?? "", paidInstallments: data.paidInstallments ?? "",
+          receivedAmount: data.receivedAmount ?? "", nextInstallmentToCharge: data.nextInstallmentToCharge ?? "",
+          startDate: toDateInput(data.startDate), firstPaymentDate: toDateInput(data.firstPaymentDate ?? data.startDate),
+          dueDate: toDateInput(data.dueDate), status: data.status || "PENDING",
+        });
+      })
+      .catch(() => toast.error("No se pudo cargar el crédito"))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  useEffect(() => {
+    setForm(prev => {
+      const ia = Number(prev.installmentAmount || 0);
+      const ti = Number(prev.totalInstallments || 0);
+      const pi = Math.min(Math.max(0, Number(prev.paidInstallments || 0)), ti > 0 ? ti : Infinity);
+      const base = prev.type === "ONE_TIME" ? prev.startDate : prev.firstPaymentDate;
+      const received = ia > 0 ? ia * pi : 0;
+      const next = ti > 0 ? (pi >= ti ? "" : String(pi + 1)) : "";
+      const dueDate = prev.installmentMode === "ADVANCE"
+        ? computeAdvanceDueDate(base, ti, pi, prev.type)
+        : computeScheduledDueDate(base, ti, prev.type);
+      const status = ti > 0 && pi >= ti ? "PAID" : prev.status === "PAID" ? "PENDING" : prev.status;
+      return { ...prev, paidInstallments: String(pi), receivedAmount: String(received), nextInstallmentToCharge: next, dueDate, status };
+    });
+  }, [form.installmentAmount, form.totalInstallments, form.paidInstallments, form.startDate, form.firstPaymentDate, form.type, form.installmentMode]);
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!form.amount || Number(form.amount) <= 0) { toast.error("Ingresá un monto válido"); return; }
+    if (!form.startDate) { toast.error(`La ${primaryDateLabel.toLowerCase()} es obligatoria`); return; }
+    if (!isSinglePayment && !form.firstPaymentDate) { toast.error("La fecha de primer pago es obligatoria"); return; }
+    if (!isSinglePayment && Number(form.totalInstallments || 0) < 2) { toast.error("Mínimo 2 cuotas en planes recurrentes"); return; }
+    const payload = {
+      userId: form.userId || null, type: form.type, installmentMode: form.installmentMode,
+      amount: Number(form.amount), status: form.status,
+      installmentAmount: form.installmentAmount === "" ? null : Number(form.installmentAmount),
+      totalInstallments: form.totalInstallments === "" ? null : Number(form.totalInstallments),
+      paidInstallments: form.paidInstallments === "" ? 0 : Number(form.paidInstallments),
+      receivedAmount: form.receivedAmount === "" ? 0 : Number(form.receivedAmount),
+      nextInstallmentToCharge: form.nextInstallmentToCharge === "" ? null : Number(form.nextInstallmentToCharge),
+      startDate: new Date(`${form.startDate}T00:00:00`).toISOString(),
+      firstPaymentDate: isSinglePayment ? null : (form.firstPaymentDate ? new Date(`${form.firstPaymentDate}T00:00:00`).toISOString() : null),
+      dueDate: form.dueDate ? new Date(`${form.dueDate}T00:00:00`).toISOString() : null,
+    };
+    try {
+      setSaving(true);
+      await updateCredit(id, payload);
+      toast.success("Crédito actualizado con éxito");
+      navigate(`/creditos/${id}`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "No se pudo actualizar el crédito");
+    } finally { setSaving(false); }
+  };
+
+  if (loading) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "720px", margin: "0 auto" }}>
+      {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: "60px", borderRadius: "12px" }} />)}
+    </div>
+  );
+
+  if (!credito) return (
+    <div style={{ textAlign: "center", padding: "60px", color: "var(--ios-red)", fontSize: "16px" }}>
+      Crédito no encontrado.
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "720px", margin: "0 auto" }} className="animate-fade-in">
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <button
+          onClick={() => navigate(`/creditos/${id}`)}
+          style={{ width: "40px", height: "40px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg-card)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+        >
+          <HiArrowLeft style={{ width: "18px", height: "18px", color: "var(--ios-label-sec)" }} />
+        </button>
+        <div>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.02em" }}>Editar crédito</h1>
+          <p style={{ fontSize: "13px", color: "var(--ios-label-sec)", margin: "3px 0 0" }}>{credito.client?.name || "Sin cliente"}</p>
         </div>
-    );
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div className="ios-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+
+            {/* Cliente (solo lectura) */}
+            <Field label="Cliente" readOnly>
+              <div style={{ ...inputBase, display: "flex", alignItems: "center", background: "var(--ios-fill)", color: "var(--ios-label-sec)", fontStyle: "italic" }}>
+                {credito.client?.name || "Sin cliente"}
+              </div>
+            </Field>
+
+            {/* Cobrador */}
+            <Field label="Cobrador">
+              <select name="userId" value={form.userId} onChange={handleChange} style={inputBase} onFocus={onFocus} onBlur={onBlur}>
+                <option value="">Sin asignar</option>
+                {cobradores.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
+
+            {/* Tipo */}
+            <Field label="Tipo de crédito">
+              <select name="type" value={form.type} onChange={handleChange} style={inputBase} onFocus={onFocus} onBlur={onBlur}>
+                {CREDIT_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+
+            {/* Estado */}
+            <Field label="Estado">
+              <select name="status" value={form.status} onChange={handleChange} style={inputBase} onFocus={onFocus} onBlur={onBlur}>
+                {CREDIT_STATUS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+
+            {/* Modo cuotas */}
+            <Field label="Modo de cuotas" span2>
+              <select name="installmentMode" value={form.installmentMode} onChange={handleChange} style={inputBase} onFocus={onFocus} onBlur={onBlur}>
+                <option value="ARREARS">Cuotas pagadas</option>
+                <option value="ADVANCE">Cuotas de adelanto</option>
+              </select>
+            </Field>
+
+            {/* Montos */}
+            {[
+              { label: "Monto base", name: "amount", type: "number", required: true },
+              { label: "Monto por cuota", name: "installmentAmount", type: "number" },
+              { label: "Cuotas totales", name: "totalInstallments", type: "number" },
+              { label: "Cuotas pagadas", name: "paidInstallments", type: "number" },
+            ].map(f => (
+              <Field key={f.name} label={f.label}>
+                <input name={f.name} type={f.type} value={form[f.name]} onChange={handleChange} required={f.required} style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+            ))}
+
+            {/* Read-only */}
+            {[
+              { label: "Monto recibido", name: "receivedAmount" },
+              { label: "Próxima cuota", name: "nextInstallmentToCharge" },
+            ].map(f => (
+              <Field key={f.name} label={f.label} readOnly>
+                <div style={{ ...inputBase, display: "flex", alignItems: "center", background: "var(--ios-fill)", color: "var(--ios-label-sec)" }}>{form[f.name] || "—"}</div>
+              </Field>
+            ))}
+
+            {/* Fechas */}
+            <Field label={primaryDateLabel}>
+              <input name="startDate" type="date" value={form.startDate} onChange={handleChange} required style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+
+            {!isSinglePayment && (
+              <Field label="Fecha del primer pago">
+                <input name="firstPaymentDate" type="date" value={form.firstPaymentDate} onChange={handleChange} required style={inputBase} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+            )}
+
+            <Field label="Fecha de vencimiento" readOnly>
+              <div style={{ ...inputBase, display: "flex", alignItems: "center", background: "var(--ios-fill)", color: "var(--ios-label-sec)" }}>{form.dueDate || "—"}</div>
+            </Field>
+          </div>
+
+          {/* Acciones */}
+          <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", paddingTop: "8px", borderTop: "1px solid var(--ios-sep-opaque)" }}>
+            <button
+              type="button"
+              onClick={() => navigate(`/creditos/${id}`)}
+              style={{ padding: "12px 20px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", fontSize: "15px", fontWeight: 700, color: "var(--ios-label-sec)", cursor: "pointer" }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "12px 22px", borderRadius: "12px", border: "none", background: saving ? "var(--ios-fill)" : "var(--ios-blue)", fontSize: "15px", fontWeight: 700, color: saving ? "var(--ios-label-ter)" : "#fff", cursor: saving ? "not-allowed" : "pointer", boxShadow: saving ? "none" : "0 4px 12px rgba(0,122,255,0.3)", transition: "all 0.15s" }}
+            >
+              <HiCheck style={{ width: "16px", height: "16px" }} />
+              {saving ? "Guardando…" : "Guardar cambios"}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
 }

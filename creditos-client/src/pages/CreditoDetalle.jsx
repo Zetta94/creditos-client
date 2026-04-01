@@ -1,4 +1,4 @@
-﻿
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
@@ -150,7 +150,11 @@ export default function CreditoDetalle() {
     }, [credito?.payments?.length, pageSize]);
 
     if (loading) {
-        return <div className="mx-auto max-w-5xl px-4 py-6 text-gray-500">Cargando crédito...</div>;
+        return (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: "120px", borderRadius: "16px" }} />)}
+            </div>
+        );
     }
     const handleGoBack = () => {
         navigate("/creditos");
@@ -158,14 +162,9 @@ export default function CreditoDetalle() {
 
     if (error || !credito) {
         return (
-            <div className="mx-auto max-w-5xl px-4 py-6 text-red-400">
-                {error || "Crédito no encontrado."}
-                <button
-                    onClick={handleGoBack}
-                    className="ml-4 rounded-md bg-gray-700 px-3 py-2 hover:bg-gray-600 text-white"
-                >
-                    Volver
-                </button>
+            <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <p style={{ color: "var(--ios-red)", fontSize: "16px", marginBottom: "16px" }}>{error || "Crédito no encontrado."}</p>
+                <button onClick={handleGoBack} style={{ padding: "11px 22px", borderRadius: "12px", background: "var(--ios-fill)", border: "none", fontSize: "15px", fontWeight: 700, cursor: "pointer" }}>Volver</button>
             </div>
         );
     }
@@ -612,328 +611,221 @@ export default function CreditoDetalle() {
     };
 
     return (
-        <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
-            {/* === HEADER MODERNO === */}
-            <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-5 shadow-sm dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 dark:border-gray-700">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    {/* IZQUIERDA */}
-                    <div className="space-y-1.5">
-                        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                            Crédito de{" "}
-                            <span className="text-blue-700 dark:text-blue-400">
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
+            {/* HEADER iOS */}
+            <div className="ios-card" style={{ padding: 0, overflow: "hidden" }}>
+                {/* Banner */}
+                <div style={{ background: "linear-gradient(135deg, #007AFF 0%, #32ADE6 100%)", padding: "22px 20px 34px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "14px" }}>
+                        <div style={{ minWidth: 0 }}>
+                            <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.02em" }}>
                                 {cliente?.name || "Cliente desconocido"}
-                            </span>
-                            {clientReliabilityLabel && (
-                                <span className="ml-3 align-middle">
-                                    <ReliabilityPill label={clientReliabilityLabel} intentClass={clientReliabilityClass} />
-                                </span>
-                            )}
-                        </h1>
-
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            <span className="font-medium text-gray-800 dark:text-gray-200">Cobrador:</span>{" "}
-                            {cobrador?.name || "Sin asignar"}
-                        </p>
-
-                        {hasSpecialCredit && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium text-gray-800 dark:text-gray-200">Grupo especial:</span>{" "}
-                                {specialCreditName}
-                                {specialCredit?.id && (
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate(`/grupos-especiales/${specialCredit.id}/editar`)}
-                                        className="ml-3 inline-flex rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-200 dark:hover:bg-blue-900/50"
-                                    >
-                                        Editar grupo especial
-                                    </button>
+                            </h1>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                                <IosEstadoPill estado={credito.status} />
+                                {clientReliabilityLabel && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 10px", borderRadius: "99px", background: "rgba(255,255,255,0.18)", color: "#fff", fontSize: "12px", fontWeight: 700 }}>
+                                        {clientReliabilityLabel}
+                                    </span>
                                 )}
-                            </p>
-                        )}
-
-                        {hasCommission && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium text-gray-800 dark:text-gray-200">Comisión:</span>{" "}
-                                {commissionDisplay}
-                            </p>
-                        )}
-
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-                            <span className="flex items-center gap-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
-                                </svg>
-                                {primaryDateLabel}: {startDateLabel}
-                            </span>
-                            {!isSinglePayment && (
-                                <span className="flex items-center gap-1.5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
-                                    </svg>
-                                    Primer pago: {firstPaymentDateLabel}
-                                </span>
-                            )}
-                            <span className="flex items-center gap-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Cobro final: {dueDateLabel}
-                            </span>
+                                {hasSpecialCredit && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: "99px", background: "rgba(255,255,255,0.18)", color: "#fff", fontSize: "12px", fontWeight: 700 }}>
+                                        {specialCreditName}
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                    </div>
-
-                    {/* DERECHA */}
-                    <div className="flex flex-col items-end gap-2">
                         <button
                             onClick={handleDownloadPdf}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 14px", borderRadius: "10px", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.25)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
                         >
-                            <HiOutlinePrinter className="h-4 w-4" />
-                            Descargar PDF
+                            <HiOutlinePrinter style={{ width: "15px", height: "15px" }} /> PDF
                         </button>
-                        <EstadoPill estado={credito.status} />
                     </div>
                 </div>
 
-            </div>
-
-
-            {/* === KPIs === */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <KpiCard
-                    label="Monto total"
-                    value={totalCreditAmountLabel}
-                />
-                <KpiCard
-                    label="Cuotas"
-                    value={`${credito.paidInstallments}/${credito.totalInstallments || "-"}`}
-                />
-                <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Progreso</p>
-                    <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                        <div
-                            className="h-full bg-blue-600"
-                            style={{ width: `${progreso}%` }}
-                        />
-                    </div>
-                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
-                        {progreso}% pagado
-                    </p>
-                </div>
-                <KpiCard label="Tipo de crédito" value={creditTypeLabel} />
-                {hasSpecialCredit && (
-                    <KpiCard label="Grupo especial" value={specialCreditName} />
-                )}
-                <KpiCard label="Monto recibido" value={currencyFormatter.format(receivedAmount)} />
-                <KpiCard
-                    label="Próxima cuota"
-                    value={
-                        nextInstallmentLabel !== "—"
-                            ? `${nextInstallmentLabel}${nextInstallmentDateLabel ? ` · ${nextInstallmentDateLabel}` : ""}`
-                            : nextInstallmentDateLabel
-                    }
-                />
-                <KpiCard label="Total gastos" value={currencyFormatter.format(totalExpenses)} />
-                <KpiCard label="Neto post gastos" value={currencyFormatter.format(netAfterExpenses)} />
-            </div>
-
-            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                    <div>
-                        <h2 className="text-lg font-semibold">Gastos asociados</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {hasExpenses
-                                ? `Registramos ${expenses.length} gasto${expenses.length > 1 ? "s" : ""}${expenseTypeSummary.length ? ` (${expenseTypeSummary.join(", ")})` : ""}.`
-                                : "Este crédito no tiene gastos registrados."}
-                        </p>
-                    </div>
-                    {hasExpenses && (
-                        <div className="rounded-full bg-emerald-100 px-4 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                            Total: {currencyFormatter.format(totalExpenses)}
+                {/* Info rows */}
+                <div style={{ marginTop: "-16px", background: "var(--ios-bg-card)", borderRadius: "16px 16px 0 0", paddingTop: "4px" }}>
+                    <IosInfoRow label="Cobrador" value={cobrador?.name || "Sin asignar"} />
+                    {hasCommission && <IosInfoRow label="Comisión" value={commissionDisplay} />}
+                    <IosInfoRow label={primaryDateLabel} value={startDateLabel} />
+                    {!isSinglePayment && <IosInfoRow label="Primer pago" value={firstPaymentDateLabel} />}
+                    <IosInfoRow label="Cobro final" value={dueDateLabel} />
+                    {hasSpecialCredit && specialCredit?.id && (
+                        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--ios-sep-opaque)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "14px", color: "var(--ios-label-sec)", fontWeight: 500 }}>Grupo especial</span>
+                            <button
+                                onClick={() => navigate(`/grupos-especiales/${specialCredit.id}/editar`)}
+                                style={{ padding: "5px 12px", borderRadius: "8px", background: "#EBF3FF", border: "none", color: "#007AFF", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
+                            >
+                                {specialCreditName} ›
+                            </button>
                         </div>
+                    )}
+                </div>
+            </div>
+
+
+            {/* KPIs iOS */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
+                <IosKpiCard label="Monto total" value={totalCreditAmountLabel} color="#007AFF" bg="#EBF3FF" />
+                <IosKpiCard label="Cuotas" value={`${credito.paidInstallments}/${credito.totalInstallments || "—"}`} color="#FF9500" bg="#FFF3E0" />
+                <IosKpiCard label="Monto recibido" value={currencyFormatter.format(receivedAmount)} color="#34C759" bg="#E8F8ED" />
+                <IosKpiCard label="Próxima cuota" value={nextInstallmentLabel !== "—" ? `${nextInstallmentLabel}` : nextInstallmentDateLabel || "—"} color="#FF9500" bg="#FFF3E0" />
+                <IosKpiCard label="Total gastos" value={currencyFormatter.format(totalExpenses)} color="#FF3B30" bg="#FFEBEA" />
+                <IosKpiCard label="Neto post gastos" value={currencyFormatter.format(netAfterExpenses)} color="#34C759" bg="#E8F8ED" />
+                <IosKpiCard label="Tipo de crédito" value={creditTypeLabel} color="#AF52DE" bg="#F5EAFF" />
+            </div>
+
+            {/* Progress bar */}
+            <div className="ios-card" style={{ padding: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--ios-label-sec)" }}>Progreso del crédito</span>
+                    <span style={{ fontSize: "13px", fontWeight: 800, color: progreso === 100 ? "#34C759" : "#007AFF" }}>{progreso}%</span>
+                </div>
+                <div style={{ height: "8px", background: "#E5E5EA", borderRadius: "99px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${progreso}%`, background: progreso === 100 ? "#34C759" : "#007AFF", borderRadius: "99px", transition: "width 0.4s ease" }} />
+                </div>
+                <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", marginTop: "6px" }}>
+                    {cuotasPagadas} cuotas pagadas · {cuotasRestantes !== null ? `${cuotasRestantes} restantes` : "Sin cuotas definidas"}
+                </p>
+            </div>
+
+            <div className="ios-card" style={{ padding: "18px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                    <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>Gastos asociados</h2>
+                    {hasExpenses && (
+                        <span style={{ padding: "5px 12px", borderRadius: "99px", background: "#FFEBEA", color: "#FF3B30", fontSize: "13px", fontWeight: 700 }}>
+                            Total: {currencyFormatter.format(totalExpenses)}
+                        </span>
                     )}
                 </div>
 
                 {hasExpenses ? (
-                    <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                    <div style={{ background: "var(--ios-bg-card)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--ios-sep-opaque)" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
                                 <tr>
-                                    <th className="px-4 py-2 font-medium">Gasto</th>
-                                    <th className="px-4 py-2 font-medium">Monto</th>
-                                    <th className="px-4 py-2 font-medium">Categoría</th>
-                                    <th className="px-4 py-2 font-medium">Fecha</th>
+                                    {["Gasto", "Monto", "Categoría", "Fecha"].map(h => (
+                                        <th key={h} style={{ padding: "10px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: "left" }}>{h}</th>
+                                    ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {expenses.map((expense) => {
-                                    const incurredLabel = expense?.incurredOn
-                                        ? new Date(expense.incurredOn).toLocaleDateString("es-AR")
-                                        : "—";
+                            <tbody>
+                                {expenses.map((expense, i) => {
+                                    const incurredLabel = expense?.incurredOn ? new Date(expense.incurredOn).toLocaleDateString("es-AR") : "—";
                                     const categoryLabel = expense?.specialCredit?.name || "—";
                                     return (
-                                        <tr key={expense.id ?? expense.tempId} className="bg-white dark:bg-gray-900">
-                                            <td className="px-4 py-2 text-gray-800 dark:text-gray-100">{expense.description}</td>
-                                            <td className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
-                                                {currencyFormatter.format(Number(expense.amount) || 0)}
-                                            </td>
-                                            <td className="px-4 py-2 text-gray-600 dark:text-gray-300">{categoryLabel}</td>
-                                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{incurredLabel}</td>
+                                        <tr key={expense.id ?? expense.tempId} style={{ borderBottom: i < expenses.length - 1 ? "1px solid var(--ios-sep-opaque)" : "none" }}>
+                                            <td style={{ padding: "11px 14px", fontSize: "14px", color: "var(--ios-label)", fontWeight: 500 }}>{expense.description}</td>
+                                            <td style={{ padding: "11px 14px", fontSize: "14px", fontWeight: 700, color: "#FF3B30" }}>{currencyFormatter.format(Number(expense.amount) || 0)}</td>
+                                            <td style={{ padding: "11px 14px", fontSize: "13px", color: "var(--ios-label-sec)" }}>{categoryLabel}</td>
+                                            <td style={{ padding: "11px 14px", fontSize: "13px", color: "var(--ios-label-ter)" }}>{incurredLabel}</td>
                                         </tr>
                                     );
                                 })}
                             </tbody>
                         </table>
-                        <div className="flex items-center justify-end gap-6 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                            <span>Total gastos: {currencyFormatter.format(totalExpenses)}</span>
-                            <span>Neto post gastos: {currencyFormatter.format(netAfterExpenses)}</span>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "20px", padding: "10px 14px", background: "var(--ios-fill)", fontSize: "13px", fontWeight: 600, color: "var(--ios-label-sec)" }}>
+                            <span>Total: {currencyFormatter.format(totalExpenses)}</span>
+                            <span>Neto: {currencyFormatter.format(netAfterExpenses)}</span>
                         </div>
                     </div>
                 ) : (
-                    <p className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                        Agregá gastos desde la pantalla de alta para verlos reflejados aquí.
+                    <p style={{ padding: "20px", background: "var(--ios-fill)", borderRadius: "12px", fontSize: "14px", color: "var(--ios-label-ter)", textAlign: "center" }}>
+                        Sin gastos registrados para este crédito.
                     </p>
                 )}
-            </section>
+            </div>
 
-            {/* === HISTORIAL Y CHART === */}
-            <section className="grid gap-4 lg:grid-cols-2">
-                {/* === Historial de pagos === */}
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <h2 className="mb-3 text-lg font-semibold">Historial de pagos</h2>
-
-                    {/* Mobile: Cards */}
-                    <div className="grid gap-2 sm:hidden">
-                        {pagosOrdenados.length > 0 ? (
-                            currentPayments.map((p) => {
-                                const amountValue = Number(p.amount);
-                                const monto = Number.isNaN(amountValue) ? 0 : amountValue;
-                                const fecha = new Date(p.date).toLocaleDateString("es-AR");
-                                return (
-                                    <div
-                                        key={p.id}
-                                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                                    >
-                                        <span className="text-gray-500">
-                                            {fecha}
-                                        </span>
-                                        <span className="font-medium">
-                                            ${monto.toLocaleString("es-AR")}
-                                        </span>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <p className="text-gray-500 text-sm">Sin pagos registrados.</p>
-                        )}
+            {/* Historial y chart */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }} className="lg:grid-cols-2-wrapper">
+                <div className="ios-card" style={{ padding: "18px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                        <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>Historial de pagos</h2>
+                        <span style={{ padding: "4px 10px", borderRadius: "99px", background: "var(--ios-fill)", fontSize: "13px", fontWeight: 700, color: "var(--ios-label-sec)" }}>
+                            {pagosOrdenados.length}
+                        </span>
                     </div>
 
-                    {/* Desktop: Tabla */}
-                    <div className="hidden overflow-x-auto sm:block">
-                        <table className="w-full text-left text-sm">
-                            <thead className="text-gray-500">
-                                <tr>
-                                    <th className="py-2 pr-3 font-medium">Fecha</th>
-                                    <th className="py-2 font-medium">Monto</th>
-                                    <th className="py-2 font-medium">Nota</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {pagosOrdenados.length > 0 ? (
-                                    currentPayments.map((p) => {
-                                        const amountValue = Number(p.amount);
-                                        const monto = Number.isNaN(amountValue) ? 0 : amountValue;
+                    {pagosOrdenados.length === 0 ? (
+                        <p style={{ textAlign: "center", padding: "28px", color: "var(--ios-label-ter)", fontSize: "14px" }}>Sin pagos registrados.</p>
+                    ) : (
+                        <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--ios-sep-opaque)" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                <thead>
+                                    <tr>
+                                        {["Fecha", "Monto", "Nota"].map(h => (
+                                            <th key={h} style={{ padding: "10px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: "left" }}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {currentPayments.map((p, i) => {
+                                        const monto = Number.isNaN(Number(p.amount)) ? 0 : Number(p.amount);
                                         const fecha = new Date(p.date).toLocaleDateString("es-AR");
                                         return (
-                                            <tr key={p.id}>
-                                                <td className="py-2 pr-3">{fecha}</td>
-                                                <td className="py-2">
-                                                    ${monto.toLocaleString("es-AR")}
-                                                </td>
-                                                <td className="py-2 text-gray-500">{p.note || "-"}</td>
+                                            <tr key={p.id} style={{ borderBottom: i < currentPayments.length - 1 ? "1px solid var(--ios-sep-opaque)" : "none" }}>
+                                                <td style={{ padding: "11px 14px", fontSize: "14px", color: "var(--ios-label-sec)" }}>{fecha}</td>
+                                                <td style={{ padding: "11px 14px", fontSize: "14px", fontWeight: 700, color: "#34C759" }}>${monto.toLocaleString("es-AR")}</td>
+                                                <td style={{ padding: "11px 14px", fontSize: "13px", color: "var(--ios-label-ter)" }}>{p.note || "—"}</td>
                                             </tr>
                                         );
-                                    })
-                                ) : (
-                                    <tr>
-                                        <td colSpan={3} className="py-3 text-center text-gray-500">
-                                            Sin pagos registrados.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
                     {showPagination && (
-                        <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "12px" }}>
                             <button
-                                type="button"
-                                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1}
-                                className={`rounded-md px-3 py-1 font-medium border transition ${currentPage === 1
-                                    ? "cursor-not-allowed border-gray-200 text-gray-400 dark:border-gray-700 dark:text-gray-500"
-                                    : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"}`}
-                            >
-                                Anterior
-                            </button>
-                            <span>
-                                Página {currentPage} de {totalPages}
-                            </span>
+                                onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                                style={{ padding: "7px 14px", borderRadius: "8px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", fontSize: "13px", fontWeight: 700, color: currentPage === 1 ? "var(--ios-label-ter)" : "var(--ios-blue)", cursor: currentPage === 1 ? "not-allowed" : "pointer" }}
+                            >‹ Anterior</button>
+                            <span style={{ fontSize: "13px", color: "var(--ios-label-sec)", fontWeight: 600 }}>Página {currentPage} / {totalPages}</span>
                             <button
-                                type="button"
-                                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                                disabled={currentPage === totalPages}
-                                className={`rounded-md px-3 py-1 font-medium border transition ${currentPage === totalPages
-                                    ? "cursor-not-allowed border-gray-200 text-gray-400 dark:border-gray-700 dark:text-gray-500"
-                                    : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"}`}
-                            >
-                                Siguiente
-                            </button>
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                                style={{ padding: "7px 14px", borderRadius: "8px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", fontSize: "13px", fontWeight: 700, color: currentPage === totalPages ? "var(--ios-label-ter)" : "var(--ios-blue)", cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}
+                            >Siguiente ›</button>
                         </div>
                     )}
                 </div>
 
-                {/* === Gráfico === */}
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <h2 className="mb-3 text-lg font-semibold">Pagos por fecha</h2>
-                    <div className="h-[260px] w-full">
+                <div className="ios-card" style={{ padding: "18px" }}>
+                    <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 14px" }}>Pagos por fecha</h2>
+                    <div style={{ height: "260px", width: "100%" }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                                <XAxis dataKey="fecha" stroke="#aaa" />
-                                <YAxis stroke="#aaa" />
-                                <Tooltip />
-                                <Line
-                                    type="monotone"
-                                    dataKey="monto"
-                                    stroke="#3b82f6"
-                                    strokeWidth={2}
-                                />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5EA" />
+                                <XAxis dataKey="fecha" stroke="#AEAEB2" tick={{ fontSize: 12 }} />
+                                <YAxis stroke="#AEAEB2" tick={{ fontSize: 12 }} />
+                                <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid #E5E5EA", boxShadow: "0 4px 16px rgba(0,0,0,0.1)", fontSize: "13px" }} />
+                                <Line type="monotone" dataKey="monto" stroke="#007AFF" strokeWidth={2.5} dot={{ fill: "#007AFF", r: 4 }} activeDot={{ r: 6 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            {/* === BOTONES === */}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            {/* Acciones */}
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button
                     onClick={handleGoBack}
-                    className="w-full sm:w-auto rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    style={{ padding: "12px 20px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", fontSize: "15px", fontWeight: 700, color: "var(--ios-label-sec)", cursor: "pointer" }}
                 >
                     Volver
                 </button>
                 <button
                     onClick={() => navigate(`/creditos/${id}/editar`)}
-                    className="w-full sm:w-auto rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    style={{ padding: "12px 22px", borderRadius: "12px", border: "none", background: "var(--ios-blue)", fontSize: "15px", fontWeight: 700, color: "#fff", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,122,255,0.3)" }}
                 >
-                    Editar credito
+                    Editar crédito
                 </button>
-
                 {!creditoFinalizado && (
                     <button
                         onClick={() => navigate(`/creditos/${id}/cancelar`)}
-                        className="w-full sm:w-auto rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400"
+                        style={{ padding: "12px 20px", borderRadius: "12px", border: "none", background: "#FFEBEA", fontSize: "15px", fontWeight: 700, color: "#FF3B30", cursor: "pointer" }}
                     >
                         Cancelar crédito
                     </button>
@@ -943,52 +835,39 @@ export default function CreditoDetalle() {
     );
 }
 
-/* === Subcomponentes UI === */
-function estadoClasses(estado) {
-    return {
-        PENDING:
-            "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800",
-        PAID:
-            "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
-        OVERDUE:
-            "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
-    }[estado];
-}
+/* === iOS Subcomponentes === */
+const ESTADO_CONFIG = {
+    PENDING: { label: "Pendiente", bg: "rgba(255,255,255,0.2)", color: "#fff" },
+    PAID:    { label: "Pagado",    bg: "rgba(52,199,89,0.3)",   color: "#fff" },
+    OVERDUE: { label: "Vencido",  bg: "rgba(255,59,48,0.3)",   color: "#fff" },
+};
 
-function EstadoPill({ estado }) {
-    const label =
-        estado === "PENDING"
-            ? "Pendiente"
-            : estado === "PAID"
-                ? "Pagado"
-                : "Vencido";
+function IosEstadoPill({ estado }) {
+    const cfg = ESTADO_CONFIG[estado] || ESTADO_CONFIG.PENDING;
     return (
-        <span
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${estadoClasses(
-                estado
-            )}`}
-        >
-            {label}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 12px", borderRadius: "99px", background: cfg.bg, color: cfg.color, fontSize: "12px", fontWeight: 700 }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: cfg.color, flexShrink: 0 }} />
+            {cfg.label}
         </span>
     );
 }
 
-function ReliabilityPill({ label, intentClass }) {
-    const classes = intentClass || CLIENT_RELIABILITY_STYLES.MEDIA;
+function IosInfoRow({ label, value }) {
+    if (!value) return null;
     return (
-        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${classes}`}>
-            {label}
-        </span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
+            <span style={{ fontSize: "14px", color: "var(--ios-label-sec)", fontWeight: 500 }}>{label}</span>
+            <span style={{ fontSize: "14px", color: "var(--ios-label)", fontWeight: 600 }}>{value}</span>
+        </div>
     );
 }
 
-function KpiCard({ label, value }) {
+function IosKpiCard({ label, value, color = "#007AFF", bg = "#EBF3FF" }) {
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                {value}
-            </p>
+        <div className="ios-card" style={{ padding: "16px" }}>
+            <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: bg, marginBottom: "10px" }} />
+            <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 5px" }}>{label}</p>
+            <p style={{ fontSize: "18px", fontWeight: 800, color: "var(--ios-label)", margin: 0 }}>{value || "—"}</p>
         </div>
     );
 }

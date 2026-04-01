@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-    HiPlay,
-    HiStop,
-    HiCash,
-    HiCreditCard,
-    HiCalendar,
-    HiClipboardList,
+  HiPlay,
+  HiStop,
+  HiCash,
+  HiCreditCard,
+  HiCalendar,
+  HiClipboardList,
+  HiCheckCircle,
+  HiClock,
+  HiX,
 } from "react-icons/hi";
 import Toast from "../components/Toast.jsx";
 import { fetchDashboardResumenCobrador } from "../services/dashboardService";
@@ -13,236 +16,226 @@ import { useDispatch } from "react-redux";
 import { setTrayectoActivo as setTrayectoActivoAction } from "../store/trayectoSlice";
 
 export default function DashboardCobrador() {
-    const dispatch = useDispatch();
-    const [trayectoActivo, setTrayectoActivoState] = useState(false);
-    const [loadingTrayecto, setLoadingTrayecto] = useState(true);
-    const [toast, setToast] = useState(null);
-    const [resumen, setResumen] = useState({
-        mercadopago: 0,
-        efectivo: 0,
-        transferencia: 0,
-        pagosDiarios: 0,
-        pagosSemanales: 0,
-        pagosQuincenales: 0,
-        pagosMensuales: 0,
-        totalCobrado: 0,
-        clientesVisitados: 0,
-        asignaciones: 0,
-        reporteGenerado: false,
-        trayectoActivo: false,
+  const dispatch = useDispatch();
+  const [trayectoActivo, setTrayectoActivoState] = useState(false);
+  const [loadingTrayecto, setLoadingTrayecto] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [resumen, setResumen] = useState({
+    mercadopago: 0, efectivo: 0, transferencia: 0,
+    pagosDiarios: 0, pagosSemanales: 0, pagosQuincenales: 0, pagosMensuales: 0,
+    totalCobrado: 0, clientesVisitados: 0, asignaciones: 0,
+    reporteGenerado: false, trayectoActivo: false,
+  });
+  const [loadingResumen, setLoadingResumen] = useState(true);
+  const [errorResumen, setErrorResumen] = useState(null);
+
+  const applyResumenData = useCallback((data) => {
+    const activo = Boolean(data.trayectoActivo);
+    setResumen({
+      mercadopago: data.mercadopago ?? 0, efectivo: data.efectivo ?? 0, transferencia: data.transferencia ?? 0,
+      pagosDiarios: data.pagosDiarios ?? 0, pagosSemanales: data.pagosSemanales ?? 0,
+      pagosQuincenales: data.pagosQuincenales ?? 0, pagosMensuales: data.pagosMensuales ?? 0,
+      totalCobrado: data.totalCobrado ?? ((data.mercadopago ?? 0) + (data.efectivo ?? 0) + (data.transferencia ?? 0)),
+      clientesVisitados: data.clientesVisitados ?? 0, asignaciones: data.asignaciones ?? 0,
+      reporteGenerado: Boolean(data.reporteGenerado), trayectoActivo: activo,
     });
-    const [loadingResumen, setLoadingResumen] = useState(true);
-    const [errorResumen, setErrorResumen] = useState(null);
+    setTrayectoActivoState(activo);
+    dispatch(setTrayectoActivoAction(activo));
+    setLoadingTrayecto(false);
+    setLoadingResumen(false);
+    setErrorResumen(null);
+  }, [dispatch]);
 
-    const applyResumenData = useCallback((data) => {
-        const activo = Boolean(data.trayectoActivo);
-        setResumen({
-            mercadopago: data.mercadopago ?? 0,
-            efectivo: data.efectivo ?? 0,
-            transferencia: data.transferencia ?? 0,
-            pagosDiarios: data.pagosDiarios ?? 0,
-            pagosSemanales: data.pagosSemanales ?? 0,
-            pagosQuincenales: data.pagosQuincenales ?? 0,
-            pagosMensuales: data.pagosMensuales ?? 0,
-            totalCobrado: data.totalCobrado ?? ((data.mercadopago ?? 0) + (data.efectivo ?? 0) + (data.transferencia ?? 0)),
-            clientesVisitados: data.clientesVisitados ?? 0,
-            asignaciones: data.asignaciones ?? 0,
-            reporteGenerado: Boolean(data.reporteGenerado),
-            trayectoActivo: activo,
-        });
-        setTrayectoActivoState(activo);
-        dispatch(setTrayectoActivoAction(activo));
-        setLoadingTrayecto(false);
-        setLoadingResumen(false);
-        setErrorResumen(null);
-    }, [dispatch]);
+  const getResumenData = useCallback(async () => {
+    const response = await fetchDashboardResumenCobrador();
+    return response.data || {};
+  }, []);
 
-    const getResumenData = useCallback(async () => {
-        const response = await fetchDashboardResumenCobrador();
-        return response.data || {};
-    }, []);
+  const reloadResumen = useCallback(async (options = { showLoader: true }) => {
+    if (options.showLoader) setLoadingResumen(true);
+    try {
+      const data = await getResumenData();
+      applyResumenData(data);
+      return data;
+    } catch (err) {
+      setErrorResumen("No se pudo cargar el resumen del cobrador.");
+      throw err;
+    } finally {
+      if (options.showLoader) setLoadingResumen(false);
+    }
+  }, [getResumenData, applyResumenData]);
 
-    const reloadResumen = useCallback(async (options = { showLoader: true }) => {
-        if (options.showLoader) setLoadingResumen(true);
+  useEffect(() => {
+    let active = true;
+    setLoadingResumen(true);
+    getResumenData()
+      .then(data => { if (!active) return; applyResumenData(data); })
+      .catch(() => { if (!active) return; setErrorResumen("No se pudo cargar el resumen del cobrador."); })
+      .finally(() => { if (!active) return; setLoadingResumen(false); });
+    return () => { active = false; };
+  }, [getResumenData, applyResumenData]);
+
+  async function confirmarInicio() {
+    setToast({
+      message: "¿Deseas iniciar el trayecto del día?",
+      type: "info",
+      confirm: true,
+      onConfirm: async () => {
         try {
-            const data = await getResumenData();
-            applyResumenData(data);
-            return data;
-        } catch (err) {
-            setErrorResumen("No se pudo cargar el resumen del cobrador.");
-            throw err;
-        } finally {
-            if (options.showLoader) setLoadingResumen(false);
-        }
-    }, [getResumenData, applyResumenData]);
+          setLoadingTrayecto(true);
+          await import("../services/reportsService").then(m => m.startReport());
+          await reloadResumen({ showLoader: false });
+          setToast({ message: "Trayecto iniciado correctamente.", type: "success" });
+        } catch {
+          setToast({ message: "Error iniciando trayecto.", type: "error" });
+        } finally { setLoadingTrayecto(false); }
+      },
+    });
+  }
 
-    useEffect(() => {
-        let active = true;
-        setLoadingResumen(true);
-        getResumenData()
-            .then((data) => {
-                if (!active) return;
-                applyResumenData(data);
-            })
-            .catch(() => {
-                if (!active) return;
-                setErrorResumen("No se pudo cargar el resumen del cobrador.");
-            })
-            .finally(() => {
-                if (!active) return;
-                setLoadingResumen(false);
-            });
+  async function confirmarFinalizacion() {
+    setToast({
+      message: "¿Deseas finalizar el día y enviar el resumen?",
+      type: "error",
+      confirm: true,
+      onConfirm: async () => {
+        try {
+          setLoadingTrayecto(true);
+          await import("../services/reportsService").then(m => m.finalizeReport());
+          await reloadResumen({ showLoader: false });
+          setToast({ message: "Reporte finalizado correctamente.", type: "info" });
+        } catch {
+          setToast({ message: "Error enviando resumen.", type: "error" });
+        } finally { setLoadingTrayecto(false); }
+      },
+    });
+  }
 
-        return () => {
-            active = false;
-        };
-    }, [getResumenData, applyResumenData]);
+  const fmtCurrency = v => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(v ?? 0);
+  const fmtNumber = v => new Intl.NumberFormat("es-AR").format(v ?? 0);
 
-    async function confirmarInicio() {
-        setToast({
-            message: "Deseas iniciar el trayecto del dia?",
-            type: "info",
-            confirm: true,
-            onConfirm: async () => {
-                try {
-                    setLoadingTrayecto(true);
-                    await import("../services/reportsService").then((m) => m.startReport());
-                    await reloadResumen({ showLoader: false });
-                    setToast({ message: "Trayecto iniciado correctamente.", type: "success" });
-                } catch (err) {
-                    setToast({ message: "Error iniciando trayecto.", type: "error" });
-                } finally {
-                    setLoadingTrayecto(false);
-                }
-            },
-        });
-    }
+  /* Estado del trayecto */
+  const estadoTrayecto = resumen.trayectoActivo ? "En curso" : resumen.reporteGenerado ? "Finalizado" : "Pendiente";
+  const estadoColor = resumen.trayectoActivo ? "#34C759" : resumen.reporteGenerado ? "#007AFF" : "#FF9500";
 
-    async function confirmarFinalizacion() {
-        setToast({
-            message: "Deseas finalizar el dia y enviar el resumen?",
-            type: "error",
-            confirm: true,
-            onConfirm: async () => {
-                try {
-                    setLoadingTrayecto(true);
-                    await import("../services/reportsService").then((m) => m.finalizeReport());
-                    await reloadResumen({ showLoader: false });
-                    setToast({ message: "Reporte finalizado correctamente.", type: "info" });
-                } catch (err) {
-                    setToast({ message: "Error enviando resumen.", type: "error" });
-                } finally {
-                    setLoadingTrayecto(false);
-                }
-            },
-        });
-    }
+  return (
+    <div className="flex flex-col gap-5 animate-fade-in px-2 pb-6 max-w-lg mx-auto">
 
-    const formatCurrency = (value) =>
-        new Intl.NumberFormat("es-AR", {
-            style: "currency",
-            currency: "ARS",
-            maximumFractionDigits: 0,
-        }).format(value ?? 0);
+      {/* ── Header card ── */}
+      <div className="ios-card p-6">
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--ios-label-ter)] mb-1">Jornada</p>
+            <h1 className="text-2xl font-extrabold text-[color:var(--ios-label)] mb-1 tracking-tight">Panel del Cobrador</h1>
+            <p className="text-[15px] text-[color:var(--ios-label-sec)] m-0">Vista pensada para operar rápido desde el teléfono.</p>
+          </div>
 
-    const formatNumber = (value) => new Intl.NumberFormat("es-AR").format(value ?? 0);
-
-    return (
-        <main className="min-h-screen bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4 sm:px-6 sm:py-6">
-            <div className="mx-auto w-full max-w-6xl space-y-5">
-                <section className="rounded-[28px] border border-slate-700/80 bg-slate-900/85 p-4 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.95)] backdrop-blur sm:p-5">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Jornada</p>
-                            <h1 className="mt-1 text-2xl font-bold text-slate-100">Panel del Cobrador</h1>
-                            <p className="mt-2 max-w-xl text-sm text-slate-400">Vista pensada para operar rápido desde el teléfono durante el recorrido.</p>
-                        </div>
-                        <div className="w-full md:w-auto">
-                            {loadingTrayecto ? (
-                                <button disabled className="flex w-full md:w-auto items-center justify-center gap-2 rounded-xl bg-gray-400 px-6 py-3 text-sm sm:text-base font-medium text-white opacity-60 cursor-not-allowed">
-                                    Cargando estado...
-                                </button>
-                            ) : !trayectoActivo ? (
-                                <button
-                                    onClick={confirmarInicio}
-                                    disabled={resumen.reporteGenerado}
-                                    className={`flex w-full md:w-auto items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm sm:text-base font-medium text-white focus:outline-none focus:ring-2 transition ${resumen.reporteGenerado ? "bg-gray-500 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-300"}`}
-                                >
-                                    <HiPlay className="h-5 w-5" /> {resumen.reporteGenerado ? "Dia Finalizado" : "Iniciar trayecto"}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={confirmarFinalizacion}
-                                    className="flex w-full md:w-auto items-center justify-center gap-2 rounded-xl bg-rose-600 px-6 py-3 text-sm sm:text-base font-medium text-white hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300 transition"
-                                >
-                                    <HiStop className="h-5 w-5" /> Finalizar dia
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {errorResumen ? (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
-                        {errorResumen}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-                        <Indicador icon={<HiCreditCard className="h-5 w-5 text-blue-500" />} label="Cobrado por MP" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.mercadopago)} />
-                        <Indicador icon={<HiCash className="h-5 w-5 text-emerald-500" />} label="Cobrado en Efectivo" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.efectivo)} />
-                        <Indicador icon={<HiCreditCard className="h-5 w-5 text-cyan-400" />} label="Transferencias" valor={loadingResumen ? "Cargando..." : formatCurrency(resumen.transferencia)} />
-                        <Indicador icon={<HiClipboardList className="h-5 w-5 text-amber-500" />} label="Pagos diarios" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosDiarios)} />
-                        <Indicador icon={<HiCalendar className="h-5 w-5 text-violet-500" />} label="Pagos semanales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosSemanales)} />
-                        <Indicador icon={<HiCalendar className="h-5 w-5 text-indigo-500" />} label="Pagos quincenales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosQuincenales)} />
-                        <Indicador icon={<HiCalendar className="h-5 w-5 text-rose-500" />} label="Pagos mensuales" valor={loadingResumen ? "Cargando..." : formatNumber(resumen.pagosMensuales)} />
-                    </div>
-                )}
-
-                {!loadingResumen && !errorResumen && (
-                    <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-4">
-                        <DatoResumen label="Total cobrado hoy" value={formatCurrency(resumen.totalCobrado)} />
-                        <DatoResumen label="Clientes visitados" value={formatNumber(resumen.clientesVisitados)} />
-                        <DatoResumen label="Creditos por cobrar hoy" value={formatNumber(resumen.asignaciones)} />
-                        <DatoResumen
-                            label="Estado del trayecto"
-                            value={resumen.trayectoActivo ? "En curso" : resumen.reporteGenerado ? "Finalizado" : "Pendiente"}
-                        />
-                    </div>
-                )}
-
+          {/* Estado + Botón acción */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Badge de estado */}
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              padding: "6px 14px", borderRadius: "99px",
+              background: `${estadoColor}18`,
+              border: `1.5px solid ${estadoColor}40`,
+              fontSize: "13px", fontWeight: 700, color: estadoColor,
+            }}>
+              {resumen.trayectoActivo ? <HiPlay style={{ width: "14px", height: "14px" }} /> :
+                resumen.reporteGenerado ? <HiCheckCircle style={{ width: "14px", height: "14px" }} /> :
+                  <HiClock style={{ width: "14px", height: "14px" }} />}
+              {estadoTrayecto}
             </div>
 
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    confirm={toast.confirm}
-                    onConfirm={toast.onConfirm}
-                    onCancel={() => setToast(null)}
-                    onClose={() => setToast(null)}
-                />
+            {/* Botón principal */}
+            {loadingTrayecto ? (
+              <button disabled className="px-6 py-3 rounded-xl bg-[color:var(--ios-fill)] text-[color:var(--ios-label-ter)] font-semibold text-[15px] cursor-not-allowed">
+                Cargando...
+              </button>
+            ) : !trayectoActivo ? (
+              <button
+                onClick={confirmarInicio}
+                disabled={resumen.reporteGenerado}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-[15px] transition-all shadow ${resumen.reporteGenerado ? "bg-[color:var(--ios-fill)] text-[color:var(--ios-label-ter)] cursor-not-allowed" : "bg-[color:#34C759] text-white hover:shadow-lg hover:-translate-y-0.5"}`}
+              >
+                <HiPlay style={{ width: "18px", height: "18px" }} />
+                {resumen.reporteGenerado ? "Día Finalizado" : "Iniciar trayecto"}
+              </button>
+            ) : (
+              <button
+                onClick={confirmarFinalizacion}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-[15px] bg-[color:var(--ios-red)] text-white transition-all shadow hover:shadow-lg hover:-translate-y-0.5"
+              >
+                <HiStop style={{ width: "18px", height: "18px" }} />
+                Finalizar día
+              </button>
             )}
-        </main>
-    );
+          </div>
+        </div>
+      </div>
+
+      {/* ── Error ── */}
+      {errorResumen && (
+        <div className="p-4 bg-[color:var(--ios-red-bg)] rounded-xl border border-[rgba(255,59,48,0.2)] text-[color:var(--ios-red)] text-[14px] font-bold">
+          {errorResumen}
+        </div>
+      )}
+
+      {/* ── Indicadores de cobro ── */}
+      {!errorResumen && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <Indicador icon={<HiCreditCard style={{ width: "18px", height: "18px", color: "#007AFF" }} />} label="Cobrado por MP" color="#007AFF" valor={loadingResumen ? null : fmtCurrency(resumen.mercadopago)} />
+          <Indicador icon={<HiCash style={{ width: "18px", height: "18px", color: "#34C759" }} />} label="Efectivo" color="#34C759" valor={loadingResumen ? null : fmtCurrency(resumen.efectivo)} />
+          <Indicador icon={<HiCreditCard style={{ width: "18px", height: "18px", color: "#32ADE6" }} />} label="Transferencias" color="#32ADE6" valor={loadingResumen ? null : fmtCurrency(resumen.transferencia)} />
+          <Indicador icon={<HiClipboardList style={{ width: "18px", height: "18px", color: "#FF9500" }} />} label="Pagos diarios" color="#FF9500" valor={loadingResumen ? null : fmtNumber(resumen.pagosDiarios)} />
+          <Indicador icon={<HiCalendar style={{ width: "18px", height: "18px", color: "#AF52DE" }} />} label="Semanales" color="#AF52DE" valor={loadingResumen ? null : fmtNumber(resumen.pagosSemanales)} />
+          <Indicador icon={<HiCalendar style={{ width: "18px", height: "18px", color: "#5856D6" }} />} label="Quincenales" color="#5856D6" valor={loadingResumen ? null : fmtNumber(resumen.pagosQuincenales)} />
+          <Indicador icon={<HiCalendar style={{ width: "18px", height: "18px", color: "#FF3B30" }} />} label="Mensuales" color="#FF3B30" valor={loadingResumen ? null : fmtNumber(resumen.pagosMensuales)} />
+        </div>
+      )}
+
+      {/* ── Resumen del día ── */}
+      {!loadingResumen && !errorResumen && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <DatoResumen label="Total cobrado hoy" value={fmtCurrency(resumen.totalCobrado)} accent="#34C759" />
+          <DatoResumen label="Clientes visitados" value={fmtNumber(resumen.clientesVisitados)} accent="#007AFF" />
+          <DatoResumen label="Créditos por cobrar hoy" value={fmtNumber(resumen.asignaciones)} accent="#FF9500" />
+          <DatoResumen label="Estado del trayecto" value={estadoTrayecto} accent={estadoColor} />
+        </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message} type={toast.type} confirm={toast.confirm}
+          onConfirm={toast.onConfirm} onCancel={() => setToast(null)} onClose={() => setToast(null)}
+        />
+      )}
+    </div>
+  );
 }
 
-function Indicador({ icon, label, valor }) {
-    return (
-        <div className="flex min-h-[108px] flex-col justify-between rounded-[24px] border border-slate-700/80 bg-slate-900/80 p-3 shadow-sm sm:p-4">
-            <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
-                <div className="shrink-0">{icon}</div>
-            </div>
-            <p className="mt-2 break-words text-base font-semibold leading-tight text-slate-100 sm:text-lg">{valor}</p>
+function Indicador({ icon, label, color, valor }) {
+  return (
+    <div className="ios-card px-4 pt-4 pb-5">
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--ios-label-ter)] m-0">{label}</p>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: `${color}18` }} className="flex items-center justify-center flex-shrink-0">
+          {icon}
         </div>
-    );
+      </div>
+      {valor === null ? (
+        <div className="skeleton h-[22px] w-4/5 rounded-md" />
+      ) : (
+        <p className="text-[18px] font-bold text-[color:var(--ios-label)] m-0 tracking-tight break-words">{valor}</p>
+      )}
+    </div>
+  );
 }
 
-function DatoResumen({ label, value }) {
-    return (
-        <div className="rounded-[24px] border border-dashed border-slate-700/80 bg-slate-900/70 p-3 shadow-sm sm:p-4">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{label}</p>
-            <p className="mt-1 break-words text-base font-semibold text-slate-100 sm:text-lg">{value}</p>
-        </div>
-    );
+function DatoResumen({ label, value, accent }) {
+  return (
+    <div className="bg-[color:var(--ios-bg-card)] rounded-2xl shadow-sm p-4 border-l-4" style={{ borderLeftColor: accent }}>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--ios-label-ter)] mb-1">{label}</p>
+      <p className="text-[18px] font-bold text-[color:var(--ios-label)] m-0 tracking-tight break-words">{value}</p>
+    </div>
+  );
 }

@@ -1,324 +1,236 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { HiCheck, HiXMark, HiOutlineArrowLeft } from "react-icons/hi2";
-import { HiEye, HiEyeOff } from "react-icons/hi";
+import { HiArrowLeft, HiEye, HiEyeOff } from "react-icons/hi";
 import { addUser } from "../store/employeeSlice";
 
+const inputStyle = {
+  height: "44px", padding: "0 14px", borderRadius: "12px",
+  border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+  fontSize: "15px", color: "var(--ios-label)", outline: "none",
+  fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
+  WebkitAppearance: "none", appearance: "none", width: "100%",
+};
+const onFocus = e => {
+  e.target.style.borderColor = "var(--ios-blue)";
+  e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)";
+  e.target.style.background = "#fff";
+};
+const onBlur = e => {
+  e.target.style.borderColor = "var(--ios-sep-opaque)";
+  e.target.style.boxShadow = "none";
+  e.target.style.background = "var(--ios-fill)";
+};
+
 export default function UsuarioNuevo() {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const { loading } = useSelector(state => state.employees ?? { loading: false });
-    const [showPass, setShowPass] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { loading } = useSelector(state => state.employees ?? { loading: false });
+  const [showPass, setShowPass] = useState(false);
 
-    const [form, setForm] = useState({
-        name: "",
-        email: "",
-        password: "",
-        role: "COBRADOR",
-        phone: "",
-        alternatePhone: "",
-        address: "",
-        document: "",
-        birthDate: "",
-        responsability: "MEDIA",
-        salary: "",
-        salaryType: "MENSUAL",
-        comisions: "",
-    });
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", role: "COBRADOR",
+    phone: "", alternatePhone: "", address: "", document: "",
+    birthDate: "", responsability: "MEDIA", salary: "", salaryType: "MENSUAL", comisions: "",
+  });
 
-    function handleChange(e) {
-        const { name, value } = e.target;
-        setForm((s) => ({ ...s, [name]: value }));
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setForm(s => ({ ...s, [name]: value }));
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim() || !form.password) {
+      toast.error("Nombre, email y contraseña son requeridos"); return;
     }
-
-    async function handleSubmit(e) {
-        e.preventDefault();
-
-        if (!form.name.trim() || !form.email.trim() || !form.password) {
-            toast.error("Nombre, email y contraseña son requeridos");
-            return;
-        }
-
-        const payload = {
-            ...form,
-            phone: form.phone.trim() === "" ? undefined : form.phone.trim(),
-            alternatePhone: form.alternatePhone.trim() === "" ? undefined : form.alternatePhone.trim(),
-            salary: form.salary === "" ? 0 : Number(form.salary),
-            comisions: form.comisions === "" ? 0 : Number(form.comisions),
-            status: "ACTIVE",
-            birthDate: form.birthDate ? form.birthDate : undefined
-        };
-
-        try {
-            await dispatch(addUser(payload)).unwrap();
-            toast.success("Usuario creado con éxito");
-            navigate("/usuarios");
-        } catch (error) {
-            console.error("Error al crear usuario:", error);
-            const msg = typeof error === 'string' ? error : error?.message || 'Error al crear usuario';
-            toast.error(msg);
-        }
-    }
-
-    const handleBack = () => {
-        if (window.history.length > 2) {
-            navigate(-1);
-        } else {
-            navigate("/usuarios");
-        }
+    const payload = {
+      ...form,
+      phone: form.phone.trim() === "" ? undefined : form.phone.trim(),
+      alternatePhone: form.alternatePhone.trim() === "" ? undefined : form.alternatePhone.trim(),
+      salary: form.salary === "" ? 0 : Number(form.salary),
+      comisions: form.comisions === "" ? 0 : Number(form.comisions),
+      status: "ACTIVE",
+      birthDate: form.birthDate ? form.birthDate : undefined,
     };
+    try {
+      await dispatch(addUser(payload)).unwrap();
+      toast.success("Usuario creado con éxito");
+      navigate("/usuarios");
+    } catch (error) {
+      const msg = typeof error === "string" ? error : error?.message || "Error al crear usuario";
+      toast.error(msg);
+    }
+  };
 
-    return (
-        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+  return (
+    <div style={{ maxWidth: "720px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
 
-            {/* === BOTÓN VOLVER === */}
-            <div className="flex justify-end">
-                <button
-                    onClick={handleBack}
-                    className="flex items-center gap-2 rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                >
-                    <HiOutlineArrowLeft className="h-4 w-4" />
-                    Volver
-                </button>
-            </div>
-
-            <h1 className="mb-6 text-xl font-bold sm:text-2xl text-gray-900 dark:text-white">
-                Agregar nuevo usuario
-            </h1>
-
-            <form
-                onSubmit={handleSubmit}
-                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 space-y-6"
-            >
-                {/* === DATOS PERSONALES === */}
-                <section>
-                    <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                        Datos personales
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field
-                            label="Nombre completo"
-                            name="name"
-                            value={form.name}
-                            onChange={handleChange}
-                            required
-                            placeholder="Ej: Juan Pérez"
-                        />
-                        <Field
-                            label="Email"
-                            name="email"
-                            value={form.email}
-                            onChange={handleChange}
-                            type="email"
-                            required
-                            placeholder="usuario@imperio.test"
-                        />
-                        <Field
-                            label="Teléfono"
-                            name="phone"
-                            value={form.phone}
-                            onChange={handleChange}
-                            placeholder="Ej: 3815551234"
-                        />
-                        <Field
-                            label="Teléfono alternativo"
-                            name="alternatePhone"
-                            value={form.alternatePhone}
-                            onChange={handleChange}
-                            placeholder="Ej: 3815555678"
-                        />
-                        <Field
-                            label="Dirección"
-                            name="address"
-                            value={form.address}
-                            onChange={handleChange}
-                            placeholder="Ej: Lamadrid 123"
-                        />
-                        <Field
-                            label="Documento"
-                            name="document"
-                            value={form.document}
-                            onChange={handleChange}
-                            placeholder="Ej: 35123456"
-                        />
-                        <Field
-                            label="Fecha de nacimiento"
-                            name="birthDate"
-                            value={form.birthDate}
-                            onChange={handleChange}
-                            type="date"
-                        />
-                    </div>
-                </section>
-
-                {/* === SEGURIDAD === */}
-                <section>
-                    <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                        Seguridad
-                    </h2>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-sm text-gray-600 dark:text-gray-300">
-                                Contraseña
-                            </label>
-                            <div className="relative">
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type={showPass ? "text" : "password"}
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    required
-                                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 pr-10 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPass((s) => !s)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-                                >
-                                    {showPass ? (
-                                        <HiEyeOff className="h-5 w-5" />
-                                    ) : (
-                                        <HiEye className="h-5 w-5" />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="text-sm text-gray-600 dark:text-gray-300">
-                                Rol
-                            </label>
-                            <select
-                                name="role"
-                                value={form.role}
-                                onChange={handleChange}
-                                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                <option value="COBRADOR">COBRADOR</option>
-                                <option value="EMPLOYEE">Empleado</option>
-                                <option value="ADMIN">ADMIN</option>
-                            </select>
-                        </div>
-                    </div>
-                </section>
-
-                {/* === DETALLES LABORALES === */}
-                <section>
-                    <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                        Detalles laborales
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-sm text-gray-600 dark:text-gray-300">
-                                Responsabilidad
-                            </label>
-                            <select
-                                name="responsability"
-                                value={form.responsability}
-                                onChange={handleChange}
-                                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                <option value="EXCELENTE">Excelente</option>
-                                <option value="ALTA">Alta</option>
-                                <option value="BUENA">Buena</option>
-                                <option value="MEDIA">Media</option>
-                                <option value="MALA">Mala</option>
-                            </select>
-                        </div>
-
-                        <Field
-                            label="Sueldo base (ARS)"
-                            name="salary"
-                            type="number"
-                            value={form.salary}
-                            onChange={handleChange}
-                            placeholder="Ej: 500000"
-                        />
-
-                        <div>
-                            <label className="text-sm text-gray-600 dark:text-gray-300">
-                                Tipo de sueldo
-                            </label>
-                            <select
-                                name="salaryType"
-                                value={form.salaryType}
-                                onChange={handleChange}
-                                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                <option value="N_A">N/A</option>
-                                <option value="MENSUAL">Mensual</option>
-                                <option value="SEMANAL">Semanal</option>
-                                <option value="DIARIO">Diario</option>
-                            </select>
-                        </div>
-
-                        <Field
-                            label="Comisión por crédito o cliente nuevo (% o monto)"
-                            name="comisions"
-                            type="number"
-                            value={form.comisions}
-                            onChange={handleChange}
-                            placeholder="Ej: 10 o 5000"
-                        />
-
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-sm text-gray-600 dark:text-gray-300">
-                                Aclaración
-                            </label>
-                            <div className="min-h-10 w-full rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
-                                La comisión se paga aparte del sueldo y se usa como referencia por crédito o cliente nuevo.
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* === BOTONES === */}
-                <div className="flex justify-end gap-3 pt-4">
-                    <button
-                        type="button"
-                        onClick={handleBack}
-                        className="flex items-center gap-2 rounded-md bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-400"
-                    >
-                        <HiXMark className="h-4 w-4" />
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500"
-                    >
-                        <HiCheck className="h-4 w-4" />
-                        Guardar
-                    </button>
-                </div>
-            </form>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            width: "40px", height: "40px", borderRadius: "12px",
+            border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg-card)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", flexShrink: 0, transition: "background 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+          onMouseLeave={e => e.currentTarget.style.background = "var(--ios-bg-card)"}
+        >
+          <HiArrowLeft style={{ width: "18px", height: "18px", color: "var(--ios-blue)" }} />
+        </button>
+        <div>
+          <h1 style={{ fontSize: "24px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.025em" }}>
+            Nuevo usuario
+          </h1>
+          <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: "2px 0 0" }}>
+            Completá la información para crear el usuario
+          </p>
         </div>
-    );
+      </div>
+
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+        {/* Datos personales */}
+        <IosSection title="Datos personales">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <Field label="Nombre completo *" name="name" value={form.name} onChange={handleChange} placeholder="Ej: Juan Pérez" required />
+            <Field label="Email *" name="email" value={form.email} onChange={handleChange} type="email" required placeholder="usuario@imperio.test" />
+            <Field label="Teléfono" name="phone" value={form.phone} onChange={handleChange} placeholder="Ej: 3815551234" />
+            <Field label="Teléfono alternativo" name="alternatePhone" value={form.alternatePhone} onChange={handleChange} placeholder="Ej: 3815555678" />
+            <Field label="Dirección" name="address" value={form.address} onChange={handleChange} placeholder="Ej: Lamadrid 123" />
+            <Field label="Documento" name="document" value={form.document} onChange={handleChange} placeholder="Ej: 35123456" />
+            <Field label="Fecha de nacimiento" name="birthDate" value={form.birthDate} onChange={handleChange} type="date" />
+          </div>
+        </IosSection>
+
+        {/* Seguridad */}
+        <IosSection title="Seguridad & Acceso">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            {/* Contraseña */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)" }}>Contraseña *</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  id="password" name="password"
+                  type={showPass ? "text" : "password"}
+                  value={form.password} onChange={handleChange} required
+                  style={{ ...inputStyle, paddingRight: "44px" }}
+                  onFocus={onFocus} onBlur={onBlur}
+                />
+                <button
+                  type="button" onClick={() => setShowPass(s => !s)}
+                  style={{
+                    position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "var(--ios-label-ter)", display: "flex",
+                  }}
+                >
+                  {showPass ? <HiEyeOff style={{ width: "18px", height: "18px" }} /> : <HiEye style={{ width: "18px", height: "18px" }} />}
+                </button>
+              </div>
+            </div>
+            {/* Rol */}
+            <IosSelect label="Rol" name="role" value={form.role} onChange={handleChange}>
+              <option value="COBRADOR">Cobrador</option>
+              <option value="EMPLOYEE">Empleado</option>
+              <option value="ADMIN">Admin</option>
+            </IosSelect>
+          </div>
+        </IosSection>
+
+        {/* Datos laborales */}
+        <IosSection title="Datos laborales">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <IosSelect label="Responsabilidad" name="responsability" value={form.responsability} onChange={handleChange}>
+              <option value="EXCELENTE">Excelente</option>
+              <option value="ALTA">Alta</option>
+              <option value="BUENA">Buena</option>
+              <option value="MEDIA">Media</option>
+              <option value="MALA">Mala</option>
+            </IosSelect>
+            <Field label="Sueldo base (ARS)" name="salary" value={form.salary} onChange={handleChange} type="number" placeholder="Ej: 500000" />
+            <IosSelect label="Tipo de sueldo" name="salaryType" value={form.salaryType} onChange={handleChange}>
+              <option value="N_A">N/A</option>
+              <option value="MENSUAL">Mensual</option>
+              <option value="SEMANAL">Semanal</option>
+              <option value="DIARIO">Diario</option>
+            </IosSelect>
+            <Field label="Comisión (% o monto)" name="comisions" value={form.comisions} onChange={handleChange} type="number" placeholder="Ej: 10 o 5000" />
+            <div style={{ gridColumn: "1 / -1", borderRadius: "12px", background: "#FFFBEB", border: "1.5px solid #F59E0B40", padding: "12px 14px" }}>
+              <p style={{ fontSize: "13px", color: "#7C4A00", margin: 0, lineHeight: 1.5 }}>
+                ⚠️ La comisión se paga aparte del sueldo y se usa como referencia por crédito o cliente nuevo.
+              </p>
+            </div>
+          </div>
+        </IosSection>
+
+        {/* Botones */}
+        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+          <button
+            type="button" onClick={() => navigate(-1)}
+            style={{
+              padding: "12px 20px", borderRadius: "12px",
+              border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+              color: "var(--ios-label-sec)", fontSize: "15px", fontWeight: 600, cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#E5E5EA"}
+            onMouseLeave={e => e.currentTarget.style.background = "var(--ios-fill)"}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit" disabled={loading}
+            style={{
+              padding: "12px 24px", borderRadius: "12px", border: "none",
+              background: loading ? "#A8C8FF" : "var(--ios-blue)", color: "#fff",
+              fontSize: "15px", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+              boxShadow: "0 4px 12px rgba(0,122,255,0.3)", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "var(--ios-blue-dark)"; }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = "var(--ios-blue)"; }}
+          >
+            {loading ? "Guardando..." : "Crear usuario"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
-function Field({
-    label,
-    name,
-    value,
-    onChange,
-    placeholder = "",
-    type = "text",
-    required = false,
-}) {
-    return (
-        <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-gray-600 dark:text-gray-300">{label}</label>
-            <input
-                name={name}
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                type={type}
-                required={required}
-                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-            />
-        </div>
-    );
+function IosSection({ title, children }) {
+  return (
+    <div className="ios-card" style={{ padding: "20px" }}>
+      <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 14px" }}>{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, name, value, onChange, placeholder = "", type = "text", required = false }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)" }}>{label}</label>
+      <input
+        name={name} value={value} onChange={onChange}
+        placeholder={placeholder} type={type} required={required}
+        style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+      />
+    </div>
+  );
+}
+
+function IosSelect({ label, name, value, onChange, children }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)" }}>{label}</label>
+      <select name={name} value={value} onChange={onChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+        {children}
+      </select>
+    </div>
+  );
 }

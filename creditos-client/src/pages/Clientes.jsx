@@ -3,369 +3,375 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import {
-    HiPencilAlt,
-    HiEye,
-    HiUserAdd,
-    HiUserRemove,
-    HiPlus,
-    HiFilter,
-    HiX,
-    HiSearch,
-} from "react-icons/hi";
-import { loadClients, removeClient } from "../store/clientsSlice";
+import { HiPencilAlt, HiEye, HiUserAdd, HiUserRemove, HiPlus, HiSearch } from "react-icons/hi";
+import { loadClients, removeClient, saveClient } from "../store/clientsSlice";
 import Pagination from "../components/Pagination";
+import { useDialog } from "../components/DialogProvider";
 
 const reliabilityOptions = [
-    { label: "Todas", value: "todas" },
-    { label: "Muy alta", value: "MUYALTA" },
-    { label: "Alta", value: "ALTA" },
-    { label: "Media", value: "MEDIA" },
-    { label: "Baja", value: "BAJA" },
-    { label: "Moroso", value: "MOROSO" }
+  { label: "Todas", value: "todas" },
+  { label: "Media", value: "MEDIA" },
+  { label: "Baja", value: "BAJA" },
+  { label: "Moroso", value: "MOROSO" },
 ];
 
-const reliabilityLabelMap = {
-    MUYALTA: "Muy alta",
-    ALTA: "Alta",
-    MEDIA: "Media",
-    BAJA: "Baja",
-    MOROSO: "Moroso"
+const statusOptions = [
+  { label: "Todos", value: "todos" },
+  { label: "Alta", value: "ACTIVE" },
+  { label: "Baja", value: "INACTIVE" },
+];
+
+const CONFIANZA_CONFIG = {
+  MUYALTA: { label: "Muy alta", bg: "#E8F8ED", color: "#1A6B36" },
+  ALTA: { label: "Alta", bg: "#E8F8ED", color: "#1A6B36" },
+  MEDIA: { label: "Media", bg: "#EBF3FF", color: "#004299" },
+  BAJA: { label: "Baja", bg: "#FFF8E1", color: "#B26A00" },
+  MOROSO: { label: "Moroso", bg: "#FFEBEA", color: "#8B0000" }
 };
 
+const inputStyle = {
+  height: "40px", padding: "0 12px", borderRadius: "10px",
+  border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+  fontSize: "14px", color: "var(--ios-label)", outline: "none",
+  fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s",
+  WebkitAppearance: "none", appearance: "none", width: "100%",
+};
+const onFocus = e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; };
+const onBlur = e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; };
+
 export default function Clientes() {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const { list, loading, meta } = useSelector(state => state.clients) || { list: [], loading: false, meta: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 } };
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { list, loading, meta } = useSelector(state => state.clients) || { list: [], loading: false, meta: {} };
 
-    const [q, setQ] = useState("");
-    const [activo, setActivo] = useState("todos");
-    const [confianza, setConfianza] = useState("todas");
-    const [showFilters, setShowFilters] = useState(false);
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+  const { confirm } = useDialog();
 
-    useEffect(() => {
-        setPage(meta?.page ?? 1);
-        setPageSize(meta?.pageSize ?? 10);
-    }, [meta?.page, meta?.pageSize]);
+  const [q, setQ] = useState("");
+  const [activo, setActivo] = useState("todos");
+  const [confianza, setConfianza] = useState("todas");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            const params = {
-                page,
-                pageSize
-            };
+  useEffect(() => { setPage(meta?.page ?? 1); setPageSize(meta?.pageSize ?? 10); }, [meta?.page, meta?.pageSize]);
 
-            const search = q.trim();
-            if (search) params.q = search;
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const params = { page, pageSize };
+      if (q.trim()) params.q = q.trim();
+      if (confianza !== "todas") params.reliability = [confianza];
+      const statusValue = (activo || "").toUpperCase();
+      if (statusValue === "ACTIVE" || statusValue === "INACTIVE") {
+        params.status = statusValue;
+      }
+      // Si es "todos", no agregar el filtro status
+      dispatch(loadClients(params));
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [dispatch, page, pageSize, q, confianza, activo]);
 
-            if (confianza !== "todas") {
-                params.reliability = [confianza];
-            }
+  useEffect(() => { setPage(1); }, [q, activo, confianza]);
 
-            if (activo !== "todos") {
-                params.status = activo === "si" ? "ACTIVE" : "INACTIVE";
-            }
+  // rows = list directamente del store (ya filtrado por API)
+  const rows = useMemo(() => list, [list]);
 
-            dispatch(loadClients(params));
-        }, 200);
-        return () => {
-            clearTimeout(timeout);
-        };
-    }, [dispatch, page, pageSize, q, confianza, activo]);
+  const handleDeleteClient = async (id) => {
+    const ok = await confirm("¿Seguro que deseas dar de baja a este cliente?", {
+      title: "Baja",
+      confirmText: "Baja",
+      cancelText: "Cancelar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await dispatch(removeClient(id)).unwrap();
+      toast.success("Cliente dado de baja");
+      dispatch(loadClients({ page, pageSize }));
+    } catch (error) {
+      const msg = typeof error === "string" ? error : error?.message || "No se pudo dar de baja al cliente";
+      toast.error(msg);
+    }
+  };
 
-    useEffect(() => {
-        setPage(1);
-    }, [q, activo, confianza]);
+  // Activar cliente dado de baja
+  const handleActivateClient = async (id) => {
+    const ok = await confirm("¿Seguro que deseas dar de alta a este cliente?", {
+      title: "Dar de alta",
+      confirmText: "Dar de alta",
+      cancelText: "Cancelar",
+      destructive: false,
+    });
+    if (!ok) return;
+    try {
+      await dispatch(saveClient({ id, payload: { status: "ACTIVE" } })).unwrap();
+      toast.success("Cliente dado de alta");
+      dispatch(loadClients({ page, pageSize }));
+    } catch (error) {
+      const msg = typeof error === "string" ? error : error?.message || "No se pudo dar de alta al cliente";
+      toast.error(msg);
+    }
+  };
 
-    const rows = useMemo(() => {
-        return list.filter((c) => {
-            const status = (c.status || "ACTIVE").toUpperCase();
-            const isActive = status === "ACTIVE";
-            return activo === "todos" || (activo === "si" ? isActive : !isActive);
-        });
-    }, [list, activo]);
+  // Dar de baja cliente (cambio de status a INACTIVE)
+  const handleDeactivateClient = async (id) => {
+    const ok = await confirm("¿Seguro que deseas dar de baja a este cliente?", {
+      title: "Dar de baja",
+      confirmText: "Dar de baja",
+      cancelText: "Cancelar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await dispatch(saveClient({ id, payload: { status: "INACTIVE" } })).unwrap();
+      toast.success("Cliente dado de baja");
+      dispatch(loadClients({ page, pageSize }));
+    } catch (error) {
+      const msg = typeof error === "string" ? error : error?.message || "No se pudo dar de baja al cliente";
+      toast.error(msg);
+    }
+  };
 
-    const handleDeleteClient = async (id) => {
-        const ok = window.confirm("¿Seguro que deseas eliminar este cliente?");
-        if (!ok) return;
-        try {
-            await dispatch(removeClient(id)).unwrap();
-            toast.success("Cliente eliminado con éxito");
-            navigate("/clientes", { replace: true });
-        } catch (error) {
-            console.error("No se pudo eliminar el cliente", error);
-            const msg = typeof error === "string" ? error : error?.message || "No se pudo eliminar el cliente";
-            toast.error(msg);
-        }
-    };
+  // Limpiar filtros
+  const handleClearFilters = () => {
+    setQ("");
+    setActivo("todos");
+    setConfianza("todas");
+    setPage(1);
+  };
 
-    return (
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            {/* Header */}
-            <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Clientes</h1>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
 
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setShowFilters((s) => !s)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 sm:hidden"
-                        aria-expanded={showFilters}
-                        title="Mostrar filtros"
-                    >
-                        {showFilters ? <HiX className="h-4 w-4" /> : <HiFilter className="h-4 w-4" />}
-                        Filtros
-                    </button>
+      {/* Header */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+        <div>
+          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.025em" }}>Clientes</h1>
+          <p style={{ fontSize: "14px", color: "var(--ios-label-sec)", margin: "4px 0 0" }}>{meta?.totalItems ?? list.length} registros</p>
+        </div>
+        <button
+          onClick={() => navigate("/clientes/nuevo")}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            padding: "11px 18px", borderRadius: "12px", border: "none",
+            background: "var(--ios-blue)", color: "#fff",
+            fontSize: "15px", fontWeight: 700, cursor: "pointer",
+            transition: "all 0.18s", boxShadow: "0 4px 12px rgba(0,122,255,0.3)",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "var(--ios-blue-dark)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "var(--ios-blue)"; e.currentTarget.style.transform = "translateY(0)"; }}
+        >
+          <HiPlus style={{ width: "18px", height: "18px" }} />
+          Agregar cliente
+        </button>
+      </div>
 
-                    <button
-                        type="button"
-                        onClick={() => navigate("/clientes/nuevo")}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-[0.98]"
-                    >
-                        <HiPlus className="h-4 w-4" />
-                        Agregar cliente
-                    </button>
+      {/* Filtros */}
+      <div className="ios-card" style={{ padding: "16px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "flex-end" }}>
+        <div style={{ position: "relative", flex: "1 1 220px", minWidth: "180px" }}>
+          <HiSearch style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", width: "16px", height: "16px", color: "var(--ios-label-ter)", pointerEvents: "none" }} />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Buscar por nombre, teléfono o documento..."
+            style={{ ...inputStyle, paddingLeft: "38px" }}
+            onFocus={onFocus} onBlur={onBlur}
+          />
+        </div>
+
+        <div style={{ flex: "0 0 auto" }}>
+          <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--ios-label-ter)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "5px" }}>Estado</label>
+          <select value={activo} onChange={e => { setActivo(e.target.value); }} style={{ ...inputStyle, width: "auto", minWidth: "120px" }} onFocus={onFocus} onBlur={onBlur}>
+            {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+
+        <div style={{ flex: "0 0 auto" }}>
+          <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--ios-label-ter)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "5px" }}>Confianza</label>
+          <select value={confianza} onChange={e => setConfianza(e.target.value)} style={{ ...inputStyle, width: "auto", minWidth: "130px" }} onFocus={onFocus} onBlur={onBlur}>
+            {reliabilityOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={handleClearFilters}
+          style={{ height: "40px", padding: "0 18px", borderRadius: "10px", border: "none", background: "#E5E5EA", color: "#333", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}
+        >
+          Limpiar filtros
+        </button>
+      </div>
+
+      {/* ═══ MOBILE: Cards ═══ */}
+      <div className="sm:hidden flex flex-col gap-4">
+        {loading ? (
+          [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: "140px", borderRadius: "16px", marginBottom: "16px" }} />)
+        ) : rows.length === 0 ? (
+          <EmptyState onCreate={() => navigate("/clientes/nuevo")} />
+        ) : rows.map(c => {
+          const status = (c.status || "ACTIVE").toUpperCase();
+          const isActive = status === "ACTIVE";
+          return (
+            <div key={c.id} className="ios-card mb-4" style={{ padding: "16px" }}>
+              {/* Top */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                  <Avatar name={c.name} />
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--ios-label)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</p>
+                    <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: "2px 0 0" }}>{c.phone || "—"}</p>
+                  </div>
                 </div>
-            </div>
-
-            {/* Filtros */}
-            <div className="mb-4 grid gap-3 sm:mb-6">
-                <div
-                    id="filters-panel"
-                    className={`grid gap-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:hidden ${showFilters ? "grid" : "hidden"}`}
+                <ConfianzaPill reliability={c.reliability} />
+              </div>
+              {/* Acciones */}
+              <div style={{ display: "flex", gap: "8px" }}>
+                <MobileBtn color="#007AFF" bg="#EBF3FF" hoverBg="#C8E0FF" onClick={() => navigate(`/clientes/${c.id}`)}>
+                  <HiEye style={{ width: "15px", height: "15px" }} /> Ver
+                </MobileBtn>
+                <MobileBtn color="#636366" bg="var(--ios-fill)" hoverBg="#E5E5EA" onClick={() => navigate(`/clientes/${c.id}/editar`)}>
+                  <HiPencilAlt style={{ width: "15px", height: "15px" }} /> Editar
+                </MobileBtn>
+                <MobileBtn
+                  color={isActive ? "#FF3B30" : "#34C759"}
+                  bg={isActive ? "#FFEBEA" : "#E8F8ED"}
+                  hoverBg={isActive ? "#FFCCC9" : "#B8F0CC"}
+                  onClick={() => isActive ? handleDeactivateClient(c.id) : handleActivateClient(c.id)}
                 >
-                    <SearchInput q={q} setQ={setQ} />
-                    <FiltersRow
-                        activo={activo}
-                        setActivo={setActivo}
-                        confianza={confianza}
-                        setConfianza={setConfianza}
-                    />
-                </div>
-
-                <div className="hidden items-end gap-3 sm:flex">
-                    <SearchInput q={q} setQ={setQ} />
-                    <FiltersRow
-                        activo={activo}
-                        setActivo={setActivo}
-                        confianza={confianza}
-                        setConfianza={setConfianza}
-                    />
-                </div>
+                  {isActive ? <HiUserRemove style={{ width: "15px", height: "15px" }} /> : <HiUserAdd style={{ width: "15px", height: "15px" }} />}
+                  {isActive ? "Dar de baja" : "Activar"}
+                </MobileBtn>
+              </div>
             </div>
+          );
+        })}
+      </div>
 
-            {/* Tabla */}
-            <div className="grid gap-3 sm:hidden">
-                {rows.map((c) => {
-                    const status = (c.status || "ACTIVE").toUpperCase();
-                    const isActive = status === "ACTIVE";
-                    const reliability = (c.reliability || "").toUpperCase();
-                    const confianzaLabel = reliabilityLabelMap[reliability] ?? (reliability || "—");
-                    return (
-                        <article
-                            key={c.id}
-                            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
-                        >
-                            <div className="flex items-start justify-between gap-2">
-                                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                    {c.name}
-                                </h3>
-                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                    {confianzaLabel}
-                                </span>
-                            </div>
-
-                            <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-                                <p>{c.phone || "—"}</p>
-                                {c.alternatePhone ? <p>Alt: {c.alternatePhone}</p> : null}
-                            </div>
-
-                            <div className="mt-3 grid grid-cols-1 gap-2">
-                                <button
-                                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-                                    onClick={() => navigate(`/clientes/${c.id}/editar`)}
-                                >
-                                    <HiPencilAlt className="h-4 w-4" />
-                                    Editar
-                                </button>
-                                <button
-                                    className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition ${isActive
-                                        ? "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
-                                        : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/50 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
-                                        }`}
-                                    onClick={() => handleDeleteClient(c.id)}
-                                >
-                                    {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
-                                    {isActive ? "Eliminar" : "Activar"}
-                                </button>
-                                <button
-                                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
-                                    onClick={() => navigate(`/clientes/${c.id}`)}
-                                >
-                                    <HiEye className="h-4 w-4" />
-                                    Ver
-                                </button>
-                            </div>
-                        </article>
-                    );
-                })}
-                {!rows.length && !loading && (
-                    <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        No hay clientes con esos filtros.
+      {/* ═══ DESKTOP: Tabla ═══ */}
+      <div className="hidden sm:block" style={{ background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)", overflow: "hidden" }}>
+        <table className="ios-table" style={{ borderRadius: 0 }}>
+          <thead>
+            <tr>
+              {["Nombre", "Teléfono", "Confianza", "Acciones"].map((h, i) => (
+                <th key={h} style={{ textAlign: i === 3 ? "right" : "left", padding: "12px 16px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={4} style={{ padding: "40px", textAlign: "center" }}>
+                <div className="skeleton" style={{ height: "18px", width: "200px", margin: "0 auto", borderRadius: "6px" }} />
+              </td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={4} style={{ padding: "48px", textAlign: "center", color: "var(--ios-label-ter)" }}>
+                No hay clientes con esos filtros.
+              </td></tr>
+            ) : rows.map(c => {
+              const status = (c.status || "ACTIVE").toUpperCase();
+              const isActive = status === "ACTIVE";
+              return (
+                <tr key={c.id} style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <td style={{ padding: "14px 16px", textAlign: "left" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <Avatar name={c.name} />
+                      <span style={{ fontWeight: 600, color: "var(--ios-label)" }}>{c.name}</span>
                     </div>
-                )}
-                {loading && (
-                    <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        Cargando...
+                  </td>
+                  <td style={{ padding: "14px 16px", textAlign: "left" }}>
+                    <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--ios-label)", margin: 0 }}>{c.phone || "—"}</p>
+                    {c.alternatePhone && <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: "2px 0 0" }}>Alt: {c.alternatePhone}</p>}
+                  </td>
+                  <td style={{ padding: "14px 16px", textAlign: "left" }}>
+                    <ConfianzaPill reliability={c.reliability} />
+                  </td>
+                  <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                      <ActionBtn color="#004299" bg="#EBF3FF" hoverBg="#C8E0FF" icon={<HiEye style={{ width: "14px", height: "14px" }} />} label="Ver" onClick={() => navigate(`/clientes/${c.id}`)} />
+                      <ActionBtn color="#3A3A3C" bg="var(--ios-fill)" hoverBg="#E5E5EA" icon={<HiPencilAlt style={{ width: "14px", height: "14px" }} />} label="Editar" onClick={() => navigate(`/clientes/${c.id}/editar`)} />
+                      <ActionBtn
+                        color={isActive ? "#8B0000" : "#1A6B36"}
+                        bg={isActive ? "#FFEBEA" : "#E8F8ED"}
+                        hoverBg={isActive ? "#FFCCC9" : "#B8F0CC"}
+                        icon={isActive ? <HiUserRemove style={{ width: "14px", height: "14px" }} /> : <HiUserAdd style={{ width: "14px", height: "14px" }} />}
+                        label={isActive ? "Baja" : "Activar"}
+                        onClick={() => isActive ? handleDeactivateClient(c.id) : handleActivateClient(c.id)}
+                      />
                     </div>
-                )}
-            </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl dark:border-slate-700 dark:bg-slate-900/80 sm:block">
-                <table className="w-full text-left text-sm">
-                    <thead className="sticky top-0 z-10 bg-white/70 text-slate-500 backdrop-blur-lg dark:bg-slate-900/70 dark:text-slate-200">
-                        <tr>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Nombre</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Teléfono</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Confianza</th>
-                            <th className="border-x border-slate-200 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-slate-300">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800/80">
-                        {rows.map((c) => {
-                            const status = (c.status || "ACTIVE").toUpperCase();
-                            const isActive = status === "ACTIVE";
-                            const reliability = (c.reliability || "").toUpperCase();
-                            const confianzaLabel = reliabilityLabelMap[reliability] ?? (reliability || "—");
-                            return (
-                                <tr key={c.id} className="transition hover:bg-sky-50/40 odd:bg-white/95 even:bg-slate-50/80 dark:odd:bg-slate-900/50 dark:even:bg-slate-900/35 dark:hover:bg-slate-900/55">
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-700 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-100">{c.name}</td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-600 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-200">
-                                        <div className="font-medium text-slate-700 dark:text-slate-100">{c.phone}</div>
-                                        {c.alternatePhone && (
-                                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                                                Alt: {c.alternatePhone}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center text-slate-600 first:border-l-0 last:border-r-0 dark:border-slate-800 dark:text-slate-200">{confianzaLabel}</td>
-                                    <td className="border-x border-slate-100 px-5 py-4 text-center first:border-l-0 last:border-r-0 dark:border-slate-800">
-                                        <div className="flex flex-wrap justify-center gap-2 text-sm">
-                                            <button
-                                                className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:border-slate-500/40 dark:bg-slate-500/15 dark:text-slate-200 dark:hover:bg-slate-500/25"
-                                                onClick={() => navigate(`/clientes/${c.id}/editar`)}
-                                            >
-                                                <HiPencilAlt className="h-4 w-4" />
-                                                Editar
-                                            </button>
-                                            <button
-                                                className={`inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 font-semibold shadow-sm transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 ${isActive
-                                                    ? "border-rose-200 bg-white/80 text-rose-600 hover:border-rose-300 hover:bg-rose-50 focus:ring-rose-200 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
-                                                    : "border-emerald-200 bg-white/80 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 focus:ring-emerald-200 dark:border-emerald-500/50 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
-                                                    }`}
-                                                onClick={() => handleDeleteClient(c.id)}
-                                            >
-                                                {isActive ? <HiUserRemove className="h-4 w-4" /> : <HiUserAdd className="h-4 w-4" />}
-                                                {isActive ? "Eliminar" : "Activar"}
-                                            </button>
-                                            <button
-                                                className="inline-flex min-w-[118px] items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 py-1.5 text-sm font-semibold text-sky-600 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20"
-                                                onClick={() => navigate(`/clientes/${c.id}`)}
-                                            >
-                                                <HiEye className="h-4 w-4" />
-                                                Ver
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                        {!rows.length && !loading && (
-                            <tr>
-                                <td colSpan={4} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
-                                    No hay clientes con esos filtros.
-                                </td>
-                            </tr>
-                        )}
-                        {loading && (
-                            <tr>
-                                <td colSpan={4} className="border-x border-slate-200 px-4 py-8 text-center text-gray-500 first:border-l-0 last:border-r-0 dark:border-slate-700 dark:text-gray-400">
-                                    Cargando...
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            <div className="mt-4">
-                <Pagination
-                    page={meta?.page ?? page}
-                    pageSize={meta?.pageSize ?? pageSize}
-                    totalItems={meta?.totalItems ?? rows.length}
-                    totalPages={meta?.totalPages ?? 1}
-                    onPageChange={setPage}
-                    onPageSizeChange={(size) => {
-                        setPageSize(size);
-                        setPage(1);
-                    }}
-                />
-            </div>
-        </div>
-    );
+      <Pagination
+        page={meta?.page ?? page} pageSize={meta?.pageSize ?? pageSize}
+        totalItems={meta?.totalItems ?? rows.length}
+        totalPages={meta?.totalPages ?? 1}
+        onPageChange={setPage}
+        onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+      />
+    </div>
+  );
 }
 
-/* === Subcomponentes (JS puro) === */
-
-function SearchInput({ q, setQ }) {
-    return (
-        <div className="relative w-full sm:max-w-xs">
-            <HiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por nombre, teléfono o documento..."
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            />
-        </div>
-    );
+function ActionBtn({ onClick, color, bg, hoverBg, icon, label }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "5px", padding: "6px 0", borderRadius: "8px", border: "none", background: bg, color, fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap", minWidth: "88px", height: "30px" }}
+      onMouseEnter={e => { e.currentTarget.style.background = hoverBg; e.currentTarget.style.transform = "translateY(-1px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = bg; e.currentTarget.style.transform = "translateY(0)"; }}
+    >
+      {icon} {label}
+    </button>
+  );
 }
 
-function FiltersRow({ activo, setActivo, confianza, setConfianza }) {
-    return (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            <div className="grid gap-1">
-                <label className="text-xs text-gray-500 dark:text-gray-400">Activo</label>
-                <select
-                    value={activo}
-                    onChange={(e) => setActivo(e.target.value)}
-                    className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                >
-                    <option value="todos">Todos</option>
-                    <option value="si">Activos</option>
-                    <option value="no">Inactivos</option>
-                </select>
-            </div>
-
-            <div className="grid gap-1">
-                <label className="text-xs text-gray-500 dark:text-gray-400">Confianza</label>
-                <select
-                    value={confianza}
-                    onChange={(e) => setConfianza(e.target.value)}
-                    className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                >
-                    {reliabilityOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="hidden md:block" />
-        </div>
-    );
+function MobileBtn({ children, color, bg, hoverBg, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "5px", padding: "9px 8px", borderRadius: "10px", border: "none", background: bg, color, fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+      onMouseEnter={e => e.currentTarget.style.background = hoverBg}
+      onMouseLeave={e => e.currentTarget.style.background = bg}
+    >
+      {children}
+    </button>
+  );
 }
 
+function EmptyState({ onCreate }) {
+  return (
+    <div style={{ textAlign: "center", padding: "60px 20px", background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)" }}>
+      <p style={{ fontSize: "40px", margin: "0 0 12px" }}>👥</p>
+      <p style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 8px" }}>Sin clientes</p>
+      <p style={{ fontSize: "14px", color: "var(--ios-label-ter)", margin: "0 0 20px" }}>No hay clientes con esos filtros.</p>
+      <button onClick={onCreate} style={{ padding: "11px 22px", borderRadius: "12px", background: "var(--ios-blue)", color: "#fff", border: "none", fontSize: "15px", fontWeight: 700, cursor: "pointer" }}>
+        Agregar cliente
+      </button>
+    </div>
+  );
+}
+
+function ConfianzaPill({ reliability }) {
+  const key = (reliability || "").toUpperCase();
+  const cfg = CONFIANZA_CONFIG[key] || { label: key || "—", bg: "var(--ios-fill)", color: "var(--ios-label-sec)" };
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "4px 10px", borderRadius: "99px", background: cfg.bg, color: cfg.color, fontSize: "12px", fontWeight: 700, minWidth: "80px", whiteSpace: "nowrap" }}>
+      {cfg.label}
+    </span>
+  );
+}
+
+function Avatar({ name }) {
+  const initials = name ? name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase() : "?";
+  return (
+    <div style={{ width: "38px", height: "38px", borderRadius: "12px", background: "linear-gradient(135deg, #007AFF22, #007AFF40)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 800, color: "#007AFF", flexShrink: 0, border: "1.5px solid #007AFF30" }}>
+      {initials}
+    </div>
+  );
+}

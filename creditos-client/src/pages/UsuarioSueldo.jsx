@@ -1,515 +1,297 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { HiOutlineArrowLeft } from "react-icons/hi2";
+import { HiArrowLeft, HiCurrencyDollar, HiTrendingUp, HiCheckCircle } from "react-icons/hi";
 import toast from "react-hot-toast";
 import { fetchUser } from "../services/usersService";
 import { fetchWeeklyPayrollHistory, fetchWeeklyPayrollPreview, recordWeeklyPayrollPayment } from "../services/reportsService";
 
+const inputStyle = {
+  height: "44px", padding: "0 14px", borderRadius: "12px",
+  border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+  fontSize: "15px", color: "var(--ios-label)", outline: "none",
+  fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
+  WebkitAppearance: "none", appearance: "none", width: "100%",
+};
+const onFocus = e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; };
+const onBlur = e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; };
+
 export default function UsuarioSueldo() {
-    const { id } = useParams();
-    const navigate = useNavigate();
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-    const [usuario, setUsuario] = useState(null);
-    const [payrollPreview, setPayrollPreview] = useState(null);
-    const [payrollHistory, setPayrollHistory] = useState([]);
-    const [selectedPayrollWeekStart, setSelectedPayrollWeekStart] = useState("");
-    const [payrollForm, setPayrollForm] = useState(() => buildPayrollFormState(null));
-    const [loading, setLoading] = useState(true);
-    const [savingPayroll, setSavingPayroll] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+  const [payrollPreview, setPayrollPreview] = useState(null);
+  const [payrollHistory, setPayrollHistory] = useState([]);
+  const [selectedPayrollWeekStart, setSelectedPayrollWeekStart] = useState("");
+  const [payrollForm, setPayrollForm] = useState(() => buildPayrollFormState(null));
+  const [loading, setLoading] = useState(true);
+  const [savingPayroll, setSavingPayroll] = useState(false);
 
-    useEffect(() => {
-        if (!id) return;
-
-        const loadUser = async () => {
-            setLoading(true);
-            try {
-                const response = await fetchUser(id);
-                const data = response?.data ?? null;
-                setUsuario(data);
-            } catch (error) {
-                console.error("Error al cargar cobrador", error);
-                setUsuario(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadUser();
-    }, [id]);
-
-    useEffect(() => {
-        const role = (usuario?.role || "").toUpperCase();
-        const isCollector = role === "COBRADOR" || role === "EMPLOYEE";
-
-        if (!id || !isCollector) {
-            setPayrollPreview(null);
-            setPayrollHistory([]);
-            setSelectedPayrollWeekStart("");
-            setPayrollForm(buildPayrollFormState(null));
-            return;
-        }
-
-        const loadPayroll = async () => {
-            setLoading(true);
-            try {
-                const [previewRes, historyRes] = await Promise.all([
-                    fetchWeeklyPayrollPreview({
-                        userId: id,
-                        ...(selectedPayrollWeekStart ? { weekStart: selectedPayrollWeekStart } : {})
-                    }),
-                    fetchWeeklyPayrollHistory({ userId: id, weeks: 10 })
-                ]);
-                const nextPreview = previewRes?.data ?? null;
-                const nextHistory = Array.isArray(historyRes?.data?.data) ? historyRes.data.data : [];
-                setPayrollPreview(nextPreview);
-                setPayrollHistory(nextHistory);
-                setPayrollForm(buildPayrollFormState(nextPreview));
-                if (!selectedPayrollWeekStart && nextPreview?.weekStart) {
-                    setSelectedPayrollWeekStart(nextPreview.weekStart);
-                }
-            } catch (error) {
-                console.error("Error al cargar sueldo del cobrador", error);
-                setPayrollPreview(null);
-                setPayrollHistory([]);
-                setPayrollForm(buildPayrollFormState(null));
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadPayroll();
-    }, [id, usuario?.role, selectedPayrollWeekStart]);
-
-    const payrollWeekOptions = useMemo(() => {
-        const seen = new Set();
-        const options = [];
-
-        const appendOption = (item) => {
-            if (!item?.weekStart || seen.has(item.weekStart)) return;
-            seen.add(item.weekStart);
-            options.push({
-                value: item.weekStart,
-                label: `${formatDate(item.weekStart)} al ${formatDate(item.weekEnd)}`
-            });
-        };
-
-        appendOption(payrollPreview);
-        payrollHistory.forEach(appendOption);
-        return options;
-    }, [payrollPreview, payrollHistory]);
-
-    const payrollSuggestedTotal = Number(payrollPreview?.weeklySalary || 0) + Number(payrollPreview?.totalCommission || 0);
-    const payrollRecordedTotal = Number(payrollForm.paidSalaryAmount || 0) + (payrollForm.commissionPaid ? Number(payrollForm.paidCommissionAmount || 0) : 0);
-
-    const handleBack = () => {
-        navigate(`/usuarios/${id}`);
+  useEffect(() => {
+    if (!id) return;
+    const loadUser = async () => {
+      setLoading(true);
+      try {
+        const response = await fetchUser(id);
+        setUsuario(response?.data ?? null);
+      } catch { setUsuario(null); }
+      finally { setLoading(false); }
     };
+    loadUser();
+  }, [id]);
 
-    const handlePayrollFieldChange = (field, value) => {
-        setPayrollForm((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleCommissionToggle = () => {
-        setPayrollForm((prev) => {
-            const nextCommissionPaid = !prev.commissionPaid;
-            return {
-                ...prev,
-                commissionPaid: nextCommissionPaid,
-                paidCommissionAmount: nextCommissionPaid && !prev.paidCommissionAmount
-                    ? String(Number(payrollPreview?.totalCommission || 0))
-                    : prev.paidCommissionAmount
-            };
-        });
-    };
-
-    const handleSavePayroll = async () => {
-        if (!payrollPreview) return;
-
-        const paidSalaryAmount = Number(payrollForm.paidSalaryAmount);
-        const paidCommissionAmount = payrollForm.commissionPaid ? Number(payrollForm.paidCommissionAmount) : 0;
-
-        if (!Number.isFinite(paidSalaryAmount) || paidSalaryAmount < 0) {
-            toast.error("Indica un sueldo pagado válido.");
-            return;
-        }
-
-        if (payrollForm.commissionPaid && (!Number.isFinite(paidCommissionAmount) || paidCommissionAmount <= 0)) {
-            toast.error("Indica cuánto se pagó de comisión.");
-            return;
-        }
-
-        setSavingPayroll(true);
-        try {
-            await recordWeeklyPayrollPayment({
-                userId: id,
-                weekStart: selectedPayrollWeekStart || payrollPreview.weekStart,
-                paidSalaryAmount,
-                commissionPaid: payrollForm.commissionPaid,
-                paidCommissionAmount,
-                notes: payrollForm.notes?.trim() || undefined
-            });
-
-            const [previewRes, historyRes] = await Promise.all([
-                fetchWeeklyPayrollPreview({
-                    userId: id,
-                    ...(selectedPayrollWeekStart || payrollPreview.weekStart ? { weekStart: selectedPayrollWeekStart || payrollPreview.weekStart } : {})
-                }),
-                fetchWeeklyPayrollHistory({ userId: id, weeks: 10 })
-            ]);
-            const nextPreview = previewRes?.data ?? null;
-            setPayrollPreview(nextPreview);
-            setPayrollHistory(Array.isArray(historyRes?.data?.data) ? historyRes.data.data : []);
-            setPayrollForm(buildPayrollFormState(nextPreview));
-            toast.success("Pago registrado correctamente.");
-        } catch (error) {
-            console.error("Error al registrar pago", error);
-            toast.error(error?.response?.data?.error || "No se pudo registrar el pago.");
-        } finally {
-            setSavingPayroll(false);
-        }
-    };
-
-    if (loading && !usuario) {
-        return (
-            <div className="mx-auto max-w-6xl px-4 py-6">
-                <p className="text-center text-gray-500 dark:text-gray-400">Cargando sueldo del cobrador...</p>
-            </div>
-        );
-    }
-
-    if (!usuario) {
-        return (
-            <div className="text-center text-red-400 mt-10">
-                Usuario no encontrado.
-            </div>
-        );
-    }
-
-    const role = (usuario.role || "").toUpperCase();
+  useEffect(() => {
+    const role = (usuario?.role || "").toUpperCase();
     const isCollector = role === "COBRADOR" || role === "EMPLOYEE";
-
-    if (!isCollector) {
-        return (
-            <div className="mx-auto max-w-4xl px-4 py-10">
-                <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                    <h1 className="text-2xl font-black text-slate-900 dark:text-white">Sueldo del usuario</h1>
-                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                        Esta pantalla solo aplica para usuarios cobradores.
-                    </p>
-                    <button
-                        type="button"
-                        onClick={handleBack}
-                        className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                    >
-                        <HiOutlineArrowLeft className="h-4 w-4" />
-                        Volver al usuario
-                    </button>
-                </div>
-            </div>
-        );
+    if (!id || !isCollector) {
+      setPayrollPreview(null); setPayrollHistory([]);
+      setSelectedPayrollWeekStart(""); setPayrollForm(buildPayrollFormState(null));
+      return;
     }
+    const loadPayroll = async () => {
+      setLoading(true);
+      try {
+        const [previewRes, historyRes] = await Promise.all([
+          fetchWeeklyPayrollPreview({ userId: id, ...(selectedPayrollWeekStart ? { weekStart: selectedPayrollWeekStart } : {}) }),
+          fetchWeeklyPayrollHistory({ userId: id, weeks: 10 }),
+        ]);
+        const nextPreview = previewRes?.data ?? null;
+        const nextHistory = Array.isArray(historyRes?.data?.data) ? historyRes.data.data : [];
+        setPayrollPreview(nextPreview); setPayrollHistory(nextHistory);
+        setPayrollForm(buildPayrollFormState(nextPreview));
+        if (!selectedPayrollWeekStart && nextPreview?.weekStart) setSelectedPayrollWeekStart(nextPreview.weekStart);
+      } catch { setPayrollPreview(null); setPayrollHistory([]); setPayrollForm(buildPayrollFormState(null)); }
+      finally { setLoading(false); }
+    };
+    loadPayroll();
+  }, [id, usuario?.role, selectedPayrollWeekStart]);
 
-    return (
-        <div className="mx-auto max-w-7xl px-4 py-6 space-y-8 sm:px-6 xl:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
-                        Usuarios
-                    </p>
-                    <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                        Sueldo y comision del cobrador
-                    </h1>
-                    <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-                        Registra cuánto se pagó en la semana, si hubo comisión y revisa el historial de liquidaciones de {usuario.name}.
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={handleBack}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:text-white"
-                >
-                    <HiOutlineArrowLeft className="h-4 w-4" />
-                    Volver al usuario
-                </button>
-            </div>
+  const payrollWeekOptions = useMemo(() => {
+    const seen = new Set();
+    const options = [];
+    const appendOption = (item) => {
+      if (!item?.weekStart || seen.has(item.weekStart)) return;
+      seen.add(item.weekStart);
+      options.push({ value: item.weekStart, label: `${formatDate(item.weekStart)} al ${formatDate(item.weekEnd)}` });
+    };
+    appendOption(payrollPreview);
+    payrollHistory.forEach(appendOption);
+    return options;
+  }, [payrollPreview, payrollHistory]);
 
-            <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-slate-950">
-                <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_42%),linear-gradient(135deg,_rgba(15,23,42,1),_rgba(30,41,59,0.96))] px-6 py-7 text-white sm:px-8 lg:px-10">
-                    <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0 space-y-4 xl:max-w-xl">
-                            <div>
-                                <h2 className="max-w-full break-words text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-[2.1rem]">
-                                    {usuario.name}
-                                </h2>
-                                <p className="mt-1 text-sm text-slate-300">{usuario.email}</p>
-                            </div>
+  const payrollSuggestedTotal = Number(payrollPreview?.weeklySalary || 0) + Number(payrollPreview?.totalCommission || 0);
+  const payrollRecordedTotal = Number(payrollForm.paidSalaryAmount || 0) + (payrollForm.commissionPaid ? Number(payrollForm.paidCommissionAmount || 0) : 0);
 
-                            <div className="flex flex-wrap gap-2">
-                                <HeaderPill label={`ID ${usuario.id?.slice?.(0, 8) || usuario.id}`} tone="slate" />
-                                <HeaderPill label={role === "EMPLOYEE" ? "COBRADOR" : role} tone="amber" />
-                                <HeaderPill label={usuario.salaryType || "N_A"} tone="blue" />
-                            </div>
-                        </div>
+  const handlePayrollFieldChange = (field, value) => setPayrollForm(prev => ({ ...prev, [field]: value }));
+  const handleCommissionToggle = () => setPayrollForm(prev => {
+    const nextCommissionPaid = !prev.commissionPaid;
+    return { ...prev, commissionPaid: nextCommissionPaid, paidCommissionAmount: nextCommissionPaid && !prev.paidCommissionAmount ? String(Number(payrollPreview?.totalCommission || 0)) : prev.paidCommissionAmount };
+  });
 
-                        <div className="grid w-full gap-3 sm:grid-cols-3 xl:max-w-[34rem]">
-                            <InfoStatCard label="Sueldo sugerido" value={formatCurrency(payrollPreview?.weeklySalary || 0)} tone="blue" />
-                            <InfoStatCard label="Comision sugerida" value={formatCurrency(payrollPreview?.totalCommission || 0)} tone="emerald" />
-                            <InfoStatCard label="Total sugerido" value={formatCurrency(payrollSuggestedTotal)} tone="amber" />
-                        </div>
-                    </div>
-                </div>
+  const handleSavePayroll = async () => {
+    if (!payrollPreview) return;
+    const paidSalaryAmount = Number(payrollForm.paidSalaryAmount);
+    const paidCommissionAmount = payrollForm.commissionPaid ? Number(payrollForm.paidCommissionAmount) : 0;
+    if (!Number.isFinite(paidSalaryAmount) || paidSalaryAmount < 0) { toast.error("Indicá un sueldo pagado válido."); return; }
+    if (payrollForm.commissionPaid && (!Number.isFinite(paidCommissionAmount) || paidCommissionAmount <= 0)) { toast.error("Indicá cuánto se pagó de comisión."); return; }
+    setSavingPayroll(true);
+    try {
+      await recordWeeklyPayrollPayment({ userId: id, weekStart: selectedPayrollWeekStart || payrollPreview.weekStart, paidSalaryAmount, commissionPaid: payrollForm.commissionPaid, paidCommissionAmount, notes: payrollForm.notes?.trim() || undefined });
+      const [previewRes, historyRes] = await Promise.all([
+        fetchWeeklyPayrollPreview({ userId: id, ...(selectedPayrollWeekStart || payrollPreview.weekStart ? { weekStart: selectedPayrollWeekStart || payrollPreview.weekStart } : {}) }),
+        fetchWeeklyPayrollHistory({ userId: id, weeks: 10 }),
+      ]);
+      const nextPreview = previewRes?.data ?? null;
+      setPayrollPreview(nextPreview);
+      setPayrollHistory(Array.isArray(historyRes?.data?.data) ? historyRes.data.data : []);
+      setPayrollForm(buildPayrollFormState(nextPreview));
+      toast.success("Pago registrado correctamente.");
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "No se pudo registrar el pago.");
+    } finally { setSavingPayroll(false); }
+  };
 
-                <div className="grid gap-6 px-6 py-6 sm:px-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.9fr)] lg:px-10 lg:py-8">
-                    <div className="space-y-5">
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-                                Liquidacion
-                            </p>
-                            <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                                Registrar pago semanal
-                            </h3>
-                        </div>
+  if (loading && !usuario) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: "80px", borderRadius: "16px" }} />)}
+    </div>
+  );
+  if (!usuario) return <div style={{ padding: "40px", textAlign: "center", color: "var(--ios-label-sec)" }}>Usuario no encontrado.</div>;
 
-                        <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                                        Semana a liquidar
-                                    </p>
-                                    <p className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">
-                                        {formatDate(payrollPreview?.weekStart)} al {formatDate(payrollPreview?.weekEnd)}
-                                    </p>
-                                </div>
-                                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${payrollPreview?.payment
-                                    ? "border-emerald-300/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-                                    : "border-amber-300/30 bg-amber-500/10 text-amber-700 dark:text-amber-200"
-                                    }`}>
-                                    {payrollPreview?.payment ? "Pago registrado" : "Pendiente de registrar"}
-                                </span>
-                            </div>
+  const role = (usuario.role || "").toUpperCase();
+  const isCollector = role === "COBRADOR" || role === "EMPLOYEE";
 
-                            <div className="mt-4">
-                                <SelectField
-                                    label="Semana"
-                                    value={selectedPayrollWeekStart || payrollPreview?.weekStart || ""}
-                                    onChange={setSelectedPayrollWeekStart}
-                                    options={payrollWeekOptions}
-                                />
-                            </div>
+  if (!isCollector) return (
+    <div className="ios-card" style={{ padding: "32px", textAlign: "center" }}>
+      <p style={{ fontSize: "16px", color: "var(--ios-label-sec)" }}>Esta pantalla solo aplica para usuarios cobradores.</p>
+      <button onClick={() => navigate(`/usuarios/${id}`)} style={{ marginTop: "16px", padding: "10px 20px", borderRadius: "12px", border: "none", background: "var(--ios-blue)", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>
+        Volver al usuario
+      </button>
+    </div>
+  );
 
-                            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                                <FormField
-                                    label="Sueldo pagado"
-                                    type="number"
-                                    value={payrollForm.paidSalaryAmount}
-                                    onChange={(value) => handlePayrollFieldChange("paidSalaryAmount", value)}
-                                />
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                                        Comision pagada
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={handleCommissionToggle}
-                                        className={`inline-flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-semibold transition ${payrollForm.commissionPaid
-                                            ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-                                            : "border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                                            }`}
-                                    >
-                                        <span>{payrollForm.commissionPaid ? "Si, se pago comision" : "No, no se pago comision"}</span>
-                                        <span>{payrollForm.commissionPaid ? "Si" : "No"}</span>
-                                    </button>
-                                </div>
-                                <FormField
-                                    label="Monto de comision pagada"
-                                    type="number"
-                                    value={payrollForm.paidCommissionAmount}
-                                    onChange={(value) => handlePayrollFieldChange("paidCommissionAmount", value)}
-                                    disabled={!payrollForm.commissionPaid}
-                                />
-                                <StaticField label="Total registrado" value={formatCurrency(payrollRecordedTotal)} />
-                            </div>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
 
-                            <div className="mt-4 grid gap-4">
-                                <TextAreaField
-                                    label="Notas del pago"
-                                    value={payrollForm.notes}
-                                    onChange={(value) => handlePayrollFieldChange("notes", value)}
-                                    placeholder="Ej: se liquido sueldo completo y comision por nuevos creditos"
-                                />
-                                <div className="flex justify-end">
-                                    <button
-                                        type="button"
-                                        onClick={handleSavePayroll}
-                                        disabled={savingPayroll}
-                                        className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-blue-500 bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        {savingPayroll ? "Guardando..." : "Registrar pago"}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                            Historial reciente
-                        </p>
-                        <div className="mt-4 space-y-3">
-                            {payrollHistory.length ? payrollHistory.map((item) => (
-                                <article key={item.payrollKey} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                            Semana {formatDate(item.weekStart)}
-                                        </p>
-                                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${item.payment
-                                            ? "border-emerald-300/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-                                            : "border-slate-300/30 bg-slate-500/10 text-slate-600 dark:text-slate-300"
-                                            }`}>
-                                            {item.payment ? "Pagado" : "Sin registrar"}
-                                        </span>
-                                    </div>
-                                    <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span>Sueldo</span>
-                                            <strong className="text-slate-900 dark:text-slate-100">{item.payment ? formatCurrency(item.payment.paidSalaryAmount) : "—"}</strong>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span>Comision</span>
-                                            <strong className="text-slate-900 dark:text-slate-100">{item.payment?.commissionPaid ? formatCurrency(item.payment.paidCommissionAmount) : "No pagada"}</strong>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span>Total</span>
-                                            <strong className="text-slate-900 dark:text-slate-100">{item.payment ? formatCurrency(item.payment.totalPaid) : "—"}</strong>
-                                        </div>
-                                    </div>
-                                    {item.payment?.notes ? (
-                                        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{item.payment.notes}</p>
-                                    ) : null}
-                                </article>
-                            )) : (
-                                <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
-                                    No hay pagos semanales registrados para este cobrador.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        <button onClick={() => navigate(`/usuarios/${id}`)}
+          style={{ width: "40px", height: "40px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg-card)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+          onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+          onMouseLeave={e => e.currentTarget.style.background = "var(--ios-bg-card)"}
+        >
+          <HiArrowLeft style={{ width: "18px", height: "18px", color: "var(--ios-blue)" }} />
+        </button>
+        <div>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.025em" }}>Sueldo y comisión</h1>
+          <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: "2px 0 0" }}>{usuario.name}</p>
         </div>
-    );
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
+        {[
+          { label: "Sueldo sugerido", value: formatCurrency(payrollPreview?.weeklySalary || 0), icon: HiCurrencyDollar, color: "#004299", bg: "#EBF3FF" },
+          { label: "Comisión sugerida", value: formatCurrency(payrollPreview?.totalCommission || 0), icon: HiTrendingUp, color: "#1A6B36", bg: "#E8F8ED" },
+          { label: "Total sugerido", value: formatCurrency(payrollSuggestedTotal), icon: HiCheckCircle, color: "#7C4A00", bg: "#FFF3E0" },
+        ].map(k => (
+          <div key={k.label} className="ios-card" style={{ padding: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+              <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: 0 }}>{k.label}</p>
+              <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: k.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <k.icon style={{ width: "16px", height: "16px", color: k.color }} />
+              </div>
+            </div>
+            <p style={{ fontSize: "20px", fontWeight: 800, color: "var(--ios-label)", margin: 0 }}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Formulario de pago */}
+      <div className="ios-card" style={{ padding: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+          <div>
+            <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 2px" }}>Liquidación</p>
+            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>Registrar pago semanal</h2>
+          </div>
+          <span style={{
+            padding: "5px 12px", borderRadius: "99px", fontSize: "12px", fontWeight: 700,
+            background: payrollPreview?.payment ? "#E8F8ED" : "#FFF3E0",
+            color: payrollPreview?.payment ? "#1A6B36" : "#7C4A00",
+          }}>
+            {payrollPreview?.payment ? "Pago registrado" : "Pendiente"}
+          </span>
+        </div>
+
+        <p style={{ fontSize: "13px", color: "var(--ios-label-sec)", margin: "0 0 14px" }}>
+          Semana: {formatDate(payrollPreview?.weekStart)} al {formatDate(payrollPreview?.weekEnd)}
+        </p>
+
+        {/* Selector semana */}
+        <div style={{ marginBottom: "14px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", display: "block", marginBottom: "6px" }}>Semana</label>
+          <select value={selectedPayrollWeekStart || payrollPreview?.weekStart || ""} onChange={e => setSelectedPayrollWeekStart(e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+            {payrollWeekOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+          {/* Sueldo */}
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", display: "block", marginBottom: "6px" }}>Sueldo pagado</label>
+            <input type="number" value={payrollForm.paidSalaryAmount} onChange={e => handlePayrollFieldChange("paidSalaryAmount", e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+          </div>
+          {/* Toggle comisión */}
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", display: "block", marginBottom: "6px" }}>Comisión pagada</label>
+            <button type="button" onClick={handleCommissionToggle} style={{
+              height: "44px", width: "100%", borderRadius: "12px", border: "1.5px solid",
+              borderColor: payrollForm.commissionPaid ? "#34C75940" : "var(--ios-sep-opaque)",
+              background: payrollForm.commissionPaid ? "#E8F8ED" : "var(--ios-fill)",
+              color: payrollForm.commissionPaid ? "#1A6B36" : "var(--ios-label-sec)",
+              fontSize: "14px", fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px",
+            }}>
+              <span>{payrollForm.commissionPaid ? "Sí, se pagó" : "No se pagó"}</span>
+              <span style={{ fontSize: "13px" }}>{payrollForm.commissionPaid ? "✓" : "—"}</span>
+            </button>
+          </div>
+          {/* Monto comisión */}
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: payrollForm.commissionPaid ? "var(--ios-label-sec)" : "var(--ios-label-ter)", display: "block", marginBottom: "6px" }}>Monto comisión pagada</label>
+            <input type="number" value={payrollForm.paidCommissionAmount} onChange={e => handlePayrollFieldChange("paidCommissionAmount", e.target.value)} disabled={!payrollForm.commissionPaid} style={{ ...inputStyle, opacity: payrollForm.commissionPaid ? 1 : 0.5 }} onFocus={onFocus} onBlur={onBlur} />
+          </div>
+          {/* Total */}
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", display: "block", marginBottom: "6px" }}>Total registrado</label>
+            <div style={{ height: "44px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg)", display: "flex", alignItems: "center", padding: "0 14px", fontSize: "15px", fontWeight: 700, color: "var(--ios-label)" }}>
+              {formatCurrency(payrollRecordedTotal)}
+            </div>
+          </div>
+        </div>
+
+        {/* Notas */}
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", display: "block", marginBottom: "6px" }}>Notas del pago</label>
+          <textarea value={payrollForm.notes} onChange={e => handlePayrollFieldChange("notes", e.target.value)} placeholder="Ej: se liquidó sueldo completo y comisión..." rows={3}
+            style={{ ...inputStyle, height: "auto", padding: "12px 14px", resize: "vertical" }} onFocus={onFocus} onBlur={onBlur}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button type="button" onClick={handleSavePayroll} disabled={savingPayroll}
+            style={{ padding: "12px 24px", borderRadius: "12px", border: "none", background: savingPayroll ? "#A8C8FF" : "var(--ios-blue)", color: "#fff", fontSize: "15px", fontWeight: 700, cursor: savingPayroll ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(0,122,255,0.3)" }}
+          >
+            {savingPayroll ? "Guardando..." : "Registrar pago"}
+          </button>
+        </div>
+      </div>
+
+      {/* Historial */}
+      <div className="ios-card" style={{ padding: "20px" }}>
+        <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 14px" }}>Historial de pagos</h2>
+        {payrollHistory.length === 0 ? (
+          <p style={{ textAlign: "center", padding: "24px", color: "var(--ios-label-ter)", fontSize: "14px" }}>No hay pagos semanales registrados para este cobrador.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {payrollHistory.map(item => (
+              <div key={item.payrollKey} style={{ borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", marginBottom: "10px" }}>
+                  <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--ios-label)", margin: 0 }}>Semana {formatDate(item.weekStart)}</p>
+                  <span style={{ padding: "4px 12px", borderRadius: "99px", fontSize: "12px", fontWeight: 700, background: item.payment ? "#E8F8ED" : "var(--ios-fill)", color: item.payment ? "#1A6B36" : "var(--ios-label-ter)" }}>
+                    {item.payment ? "Pagado" : "Sin registrar"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {[
+                    { l: "Sueldo", v: item.payment ? formatCurrency(item.payment.paidSalaryAmount) : "—" },
+                    { l: "Comisión", v: item.payment?.commissionPaid ? formatCurrency(item.payment.paidCommissionAmount) : "No pagada" },
+                    { l: "Total", v: item.payment ? formatCurrency(item.payment.totalPaid) : "—" },
+                  ].map(f => (
+                    <div key={f.l} style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: "13px", color: "var(--ios-label-sec)" }}>{f.l}</span>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--ios-label)" }}>{f.v}</span>
+                    </div>
+                  ))}
+                  {item.payment?.notes && <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: "4px 0 0" }}>{item.payment.notes}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function buildPayrollFormState(summary) {
-    const payment = summary?.payment;
-    return {
-        paidSalaryAmount: payment?.paidSalaryAmount != null ? String(payment.paidSalaryAmount) : String(Number(summary?.weeklySalary || 0)),
-        commissionPaid: Boolean(payment?.commissionPaid),
-        paidCommissionAmount: payment?.paidCommissionAmount != null ? String(payment.paidCommissionAmount) : String(Number(summary?.totalCommission || 0)),
-        notes: payment?.notes || ""
-    };
+  const payment = summary?.payment;
+  return {
+    paidSalaryAmount: payment?.paidSalaryAmount != null ? String(payment.paidSalaryAmount) : String(Number(summary?.weeklySalary || 0)),
+    commissionPaid: Boolean(payment?.commissionPaid),
+    paidCommissionAmount: payment?.paidCommissionAmount != null ? String(payment.paidCommissionAmount) : String(Number(summary?.totalCommission || 0)),
+    notes: payment?.notes || "",
+  };
 }
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat("es-AR", {
-        style: "currency",
-        currency: "ARS",
-        maximumFractionDigits: 0,
-    }).format(Number(value || 0));
-}
-
-function formatDate(value) {
-    if (!value) return "—";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return "—";
-    return parsed.toLocaleDateString("es-AR");
-}
-
-function HeaderPill({ label, tone = "slate" }) {
-    const toneClasses = {
-        slate: "border-white/15 bg-white/10 text-slate-100",
-        amber: "border-amber-300/25 bg-amber-400/15 text-amber-100",
-        blue: "border-blue-300/25 bg-blue-400/15 text-blue-100",
-    };
-
-    return (
-        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] ${toneClasses[tone] || toneClasses.slate}`}>
-            {label}
-        </span>
-    );
-}
-
-function InfoStatCard({ label, value, tone = "blue" }) {
-    const toneClasses = {
-        blue: "border-blue-400/30 bg-blue-500/10",
-        emerald: "border-emerald-400/30 bg-emerald-500/10",
-        amber: "border-amber-400/30 bg-amber-500/10",
-    };
-
-    return (
-        <div className={`rounded-[22px] border p-4 text-left shadow-[0_16px_35px_-32px_rgba(15,23,42,0.75)] ${toneClasses[tone] || toneClasses.blue}`}>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-300">{label}</div>
-            <div className="mt-3 text-xl font-black tracking-tight text-white sm:text-[1.9rem]">{value}</div>
-        </div>
-    );
-}
-
-function FormField({ label, value, onChange, type = "text", disabled = false }) {
-    return (
-        <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-600 dark:text-slate-300">{label}</label>
-            <input
-                type={type}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                disabled={disabled}
-                className="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            />
-        </div>
-    );
-}
-
-function SelectField({ label, value, onChange, options }) {
-    return (
-        <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-600 dark:text-slate-300">{label}</label>
-            <select
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                className="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 shadow-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            >
-                {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
-        </div>
-    );
-}
-
-function TextAreaField({ label, value, onChange, placeholder }) {
-    return (
-        <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-600 dark:text-slate-300">{label}</label>
-            <textarea
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                placeholder={placeholder}
-                rows={3}
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            />
-        </div>
-    );
-}
-
-function StaticField({ label, value }) {
-    return (
-        <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-600 dark:text-slate-300">{label}</label>
-            <div className="flex h-12 items-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-                {value}
-            </div>
-        </div>
-    );
-}
+function formatCurrency(value) { return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(Number(value || 0)); }
+function formatDate(value) { if (!value) return "—"; const d = new Date(value); return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("es-AR"); }

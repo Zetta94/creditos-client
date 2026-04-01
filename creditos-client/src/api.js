@@ -1,12 +1,6 @@
 import axios from "axios";
 
-const isLocalHost =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-
-const baseURL = isLocalHost
-    ? import.meta.env.VITE_API_URL || "http://localhost:3000/api"
-    : "/api";
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const api = axios.create({ baseURL });
 
 const isPublicAuthPath = (url = "") => {

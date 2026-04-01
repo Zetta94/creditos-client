@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";
 import { fetchAssignmentsEnriched } from "../services/assignmentsService";
+import { useSelector } from "react-redux";
 
 const CREDIT_TYPE_TO_FILTER = {
     DAILY: "diario",
@@ -45,6 +46,8 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const { user } = useSelector((state) => state.user);
+    const trayectoActivo = useSelector(state => state.trayecto.active);
 
     const formatCurrency = (value) => `$${Number(value || 0).toLocaleString("es-AR")}`;
 
@@ -168,6 +171,24 @@ export default function ClientesAsignadosCobrador({ cobradorId }) {
         } finally {
             setLoading(false);
         }
+    }
+
+    // Cartel si el trayecto no está activo
+    if (!trayectoActivo) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#08122f] via-[#0b1f55] to-[#112b6d] px-3 py-4">
+                <div className="ios-card p-6 max-w-md w-full text-center">
+                    <h2 className="text-lg font-bold mb-2 text-rose-600">Trayecto no iniciado</h2>
+                    <p className="text-base text-slate-700 mb-3">Debes iniciar tu trayecto desde el panel de inicio para ver los cobros del día.</p>
+                    <button
+                        className="mt-2 rounded-xl bg-blue-600 text-white px-5 py-2 font-semibold shadow hover:bg-blue-700 transition"
+                        onClick={() => window.location.href = '/cobrador/dashboard'}
+                    >
+                        Ir al panel de inicio
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (

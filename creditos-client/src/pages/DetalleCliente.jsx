@@ -1,414 +1,298 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { HiArrowLeft, HiPencilAlt } from "react-icons/hi";
 import { fetchClient } from "../services/clientsService";
 import { fetchCredits } from "../services/creditsService";
 import { fetchAssignments } from "../services/assignmentsService";
 
 const CREDIT_TYPE_LABELS = {
-    DAILY: "Diario",
-    WEEKLY: "Semanal",
-    QUINCENAL: "Quincenal",
-    MONTHLY: "Mensual",
-    ONE_TIME: "Unico",
+  DAILY: "Diario", WEEKLY: "Semanal", QUINCENAL: "Quincenal",
+  MONTHLY: "Mensual", ONE_TIME: "Único",
 };
 
-export default function ClienteDetalle() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [cliente, setCliente] = useState(null);
-    const [creditos, setCreditos] = useState([]);
-    const [assignmentsByCollector, setAssignmentsByCollector] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+const ESTADO_CONFIG = {
+  PENDING:  { label: "Pendiente", bg: "#FFF3E0", color: "#FF9500" },
+  PAID:     { label: "Pagado",    bg: "#E8F8ED", color: "#34C759" },
+  CANCELED: { label: "Cancelado",bg: "#EBF3FF", color: "#007AFF" },
+  OVERDUE:  { label: "Vencido",  bg: "#FFEBEA", color: "#FF3B30" },
+};
 
-    useEffect(() => {
-        let active = true;
-        async function loadData() {
-            setLoading(true);
-            setError(null);
-            try {
-                const [clienteRes, creditosRes, assignmentsRes] = await Promise.all([
-                    fetchClient(id),
-                    fetchCredits({ page: 1, pageSize: 200, clientId: id }),
-                    fetchAssignments({ page: 1, pageSize: 500 })
-                ]);
+const CONFIANZA_CONFIG = {
+  MUYALTA: { label: "Muy alta", bg: "#E8F8ED", color: "#34C759" },
+  ALTA:    { label: "Alta",     bg: "#E8F8ED", color: "#34C759" },
+  MEDIA:   { label: "Media",   bg: "#EBF3FF", color: "#007AFF" },
+  BAJA:    { label: "Baja",    bg: "#FFF3E0", color: "#FF9500" },
+  MOROSO:  { label: "Moroso",  bg: "#FFEBEA", color: "#FF3B30" },
+};
 
-                if (!active) return;
-
-                setCliente(clienteRes.data ?? null);
-                const contratos = Array.isArray(creditosRes.data?.data)
-                    ? creditosRes.data.data.filter((cr) => cr.clientId === id)
-                    : [];
-                setCreditos(contratos);
-
-                const assignments = Array.isArray(assignmentsRes.data?.data)
-                    ? assignmentsRes.data.data.filter((a) => a?.clienteId === id)
-                    : [];
-                const byCollector = assignments.reduce((acc, item) => {
-                    if (item?.cobradorId) acc[item.cobradorId] = item;
-                    return acc;
-                }, {});
-                setAssignmentsByCollector(byCollector);
-            } catch (err) {
-                console.error("No se pudo cargar el detalle de cliente", err);
-                if (!active) return;
-                setError("No se pudo cargar la información del cliente.");
-                setCliente(null);
-                setCreditos([]);
-                setAssignmentsByCollector({});
-            } finally {
-                if (active) setLoading(false);
-            }
-        }
-
-        loadData();
-        return () => {
-            active = false;
-        };
-    }, [id]);
-
-    const creditosOrdenados = useMemo(() => {
-        return [...creditos].sort((a, b) => {
-            const endB = new Date(b.createdAt || b.startDate || 0).getTime();
-            const endA = new Date(a.createdAt || a.startDate || 0).getTime();
-            return endB - endA;
-        });
-    }, [creditos]);
-
-    if (loading) {
-        return (
-            <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-gray-400">
-                Cargando cliente...
-            </div>
-        );
-    }
-
-    if (error || !cliente) {
-        return (
-            <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-                <p className="mb-4 text-red-400">{error || "Cliente no encontrado."}</p>
-                <button
-                    onClick={() => {
-                        if (window.history.length > 2) {
-                            navigate(-1);
-                        } else {
-                            navigate("/clientes");
-                        }
-                    }}
-                    className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600 text-white"
-                >
-                    Volver
-                </button>
-            </div>
-        );
-    }
-
-    const reliability = (cliente.reliability || "").toUpperCase();
-    const reliabilityLabel = reliability === "MUYALTA"
-        ? "Muy alta"
-        : reliability === "ALTA"
-            ? "Alta"
-            : reliability === "MOROSO" || reliability === "BAJA"
-                ? "Baja"
-                : "Media";
-    const status = (cliente.status || "ACTIVE").toUpperCase();
-    const statusLabel = status === "ACTIVE" ? "Activo" : "Inactivo";
-    const birthDateLabel = cliente.birthDate ? new Date(cliente.birthDate).toLocaleDateString("es-AR") : null;
-
-    const handleBack = () => {
-        if (window.history.length > 2) {
-            navigate(-1);
-        } else {
-            navigate("/clientes");
-        }
-    };
-
-    return (
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                    <h1 className="truncate text-xl font-bold sm:text-2xl">{cliente.name}</h1>
-                    <p className="text-sm text-gray-300">
-                        {cliente.phone}
-                        {cliente.alternatePhone && (
-                            <span> • Alt: {cliente.alternatePhone}</span>
-                        )}
-                        {" "}• DNI: {cliente.document}
-                    </p>
-                    <p className="text-sm text-gray-400 flex items-center gap-2">
-                        <span>Estado:</span>
-                        <StatusBadge status={status} label={statusLabel} />
-                    </p>
-                    {birthDateLabel && (
-                        <p className="text-sm text-gray-400">
-                            Fecha de nacimiento: {birthDateLabel}
-                        </p>
-                    )}
-                    <p className="text-sm text-gray-400">
-                        {cliente.address} - {cliente.city}, {cliente.province}
-                    </p>
-                    <p className="text-sm text-gray-400">
-                        Confianza:{" "}
-                        <span className="font-semibold capitalize">{reliabilityLabel}</span>
-                    </p>
-                </div>
-
-                <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-                    <button
-                        onClick={() => navigate(`/clientes/${cliente.id}/editar`)}
-                        className="w-full rounded-lg bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 sm:w-auto"
-                    >
-                        Editar cliente
-                    </button>
-                    <button
-                        onClick={handleBack}
-                        className="w-full rounded-lg bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 sm:w-auto"
-                    >
-                        Volver
-                    </button>
-                </div>
-            </div>
-
-            {/* Créditos */}
-            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-lg font-semibold">Créditos del cliente</h2>
-                    <button
-                        onClick={() => navigate("/creditos/nuevo")}
-                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-auto"
-                    >
-                        + Nuevo crédito
-                    </button>
-                </div>
-
-                {/* Lista MOBILE */}
-                <div className="grid gap-3 sm:hidden">
-                    {creditosOrdenados.length === 0 ? (
-                        <CardEmpty />
-                    ) : (
-                        creditosOrdenados.map((cr) => (
-                            <CreditoCard
-                                key={cr.id}
-                                cr={cr}
-                                assignmentsByCollector={assignmentsByCollector}
-                                onView={() => navigate(`/creditos/${cr.id}`)}
-                            />
-                        ))
-                    )}
-                </div>
-
-                {/* Tabla DESKTOP */}
-                <div className="hidden rounded-lg border border-gray-200 dark:border-gray-700 sm:block">
-                    <table className="w-full table-fixed text-left text-sm">
-                        <thead className="sticky top-0 z-10 bg-gray-50/80 text-gray-600 backdrop-blur dark:bg-gray-800/80 dark:text-gray-300">
-                            <tr>
-                                <th className="w-[16%] px-3 py-3 font-medium">Proximo cobro (ruta)</th>
-                                <th className="w-[14%] px-3 py-3 font-medium">Tipo</th>
-                                <th className="w-[16%] px-3 py-3 font-medium">Monto</th>
-                                <th className="w-[10%] px-3 py-3 font-medium">Cuotas</th>
-                                <th className="w-[20%] px-3 py-3 font-medium">Pagadas</th>
-                                <th className="w-[12%] px-3 py-3 font-medium">Estado</th>
-                                <th className="w-[12%] px-3 py-3 text-center font-medium">Accion</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {creditosOrdenados.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                        Sin créditos para este cliente.
-                                    </td>
-                                </tr>
-                            ) : (
-                                creditosOrdenados.map((cr) => (
-                                    (() => {
-                                        const totalInstallments = Number(cr.totalInstallments || 0);
-                                        const rawPaidInstallments = Number(cr.paidInstallments || 0);
-                                        const isPaidStatus = String(cr.status || "").toUpperCase() === "PAID";
-                                        const paidInstallmentsDisplay = isPaidStatus && totalInstallments > 0
-                                            ? totalInstallments
-                                            : rawPaidInstallments;
-                                        const progressValue = totalInstallments > 0
-                                            ? (paidInstallmentsDisplay / totalInstallments) * 100
-                                            : 0;
-                                        return (
-                                    <tr
-                                        key={cr.id}
-                                        className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-800/70"
-                                    >
-                                        <td className="px-3 py-3 align-middle">
-                                            <div className="flex flex-col">
-                                                <span>{formatNextVisitDate(cr, assignmentsByCollector)}</span>
-                                                <span className="text-[11px] text-gray-400">
-                                                    {formatNextInstallmentLabel(cr)}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-3 align-middle">
-                                            {CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "-"}
-                                        </td>
-                                        <td className="px-3 py-3 align-middle whitespace-nowrap">
-                                            ${formatCurrency(cr.amount)}
-                                        </td>
-                                        <td className="px-3 py-3 align-middle">
-                                            {Number(cr.totalInstallments || 0)}
-                                        </td>
-                                        <td className="px-3 py-3 align-middle">
-                                            <div className="flex items-center gap-2">
-                                                <span className="whitespace-nowrap text-xs lg:text-sm">
-                                                    {paidInstallmentsDisplay}/{totalInstallments}
-                                                </span>
-                                                <Progress value={progressValue} />
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-3 align-middle">
-                                            <EstadoPill estado={cr.status} />
-                                        </td>
-                                        <td className="px-3 py-3 text-center align-middle">
-                                            <button
-                                                onClick={() => navigate(`/creditos/${cr.id}`)}
-                                                className="rounded-md bg-sky-600 px-2.5 py-2 text-xs text-white hover:bg-sky-500 lg:px-3 lg:text-sm"
-                                            >
-                                                Ver
-                                            </button>
-                                        </td>
-                                    </tr>
-                                        );
-                                    })()
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-    );
-}
-
-/* ===== Subcomponentes UI ===== */
-
-function estadoClasses(estado) {
-    return {
-        PENDING:
-            "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800",
-        PAID:
-            "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
-        OVERDUE:
-            "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
-    }[estado];
-}
-
-function StatusBadge({ status, label }) {
-    const isActive = status === "ACTIVE";
-    const classes = isActive
-        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
-        : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
-
-    return (
-        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${classes}`}>
-            {label}
-        </span>
-    );
+function Pill({ bg, color, label }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "99px", background: bg, color, fontSize: "12px", fontWeight: 700, whiteSpace: "nowrap" }}>
+      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: color, flexShrink: 0 }} />
+      {label}
+    </span>
+  );
 }
 
 function EstadoPill({ estado }) {
-    const label =
-        estado === "PENDING"
-            ? "Pendiente"
-            : estado === "PAID"
-                ? "Pagado"
-                : "Vencido";
-    return (
-        <span
-            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${estadoClasses(
-                estado
-            )}`}
-        >
-            {label}
-        </span>
-    );
+  const cfg = ESTADO_CONFIG[estado] || ESTADO_CONFIG.PENDING;
+  return <Pill {...cfg} />;
 }
 
-const formatCurrency = (value) => Number(value || 0).toLocaleString("es-AR");
+function InfoRow({ label, value }) {
+  if (!value) return null;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
+      <span style={{ fontSize: "14px", color: "var(--ios-label-sec)", fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: "14px", color: "var(--ios-label)", fontWeight: 600, textAlign: "right", maxWidth: "55%" }}>{value}</span>
+    </div>
+  );
+}
+
+const formatCurrency = v => Number(v || 0).toLocaleString("es-AR");
 
 function Progress({ value }) {
-    return (
-        <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 lg:w-24">
-            <div
-                className="h-full bg-blue-600 transition-[width] duration-300 ease-out"
-                style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-            />
-        </div>
-    );
-}
-
-function CreditoCard({ cr, assignmentsByCollector, onView }) {
-    const amountLabel = formatCurrency(cr.amount);
-    const installments = Number(cr.totalInstallments || 0);
-    const rawPaid = Number(cr.paidInstallments || 0);
-    const paid = String(cr.status || "").toUpperCase() === "PAID" && installments > 0 ? installments : rawPaid;
-    const progress = installments > 0 ? (paid / installments) * 100 : 0;
-    const nextInstallmentDate = formatNextVisitDate(cr, assignmentsByCollector);
-    const nextInstallmentLabel = formatNextInstallmentLabel(cr);
-    const creditType = CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "-";
-    return (
-        <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="mb-2 flex items-start justify-between gap-2">
-                <div>
-                    <div className="text-sm font-semibold">Proximo cobro (ruta): {nextInstallmentDate}</div>
-                    <div className="text-xs text-gray-400">{nextInstallmentLabel}</div>
-                </div>
-                <EstadoPill estado={cr.status} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-gray-500">Tipo</div>
-                <div>{creditType}</div>
-                <div className="text-gray-500">Monto</div>
-                <div>${amountLabel}</div>
-                <div className="text-gray-500">Cuotas</div>
-                <div>{installments}</div>
-                <div className="text-gray-500">Pagadas</div>
-                <div className="flex items-center gap-2">
-                    {paid}/{installments}
-                    <Progress value={progress} />
-                </div>
-            </div>
-
-            <div className="mt-3">
-                <button
-                    onClick={onView}
-                    className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500"
-                >
-                    Ver crédito
-                </button>
-            </div>
-        </div>
-    );
-}
-
-function CardEmpty() {
-    return (
-        <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            Sin créditos para este cliente.
-        </div>
-    );
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <div style={{ height: "5px", width: "70px", background: "#E5E5EA", borderRadius: "99px", overflow: "hidden", flexShrink: 0 }}>
+      <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#34C759" : "#007AFF", borderRadius: "99px" }} />
+    </div>
+  );
 }
 
 function formatNextVisitDate(credit, assignmentsByCollector = {}) {
-    const collectorId = credit?.userId;
-    const assignment = collectorId ? assignmentsByCollector?.[collectorId] : null;
-    const nextVisitDate = assignment?.nextVisitDate ? new Date(assignment.nextVisitDate) : null;
-    if (!nextVisitDate || Number.isNaN(nextVisitDate.getTime())) return "-";
-    return nextVisitDate.toLocaleDateString("es-AR");
+  const assignment = credit?.userId ? assignmentsByCollector?.[credit.userId] : null;
+  const d = assignment?.nextVisitDate ? new Date(assignment.nextVisitDate) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("es-AR") : "—";
 }
 
 function formatNextInstallmentLabel(credit) {
-    const nextInstallment = Number(credit?.nextInstallmentToCharge || 0);
-    const totalInstallments = Number(credit?.totalInstallments || 0);
-    if (nextInstallment <= 0) return "Sin próxima cuota";
-    if (totalInstallments > 0) return `Cuota ${nextInstallment} de ${totalInstallments}`;
-    return `Cuota ${nextInstallment}`;
+  const n = Number(credit?.nextInstallmentToCharge || 0);
+  const total = Number(credit?.totalInstallments || 0);
+  if (n <= 0) return "Sin próxima cuota";
+  return total > 0 ? `Cuota ${n} de ${total}` : `Cuota ${n}`;
 }
 
+export default function ClienteDetalle() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [cliente, setCliente] = useState(null);
+  const [creditos, setCreditos] = useState([]);
+  const [assignmentsByCollector, setAssignmentsByCollector] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setLoading(true); setError(null);
+      try {
+        const [cliRes, crRes, asgRes] = await Promise.all([
+          fetchClient(id),
+          fetchCredits({ page: 1, pageSize: 200, clientId: id }),
+          fetchAssignments({ page: 1, pageSize: 500 }),
+        ]);
+        if (!active) return;
+        setCliente(cliRes.data ?? null);
+        const contratos = Array.isArray(crRes.data?.data) ? crRes.data.data.filter(c => c.clientId === id) : [];
+        setCreditos(contratos);
+        const asgArr = Array.isArray(asgRes.data?.data) ? asgRes.data.data.filter(a => a?.clienteId === id) : [];
+        setAssignmentsByCollector(asgArr.reduce((acc, a) => { if (a?.cobradorId) acc[a.cobradorId] = a; return acc; }, {}));
+      } catch { if (!active) return; setError("No se pudo cargar la información del cliente."); }
+      finally { if (active) setLoading(false); }
+    }
+    load();
+    return () => { active = false; };
+  }, [id]);
+
+  const creditosOrdenados = useMemo(() =>
+    [...creditos].sort((a, b) => new Date(b.createdAt || b.startDate || 0) - new Date(a.createdAt || a.startDate || 0)),
+    [creditos]
+  );
+
+  const handleBack = () => window.history.length > 2 ? navigate(-1) : navigate("/clientes");
+
+  if (loading) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: "120px", borderRadius: "16px" }} />)}
+    </div>
+  );
+
+  if (error || !cliente) return (
+    <div style={{ textAlign: "center", padding: "60px 20px" }}>
+      <p style={{ color: "var(--ios-red)", fontSize: "16px", marginBottom: "16px" }}>{error || "Cliente no encontrado."}</p>
+      <button onClick={handleBack} style={{ padding: "11px 22px", borderRadius: "12px", background: "var(--ios-fill)", border: "none", fontSize: "15px", fontWeight: 700, cursor: "pointer" }}>Volver</button>
+    </div>
+  );
+
+  const reliability = (cliente.reliability || "").toUpperCase();
+  const confianzaCfg = CONFIANZA_CONFIG[reliability] || CONFIANZA_CONFIG.MEDIA;
+  const status = (cliente.status || "ACTIVE").toUpperCase();
+  const isActive = status === "ACTIVE";
+  const birthDateLabel = cliente.birthDate ? new Date(cliente.birthDate).toLocaleDateString("es-AR") : null;
+  const initials = cliente.name?.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase() || "?";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <button
+          onClick={handleBack}
+          style={{ width: "40px", height: "40px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg-card)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+        >
+          <HiArrowLeft style={{ width: "18px", height: "18px", color: "var(--ios-label-sec)" }} />
+        </button>
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label-sec)", margin: 0 }}>Clientes</p>
+        <span style={{ color: "var(--ios-label-ter)" }}>›</span>
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label)", margin: 0 }}>{cliente.name}</p>
+        <div style={{ marginLeft: "auto" }}>
+          <button
+            onClick={() => navigate(`/clientes/${cliente.id}/editar`)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "10px 16px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg-card)", fontSize: "14px", fontWeight: 700, color: "var(--ios-blue)", cursor: "pointer", transition: "all 0.15s" }}
+          >
+            <HiPencilAlt style={{ width: "16px", height: "16px" }} /> Editar
+          </button>
+        </div>
+      </div>
+
+      {/* Hero card */}
+      <div className="ios-card" style={{ padding: 0, overflow: "hidden" }}>
+        {/* Banner azul */}
+        <div style={{ background: "linear-gradient(135deg, #007AFF, #32ADE6)", padding: "24px 20px 36px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
+            <div style={{ width: "64px", height: "64px", borderRadius: "18px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: 900, color: "#fff", flexShrink: 0, backdropFilter: "blur(8px)", border: "2px solid rgba(255,255,255,0.25)" }}>
+              {initials}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.02em" }}>{cliente.name}</h1>
+              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)", margin: "4px 0 0" }}>
+                {cliente.phone}{cliente.alternatePhone ? ` · Alt: ${cliente.alternatePhone}` : ""}
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                <Pill bg="rgba(255,255,255,0.18)" color="#fff" label={confianzaCfg.label} />
+                <Pill bg={isActive ? "rgba(52,199,89,0.25)" : "rgba(174,174,178,0.25)"} color="#fff" label={isActive ? "Activo" : "Inactivo"} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Info rows */}
+        <div style={{ marginTop: "-16px", background: "var(--ios-bg-card)", borderRadius: "16px 16px 0 0", paddingTop: "4px" }}>
+          <InfoRow label="DNI / Documento" value={cliente.document} />
+          <InfoRow label="Email" value={cliente.email} />
+          <InfoRow label="Dirección" value={[cliente.address, cliente.city, cliente.province].filter(Boolean).join(", ")} />
+          {birthDateLabel && <InfoRow label="Fecha de nacimiento" value={birthDateLabel} />}
+          {cliente.notes && <InfoRow label="Notas" value={cliente.notes} />}
+        </div>
+      </div>
+
+      {/* Créditos */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.02em" }}>
+            Créditos <span style={{ fontSize: "16px", fontWeight: 600, color: "var(--ios-label-ter)" }}>({creditosOrdenados.length})</span>
+          </h2>
+          <button
+            onClick={() => navigate("/creditos/nuevo")}
+            style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "9px 14px", borderRadius: "10px", border: "none", background: "var(--ios-blue)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 10px rgba(0,122,255,0.3)" }}
+          >
+            + Nuevo crédito
+          </button>
+        </div>
+
+        {/* Mobile */}
+        <div className="sm:hidden" style={{ flexDirection: "column", gap: "10px" }}>
+          {creditosOrdenados.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px", background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)", color: "var(--ios-label-ter)", fontSize: "14px" }}>
+              Sin créditos para este cliente.
+            </div>
+          ) : creditosOrdenados.map(cr => {
+            const total = Number(cr.totalInstallments || 0);
+            const rawPaid = Number(cr.paidInstallments || 0);
+            const paid = String(cr.status || "").toUpperCase() === "PAID" && total > 0 ? total : rawPaid;
+            const progress = total > 0 ? (paid / total) * 100 : 0;
+            return (
+              <div key={cr.id} className="ios-card" style={{ padding: "16px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "12px" }}>
+                  <div>
+                    <p style={{ fontSize: "13px", fontWeight: 700, color: "var(--ios-label-ter)", margin: "0 0 3px" }}>{CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "—"}</p>
+                    <p style={{ fontSize: "18px", fontWeight: 800, color: "var(--ios-label)", margin: 0 }}>${formatCurrency(cr.amount)}</p>
+                  </div>
+                  <EstadoPill estado={(cr.status || "").toUpperCase()} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--ios-label-sec)" }}>{paid}/{total} cuotas</span>
+                  <Progress value={progress} />
+                </div>
+                <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: "0 0 12px" }}>
+                  {formatNextInstallmentLabel(cr)} · Ruta: {formatNextVisitDate(cr, assignmentsByCollector)}
+                </p>
+                <button
+                  onClick={() => navigate(`/creditos/${cr.id}`)}
+                  style={{ width: "100%", padding: "11px", borderRadius: "12px", border: "none", background: "#EBF3FF", color: "#007AFF", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
+                >
+                  Ver crédito
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop */}
+        <div className="hidden sm:block" style={{ background: "var(--ios-bg-card)", borderRadius: "16px", boxShadow: "var(--ios-shadow-sm)", overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["Próximo cobro", "Tipo", "Monto", "Cuotas", "Progreso", "Estado", "Acción"].map((h, i) => (
+                  <th key={h} style={{ padding: "11px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: i === 6 ? "right" : "left" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {creditosOrdenados.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: "48px", textAlign: "center", color: "var(--ios-label-ter)", fontSize: "14px" }}>Sin créditos para este cliente.</td></tr>
+              ) : creditosOrdenados.map(cr => {
+                const total = Number(cr.totalInstallments || 0);
+                const rawPaid = Number(cr.paidInstallments || 0);
+                const paid = String(cr.status || "").toUpperCase() === "PAID" && total > 0 ? total : rawPaid;
+                const progress = total > 0 ? (paid / total) * 100 : 0;
+                return (
+                  <tr key={cr.id} style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <td style={{ padding: "12px 14px", textAlign: "left" }}>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label)" }}>{formatNextVisitDate(cr, assignmentsByCollector)}</div>
+                      <div style={{ fontSize: "11px", color: "var(--ios-label-ter)", marginTop: "2px" }}>{formatNextInstallmentLabel(cr)}</div>
+                    </td>
+                    <td style={{ padding: "12px 14px", textAlign: "left", fontSize: "14px", color: "var(--ios-label-sec)" }}>{CREDIT_TYPE_LABELS[String(cr.type || "").toUpperCase()] || "—"}</td>
+                    <td style={{ padding: "12px 14px", textAlign: "left", fontSize: "14px", fontWeight: 700, color: "var(--ios-label)" }}>${formatCurrency(cr.amount)}</td>
+                    <td style={{ padding: "12px 14px", textAlign: "left", fontSize: "14px", color: "var(--ios-label-sec)" }}>{total}</td>
+                    <td style={{ padding: "12px 14px", textAlign: "left" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--ios-label-sec)" }}>{paid}/{total}</span>
+                        <Progress value={progress} />
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 14px", textAlign: "left" }}><EstadoPill estado={(cr.status || "").toUpperCase()} /></td>
+                    <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                      <button
+                        onClick={() => navigate(`/creditos/${cr.id}`)}
+                        style={{ padding: "7px 14px", borderRadius: "8px", border: "none", background: "#EBF3FF", color: "#007AFF", fontSize: "13px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#C8E0FF"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "#EBF3FF"; e.currentTarget.style.transform = "translateY(0)"; }}
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

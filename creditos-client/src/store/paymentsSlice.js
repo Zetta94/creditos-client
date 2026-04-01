@@ -48,7 +48,9 @@ const slice = createSlice({
       })
       .addCase(loadPayments.rejected, (s, a) => { s.loading = false; s.error = a.error.message; })
       .addCase(loadPayment.fulfilled, (s, a) => { s.current = a.payload; })
+      .addCase(addPayment.pending, s => { s.loading = true; s.error = null; })
       .addCase(addPayment.fulfilled, (s, a) => {
+        s.loading = false;
         s.list.unshift(a.payload);
         const totalItems = s.meta.totalItems + 1;
         const pageSize = s.meta.pageSize || emptyMeta.pageSize;
@@ -58,6 +60,7 @@ const slice = createSlice({
           totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
         };
       })
+      .addCase(addPayment.rejected, (s, a) => { s.loading = false; s.error = a.error.message; })
       .addCase(savePayment.fulfilled, (s, a) => {
         const idx = s.list.findIndex(p => p.id === a.payload.id);
         if (idx !== -1) s.list[idx] = a.payload;

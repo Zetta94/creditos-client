@@ -3,87 +3,104 @@ import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export default function Pagination({
-    page = 1,
-    pageSize = 10,
-    totalItems = 0,
-    totalPages = 1,
-    onPageChange,
-    onPageSizeChange,
-    pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS
+  page = 1,
+  pageSize = 10,
+  totalItems = 0,
+  totalPages = 1,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
 }) {
-    const safePage = Math.max(1, Math.min(page || 1, totalPages || 1));
-    const startItem = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
-    const endItem = totalItems === 0 ? 0 : Math.min(totalItems, safePage * pageSize);
+  const safePage = Math.max(1, Math.min(page || 1, totalPages || 1));
+  const startItem = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const endItem = totalItems === 0 ? 0 : Math.min(totalItems, safePage * pageSize);
 
-    const handlePrev = () => {
-        if (safePage > 1 && onPageChange) {
-            onPageChange(safePage - 1);
-        }
-    };
+  const handlePrev = () => { if (safePage > 1 && onPageChange) onPageChange(safePage - 1); };
+  const handleNext = () => { if (safePage < totalPages && onPageChange) onPageChange(safePage + 1); };
+  const handlePageSizeChange = (evt) => {
+    if (onPageSizeChange) onPageSizeChange(Number(evt.target.value) || pageSize);
+  };
 
-    const handleNext = () => {
-        if (safePage < totalPages && onPageChange) {
-            onPageChange(safePage + 1);
-        }
-    };
+  const navBtnStyle = (disabled) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    padding: "8px 14px",
+    borderRadius: "10px",
+    border: "1.5px solid var(--ios-sep-opaque)",
+    background: "var(--ios-bg-card)",
+    fontSize: "14px",
+    fontWeight: 600,
+    color: disabled ? "var(--ios-label-quat)" : "var(--ios-blue)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.5 : 1,
+    transition: "all 0.15s",
+    minHeight: "40px",
+  });
 
-    const handlePageSizeChange = (evt) => {
-        if (onPageSizeChange) {
-            const nextSize = Number(evt.target.value) || pageSize;
-            onPageSizeChange(nextSize);
-        }
-    };
+  return (
+    <div style={{
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "12px",
+      padding: "12px 16px",
+      background: "var(--ios-bg-card)",
+      borderRadius: "16px",
+      boxShadow: "var(--ios-shadow-sm)",
+    }}>
+      {/* Texto de rango */}
+      <span style={{ fontSize: "13px", color: "var(--ios-label-sec)", fontWeight: 500 }}>
+        {startItem}–{endItem} de {totalItems}
+      </span>
 
-    return (
-        <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/20 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-slate-300">
-                Mostrando {startItem}-{endItem} de {totalItems} registros
-            </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        {/* Filas por página */}
+        {onPageSizeChange && (
+          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--ios-label-sec)", fontWeight: 500 }}>
+            Filas
+            <select
+              value={pageSize}
+              onChange={handlePageSizeChange}
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "10px",
+                border: "1.5px solid var(--ios-sep-opaque)",
+                background: "var(--ios-fill)",
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "var(--ios-label)",
+                outline: "none",
+                cursor: "pointer",
+              }}
+            >
+              {pageSizeOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-                {onPageSizeChange && (
-                    <label className="flex items-center justify-between gap-2 text-sm text-slate-300 sm:justify-start">
-                        Filas por página
-                        <select
-                            value={pageSize}
-                            onChange={handlePageSizeChange}
-                            className="h-10 rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300/20"
-                        >
-                            {pageSizeOptions.map((option) => (
-                                <option key={option} value={option}>
-                                    {option}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                )}
+        {/* Navegación */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button type="button" onClick={handlePrev} disabled={safePage <= 1} style={navBtnStyle(safePage <= 1)}>
+            <HiChevronLeft style={{ width: "16px", height: "16px" }} />
+            <span className="hidden sm:inline">Anterior</span>
+          </button>
 
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:items-center">
-                    <button
-                        type="button"
-                        onClick={handlePrev}
-                        disabled={safePage <= 1}
-                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        <HiChevronLeft className="h-4 w-4" />
-                        <span className="hidden sm:inline">Anterior</span>
-                    </button>
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--ios-label-sec)", minWidth: "80px", textAlign: "center" }}>
+            {safePage} / {totalPages || 1}
+          </span>
 
-                    <span className="min-w-[110px] text-center text-sm text-slate-300">
-                        Página {safePage} de {totalPages || 1}
-                    </span>
-
-                    <button
-                        type="button"
-                        onClick={handleNext}
-                        disabled={safePage >= totalPages}
-                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        <span className="hidden sm:inline">Siguiente</span>
-                        <HiChevronRight className="h-4 w-4" />
-                    </button>
-                </div>
-            </div>
+          <button type="button" onClick={handleNext} disabled={safePage >= totalPages} style={navBtnStyle(safePage >= totalPages)}>
+            <span className="hidden sm:inline">Siguiente</span>
+            <HiChevronRight style={{ width: "16px", height: "16px" }} />
+          </button>
         </div>
-    );
+      </div>
+    </div>
+  );
 }

@@ -137,14 +137,14 @@ const createTempId = () =>
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random()}`;
 
-const FIELD_INPUT_CLASS = "h-11 w-full rounded-xl border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-blue-900/40";
-const FIELD_LABEL_CLASS = "text-sm font-semibold text-gray-700 dark:text-gray-200";
-const SOFT_SECTION_CLASS = "rounded-2xl border border-slate-200 bg-slate-50/70 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/35";
+const FIELD_INPUT_CLASS = "h-11 w-full rounded-xl border border-[var(--ios-sep-opaque)] bg-[var(--ios-fill)] px-3 text-sm text-[var(--ios-label)] outline-none transition focus:border-[var(--ios-blue)] focus:ring-2 focus:ring-blue-100";
+const FIELD_LABEL_CLASS = "text-xs font-semibold text-[var(--ios-label-sec)]";
+const SOFT_SECTION_CLASS = "rounded-2xl border border-[var(--ios-sep-opaque)] bg-white/80 p-5";
 
 const getChoiceButtonClass = (isActive) =>
     `inline-flex h-11 w-full items-center justify-center rounded-xl border px-4 py-2 text-xs font-semibold text-center transition ${isActive
-        ? "border-blue-500 bg-blue-600 text-white shadow-sm dark:border-blue-400"
-        : "border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-blue-500 dark:hover:text-blue-200"}`;
+        ? "border-blue-500 bg-blue-600 text-white shadow-sm"
+        : "border-[var(--ios-sep-opaque)] bg-[var(--ios-fill)] text-[var(--ios-label-sec)] hover:border-blue-400 hover:text-blue-600"}`;
 
 function HelpHint({ text }) {
     if (!text) return null;
@@ -1065,39 +1065,36 @@ export default function CreditoNuevo() {
     };
 
     return (
-        <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-            <div className="space-y-3">
-                <h1 className="text-xl font-bold sm:text-2xl">Nuevo crédito</h1>
-                <p className="max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-                    Completá el crédito paso a paso. El resumen final aparece recién al terminar la carga.
-                </p>
+        <div className="max-w-4xl mx-auto p-4 flex flex-col gap-5 animate-fade-in">
+            {/* ── HEADER ── */}
+            <div>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-[var(--ios-label)] tracking-tight m-0">Nuevo crédito</h1>
+                <p className="text-sm text-[var(--ios-label-ter)] mt-1 mb-0">Completá el crédito paso a paso. El resumen aparece al finalizar.</p>
             </div>
 
-            <form
-                onSubmit={handleSubmit}
-                className="grid grid-cols-1 gap-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-                <div className="flex flex-col gap-6">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_260px] gap-5 items-start">
+
+                {/* ════════ MAIN COLUMN ════════ */}
+                <div className="flex flex-col gap-4">
+
+                    {/* ──────── STEP 1: CLIENTE ──────── */}
                     {currentStep === 1 && (
-                        <section className="order-1 rounded-xl border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">1. Datos del cliente</h2>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Buscá por nombre, documento o teléfono.</p>
-                            </div>
-                            <div className="mt-4 space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            value={clientSearch}
-                                            onChange={(event) => setClientSearch(event.target.value)}
-                                            placeholder="Buscar por nombre, teléfono o DNI"
-                                            className="h-11 w-full rounded-lg border border-gray-300/80 bg-white px-3 text-sm text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                        <div style={{ background: "#fff", borderRadius: "20px", border: "1.5px solid var(--ios-sep-opaque)", padding: "22px" }}>
+                            <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 4px" }}>Paso 1</p>
+                            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 4px" }}>Seleccionar cliente</h2>
+                            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>Buscá por nombre, documento o teléfono.</p>
+
+                            <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                                <div>
+                                    <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Cliente</label>
+                                    <div style={{ position: "relative" }}>
+                                        <input type="text" value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Buscar por nombre, teléfono o DNI"
+                                            style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s" }}
+                                            onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; }}
+                                            onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; }} />
                                         {form.clienteId && (
-                                            <button
-                                                type="button"
-                                                onClick={clearClientSelection}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-transparent bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                                            <button type="button" onClick={clearClientSelection}
+                                                style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", padding: "4px 10px", borderRadius: "8px", border: "none", background: "var(--ios-sep-opaque)", color: "var(--ios-label-sec)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
                                                 Limpiar
                                             </button>
                                         )}
@@ -1105,731 +1102,443 @@ export default function CreditoNuevo() {
                                 </div>
 
                                 {shouldShowClientResults && (
-                                    <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-950">
+                                    <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", overflow: "hidden", maxHeight: "220px", overflowY: "auto" }}>
                                         {isLoadingClients ? (
-                                            <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">Buscando clientes...</p>
+                                            <p style={{ padding: "14px 16px", fontSize: "14px", color: "var(--ios-label-ter)" }}>Buscando clientes...</p>
                                         ) : clientsError ? (
-                                            <p className="px-4 py-3 text-sm text-red-600 dark:text-red-300">{clientsError}</p>
+                                            <p style={{ padding: "14px 16px", fontSize: "14px", color: "#FF3B30" }}>{clientsError}</p>
                                         ) : filteredClients.length ? (
-                                            filteredClients.map((client) => {
-                                                const isSelected = client.id === form.clienteId;
+                                            filteredClients.map(client => {
                                                 const isActive = isClientActive(client);
                                                 return (
-                                                    <button
-                                                        key={client.id}
-                                                        type="button"
-                                                        onClick={() => handleClientSelect(client)}
-                                                        className={`flex w-full flex-col gap-1 border-b px-4 py-3 text-left text-sm transition last:border-b-0 dark:border-gray-800 ${isSelected
-                                                            ? "bg-blue-50 text-blue-800 shadow-inner dark:bg-blue-900/40 dark:text-blue-200"
-                                                            : "hover:bg-blue-50/60 dark:text-gray-100 dark:hover:bg-blue-900/20"
-                                                            } ${isActive ? "" : "cursor-not-allowed opacity-60"}`}>
-                                                        <span className="font-medium">{client.name || "Sin nombre"}</span>
-                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                            DNI: {client.document || "—"} • Tel: {client.phone || client.alternatePhone || "—"}
-                                                        </span>
-                                                        <span className={`text-[11px] font-semibold ${isActive ? "text-emerald-600" : "text-red-500"}`}>
-                                                            {isActive ? "Activo" : "Inactivo"}
-                                                        </span>
+                                                    <button key={client.id} type="button" onClick={() => handleClientSelect(client)}
+                                                        style={{ width: "100%", display: "flex", flexDirection: "column", gap: "2px", textAlign: "left", padding: "12px 16px", borderBottom: "1px solid var(--ios-sep-opaque)", background: client.id === form.clienteId ? "#EBF3FF" : "transparent", cursor: isActive ? "pointer" : "not-allowed", opacity: isActive ? 1 : 0.55, border: "none" }}>
+                                                        <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--ios-label)" }}>{client.name || "Sin nombre"}</span>
+                                                        <span style={{ fontSize: "12px", color: "var(--ios-label-ter)" }}>DNI: {client.document || "—"} · Tel: {client.phone || client.alternatePhone || "—"}</span>
+                                                        <span style={{ fontSize: "11px", fontWeight: 700, color: isActive ? "#1A6B36" : "#FF3B30" }}>{isActive ? "Activo" : "Inactivo"}</span>
                                                     </button>
                                                 );
                                             })
                                         ) : (
-                                            <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                                                {clientSearch.trim() ? "No se encontraron clientes con ese criterio" : "Aún no hay clientes para mostrar"}
+                                            <p style={{ padding: "14px 16px", fontSize: "14px", color: "var(--ios-label-ter)" }}>
+                                                {clientSearch.trim() ? "No se encontraron clientes" : "Escribí para buscar"}
                                             </p>
                                         )}
                                     </div>
                                 )}
 
                                 {selectedClient && (
-                                    <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-900/30 dark:text-blue-200">
-                                        Seleccionado: <span className="font-semibold">{selectedClient.name}</span>
+                                    <div style={{ borderRadius: "12px", background: "#EBF3FF", border: "1.5px solid #A8C8FF", padding: "12px 14px" }}>
+                                        <p style={{ fontSize: "13px", color: "var(--ios-blue)", margin: 0 }}>Seleccionado: <strong>{selectedClient.name}</strong></p>
                                     </div>
                                 )}
 
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/clientes/nuevo")}
-                                    className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-300">
-                                    <span className="text-base">＋</span> Crear nuevo cliente
+                                <button type="button" onClick={() => navigate("/clientes/nuevo")}
+                                    style={{ alignSelf: "flex-start", background: "none", border: "none", color: "var(--ios-blue)", fontSize: "14px", fontWeight: 600, cursor: "pointer", padding: 0 }}>
+                                    ＋ Crear nuevo cliente
                                 </button>
 
-                                <div className="flex justify-end border-t border-gray-200 pt-4 dark:border-gray-700">
-                                    <button
-                                        type="button"
-                                        onClick={handleNextStep}
-                                        className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                        Continuar con la configuración
+                                <div style={{ borderTop: "1px solid var(--ios-sep-opaque)", paddingTop: "16px", display: "flex", justifyContent: "flex-end" }}>
+                                    <button type="button" onClick={handleNextStep}
+                                        style={{ padding: "12px 22px", borderRadius: "12px", border: "none", background: "var(--ios-blue)", color: "#fff", fontSize: "15px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,122,255,0.25)" }}>
+                                        Continuar →
                                     </button>
                                 </div>
                             </div>
-                        </section>
+                        </div>
                     )}
 
+                    {/* ──────── STEP 2: CONFIGURACIÓN ──────── */}
                     {currentStep === 2 && (
-                        <section className="order-2 rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                <div className="space-y-1">
-                                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">2. Configuración del crédito</h2>
-                                    <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">Definí cómo se cobra, cargá las fechas principales y completá los importes sin repetir datos que vas a revisar al final.</p>
-                                </div>
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
-                                    Completá este paso para habilitar el resumen final.
-                                </div>
-                            </div>
+                        <div style={{ background: "#fff", borderRadius: "20px", border: "1.5px solid var(--ios-sep-opaque)", padding: "22px" }}>
+                            <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 4px" }}>Paso 2</p>
+                            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 4px" }}>Configuración del crédito</h2>
+                            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>Definí plan, fechas, cuotas e importes.</p>
 
-                            <div className="mt-5 space-y-5">
-                                <div className={SOFT_SECTION_CLASS}>
-                                    <div className="space-y-4">
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Modo de carga</p>
-                                            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">¿Este crédito es nuevo o ya venía en curso?</h3>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">Primero elegí cómo cargarlo y después el tipo de cobro.</p>
-                                        </div>
+                            <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "14px" }}>
 
-                                        <div className="space-y-4">
-                                            <div className="space-y-3 rounded-xl border border-slate-200/80 bg-white/80 p-4 dark:border-slate-700/70 dark:bg-slate-900/60">
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">Seleccioná la base del crédito.</p>
-                                                <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setCreditMode("NEW")}
-                                                        className={getChoiceButtonClass(creditMode === "NEW")}>
-                                                        Nuevo credito
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setCreditMode("EXISTING")}
-                                                        className={getChoiceButtonClass(creditMode === "EXISTING")}>
-                                                        Credito existente
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-3 rounded-xl border border-slate-200/80 bg-white/80 p-4 dark:border-slate-700/70 dark:bg-slate-900/60">
-                                                <div className="space-y-2">
-                                                    <FieldLabel label="Plan o tipo" help="Elegí cómo se van a espaciar las cuotas. Si es una sola cuota, usá pago único." />
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">Esto define la frecuencia de cobro y cómo se calcula el vencimiento final.</p>
-                                                </div>
-                                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                                    {PLAN_OPTIONS.map((option) => (
-                                                        <button
-                                                            key={option.value}
-                                                            type="button"
-                                                            onClick={() => setForm((prev) => ({ ...prev, plan: option.value }))}
-                                                            className={getChoiceButtonClass(form.plan === option.value)}>
-                                                            {option.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-                                    <div className={SOFT_SECTION_CLASS}>
-                                        <div className="mb-4 flex items-center justify-between gap-3">
-                                            <div>
-                                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Calendario</p>
-                                                <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">Fechas del crédito</h3>
-                                            </div>
-                                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
-                                                {isSinglePayment ? "Un pago" : "Cobro recurrente"}
-                                            </span>
-                                        </div>
-
-                                        <div className={`grid items-start gap-4 ${isSinglePayment ? "md:grid-cols-1" : "md:grid-cols-2"}`}>
-                                            <div className="grid content-start gap-2">
-                                                <FieldLabel label={primaryDateLabel} help={primaryDateHelp} />
-                                                <input
-                                                    name="startDate"
-                                                    type="date"
-                                                    value={form.startDate}
-                                                    onChange={handleChange}
-                                                    min={isNewCredit ? todayIso : undefined}
-                                                    className={FIELD_INPUT_CLASS} />
-                                            </div>
-
-                                            {!isSinglePayment && (
-                                                <div className="grid content-start gap-2">
-                                                    <FieldLabel label="Fecha de primer pago" help="Desde esta fecha se calcula la primera cuota y también el cobro final estimado." />
-                                                    <input
-                                                        name="firstPaymentDate"
-                                                        type="date"
-                                                        value={form.firstPaymentDate}
-                                                        onChange={handleChange}
-                                                        min={isNewCredit ? todayIso : undefined}
-                                                        className={FIELD_INPUT_CLASS} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className={SOFT_SECTION_CLASS}>
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Grupo especial</h3>
-                                                    <HelpHint text="Sirve para agrupar este crédito con otros créditos y gastos bajo una misma categoría especial." />
-                                                </div>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">Usalo solo cuando este crédito deba quedar agrupado dentro de una categoría especial.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={handleToggleSpecialCredit}
-                                                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${isSpecialCredit
-                                                    ? "bg-blue-600 text-white shadow-sm"
-                                                    : "border border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-blue-500 dark:hover:text-blue-200"}`}>
-                                                {isSpecialCredit ? "Desactivar" : "Activar"}
+                                {/* Modo */}
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                    <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 10px" }}>¿El crédito es nuevo o ya estaba en curso?</p>
+                                    <div style={{ display: "flex", gap: "10px" }}>
+                                        {[["NEW", "Crédito nuevo"], ["EXISTING", "Crédito existente"]].map(([val, lbl]) => (
+                                            <button key={val} type="button" onClick={() => setCreditMode(val)}
+                                                style={{ flex: 1, height: "44px", borderRadius: "12px", border: `1.5px solid ${creditMode === val ? "var(--ios-blue)" : "var(--ios-sep-opaque)"}`, background: creditMode === val ? "#EBF3FF" : "#fff", color: creditMode === val ? "var(--ios-blue)" : "var(--ios-label-sec)", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>
+                                                {lbl}
                                             </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Plan */}
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                    <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 10px" }}>Tipo de cobro</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px" }}>
+                                        {PLAN_OPTIONS.map(opt => (
+                                            <button key={opt.value} type="button" onClick={() => setForm(prev => ({ ...prev, plan: opt.value }))}
+                                                style={{ height: "44px", borderRadius: "12px", border: `1.5px solid ${form.plan === opt.value ? "var(--ios-blue)" : "var(--ios-sep-opaque)"}`, background: form.plan === opt.value ? "#EBF3FF" : "#fff", color: form.plan === opt.value ? "var(--ios-blue)" : "var(--ios-label-sec)", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Fechas */}
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                    <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 12px" }}>Fechas del crédito</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: isSinglePayment ? "1fr" : "1fr 1fr", gap: "12px" }}>
+                                        <div>
+                                            <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>{primaryDateLabel}</label>
+                                            <input name="startDate" type="date" value={form.startDate} onChange={handleChange} min={isNewCredit ? todayIso : undefined}
+                                                style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
                                         </div>
-
-                                        {isSpecialCredit && (
-                                            <div className="mt-4 space-y-3">
-                                                <div className="grid gap-2">
-                                                    <FieldLabel label="Seleccioná o creá un grupo especial" help="Podés buscar un grupo existente o crear uno nuevo desde este mismo paso." />
-                                                    <div className="relative">
-                                                        <input
-                                                            type="text"
-                                                            value={creditSpecialSearch}
-                                                            onChange={(event) => setCreditSpecialSearch(event.target.value)}
-                                                            placeholder="Buscar por nombre"
-                                                            className={FIELD_INPUT_CLASS} />
-                                                        {selectedCreditSpecial && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleClearCreditSpecial}
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-transparent bg-blue-100 px-3 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-900/60">
-                                                                Quitar
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {selectedCreditSpecial && (
-                                                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                                                            Seleccionado: {selectedCreditSpecial.name}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                {!selectedCreditSpecial && (
-                                                    <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white/90 shadow-sm dark:border-slate-700 dark:bg-slate-950/80">
-                                                        {isLoadingCreditSpecials ? (
-                                                            <p className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">Buscando grupos especiales...</p>
-                                                        ) : creditSpecialError ? (
-                                                            <p className="px-4 py-3 text-sm text-red-600 dark:text-red-300">{creditSpecialError}</p>
-                                                        ) : creditSpecialOptions.length ? (
-                                                            creditSpecialOptions.map((item) => (
-                                                                <button
-                                                                    key={item.id}
-                                                                    type="button"
-                                                                    onClick={() => handleSelectCreditSpecial(item)}
-                                                                    className="flex w-full items-center justify-between border-b border-slate-100 px-4 py-2 text-left text-sm transition last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-100 dark:hover:bg-slate-900/80">
-                                                                    <span className="font-medium">{item.name}</span>
-                                                                    {typeof item?._count?.credits === "number" && (
-                                                                        <span className="text-xs text-slate-500 dark:text-slate-400">{item._count.credits} créditos</span>
-                                                                    )}
-                                                                </button>
-                                                            ))
-                                                        ) : creditSpecialSearch.trim() ? (
-                                                            <p className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                                                                No encontramos resultados. Podés crear "{creditSpecialSearch.trim()}".
-                                                            </p>
-                                                        ) : (
-                                                            <p className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                                                                Empezá a escribir para buscar entre los grupos especiales.
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                <div className="flex justify-end">
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleCreateCreditSpecial}
-                                                        disabled={isCreatingCreditSpecial || !creditSpecialSearch.trim()}
-                                                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60">
-                                                        {isCreatingCreditSpecial ? "Creando..." : "Crear grupo especial"}
-                                                    </button>
-                                                </div>
+                                        {!isSinglePayment && (
+                                            <div>
+                                                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Fecha de primer pago</label>
+                                                <input name="firstPaymentDate" type="date" value={form.firstPaymentDate} onChange={handleChange} min={isNewCredit ? todayIso : undefined}
+                                                    style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                    onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                    onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className={SOFT_SECTION_CLASS}>
-                                    <div className="mb-4">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Condiciones</p>
-                                        <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">Importes, cuotas y responsables</h3>
+                                {/* Grupo especial */}
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                        <div>
+                                            <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 2px" }}>Grupo especial</p>
+                                            <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: 0 }}>Agrupá este crédito en una categoría especial.</p>
+                                        </div>
+                                        <button type="button" onClick={handleToggleSpecialCredit}
+                                            style={{ padding: "8px 16px", borderRadius: "99px", border: "none", background: isSpecialCredit ? "var(--ios-blue)" : "var(--ios-sep-opaque)", color: isSpecialCredit ? "#fff" : "var(--ios-label-sec)", fontSize: "13px", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                                            {isSpecialCredit ? "Activado" : "Activar"}
+                                        </button>
+                                    </div>
+                                    {isSpecialCredit && (
+                                        <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                                            <div style={{ position: "relative" }}>
+                                                <input type="text" value={creditSpecialSearch} onChange={e => setCreditSpecialSearch(e.target.value)} placeholder="Buscar por nombre"
+                                                    style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                    onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                    onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
+                                                {selectedCreditSpecial && (
+                                                    <button type="button" onClick={handleClearCreditSpecial}
+                                                        style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", padding: "4px 10px", borderRadius: "8px", border: "none", background: "#EBF3FF", color: "var(--ios-blue)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                                                        Quitar
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {selectedCreditSpecial && <p style={{ fontSize: "13px", fontWeight: 700, color: "var(--ios-blue)", margin: 0 }}>Seleccionado: {selectedCreditSpecial.name}</p>}
+                                            {!selectedCreditSpecial && (
+                                                <div style={{ borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", maxHeight: "180px", overflowY: "auto" }}>
+                                                    {isLoadingCreditSpecials ? <p style={{ padding: "12px 14px", fontSize: "13px", color: "var(--ios-label-ter)" }}>Buscando...</p>
+                                                        : creditSpecialError ? <p style={{ padding: "12px 14px", fontSize: "13px", color: "#FF3B30" }}>{creditSpecialError}</p>
+                                                            : creditSpecialOptions.length ? creditSpecialOptions.map(item => (
+                                                                <button key={item.id} type="button" onClick={() => handleSelectCreditSpecial(item)}
+                                                                    style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "14px", fontWeight: 600, color: "var(--ios-label)", cursor: "pointer", textAlign: "left" }}>
+                                                                    <span>{item.name}</span>
+                                                                    {typeof item?._count?.credits === "number" && <span style={{ fontSize: "12px", color: "var(--ios-label-ter)" }}>{item._count.credits} créditos</span>}
+                                                                </button>
+                                                            )) : <p style={{ padding: "12px 14px", fontSize: "13px", color: "var(--ios-label-ter)" }}>{creditSpecialSearch.trim() ? `No encontramos "${creditSpecialSearch.trim()}". Podés crearlo.` : "Escribí para buscar grupos."}</p>
+                                                    }
+                                                </div>
+                                            )}
+                                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                                <button type="button" onClick={handleCreateCreditSpecial} disabled={isCreatingCreditSpecial || !creditSpecialSearch.trim()}
+                                                    style={{ padding: "10px 18px", borderRadius: "10px", border: "none", background: "var(--ios-blue)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", opacity: (isCreatingCreditSpecial || !creditSpecialSearch.trim()) ? 0.5 : 1 }}>
+                                                    {isCreatingCreditSpecial ? "Creando..." : "Crear grupo especial"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Importes */}
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                    <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 12px" }}>Importes y cuotas</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                                        {[
+                                            { lbl: "Monto base", name: "monto", step: "100", placeholder: "Ej: 100000" },
+                                            { lbl: "Interés (%)", name: "interes", step: "1", placeholder: "Ej: 150" },
+                                        ].map(f => (
+                                            <div key={f.name}>
+                                                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>{f.lbl}</label>
+                                                <input name={f.name} type="number" min={0} step={f.step} value={form[f.name]} onChange={handleChange} placeholder={f.placeholder}
+                                                    style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                    onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                    onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
+                                            </div>
+                                        ))}
+                                        <div>
+                                            <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Cuotas</label>
+                                            <input name="cuotas" type="number" min={minimumInstallments} step="1" value={form.cuotas} onChange={handleChange} placeholder={isSinglePayment ? "1" : "Ej: 10"} disabled={isSinglePayment}
+                                                style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", opacity: isSinglePayment ? 0.5 : 1 }}
+                                                onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
+                                        </div>
                                     </div>
 
-                                    <div className="grid gap-4 md:grid-cols-3">
-                                        <div className="grid gap-2">
-                                            <FieldLabel label="Monto base" help="Es el dinero entregado al cliente antes de sumar interés." />
-                                            <input
-                                                name="monto"
-                                                type="number"
-                                                min={0}
-                                                step="100"
-                                                value={form.monto}
-                                                onChange={handleChange}
-                                                placeholder="Ej: 100000"
-                                                className={FIELD_INPUT_CLASS} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <FieldLabel label="Interés (%)" help="Porcentaje total que se aplica para calcular el total del crédito." />
-                                            <input
-                                                name="interes"
-                                                type="number"
-                                                min={0}
-                                                step="1"
-                                                value={form.interes}
-                                                onChange={handleChange}
-                                                placeholder="Ej: 150"
-                                                className={FIELD_INPUT_CLASS} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <FieldLabel label="Cantidad de cuotas" help={isSinglePayment ? "En pago único la cuota se define automáticamente en 1." : "Para planes recurrentes el mínimo es 2 cuotas."} />
-                                            <input
-                                                name="cuotas"
-                                                type="number"
-                                                min={minimumInstallments}
-                                                step="1"
-                                                value={form.cuotas}
-                                                onChange={handleChange}
-                                                placeholder={isSinglePayment ? "1" : "Ej: 10"}
-                                                disabled={isSinglePayment}
-                                                className={`${FIELD_INPUT_CLASS} disabled:cursor-not-allowed disabled:opacity-60`} />
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 grid gap-4 md:grid-cols-3">
-                                        <div className="grid gap-2">
-                                            <FieldLabel label="Cobrador asignado" help="Usuario responsable de realizar el seguimiento y cobranza del crédito." />
-                                            <select
-                                                name="cobradorId"
-                                                value={form.cobradorId}
-                                                onChange={handleChange}
-                                                className={FIELD_INPUT_CLASS}>
-                                                <option value="">Seleccionar cobrador</option>
-                                                {cobradores.map((user) => (
-                                                    <option key={user.id} value={user.id}>
-                                                        {user.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <FieldLabel label="Comisión" help="Elegí a qué cobrador querés asociar la comisión registrada." />
-                                            <select
-                                                name="cobradorComisionId"
-                                                value={form.cobradorComisionId}
-                                                onChange={handleChange}
-                                                className={FIELD_INPUT_CLASS}>
-                                                <option value="">Seleccionar cobrador</option>
-                                                {cobradores.map((user) => (
-                                                    <option key={user.id} value={user.id}>
-                                                        {user.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <FieldLabel label="Comisión libre ($)" help="Monto fijo que se descuenta del total neto como comisión adicional." />
-                                            <input
-                                                name="comisionLibre"
-                                                type="number"
-                                                min={0}
-                                                step="100"
-                                                value={form.comisionLibre}
-                                                onChange={handleChange}
-                                                placeholder="Ej: 2000"
-                                                className={FIELD_INPUT_CLASS} />
+                                    <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "16px 0 12px" }}>Responsables</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                                        {[
+                                            { lbl: "Cobrador asignado", name: "cobradorId" },
+                                            { lbl: "Cobrador comisión", name: "cobradorComisionId" },
+                                        ].map(f => (
+                                            <div key={f.name}>
+                                                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>{f.lbl}</label>
+                                                <select name={f.name} value={form[f.name]} onChange={handleChange}
+                                                    style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none" }}
+                                                    onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                    onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }}>
+                                                    <option value="">Sin cobrador</option>
+                                                    {cobradores.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                </select>
+                                            </div>
+                                        ))}
+                                        <div>
+                                            <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Comisión libre ($)</label>
+                                            <input name="comisionLibre" type="number" min={0} step="100" value={form.comisionLibre} onChange={handleChange} placeholder="Ej: 2000"
+                                                style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
                                         </div>
                                     </div>
                                 </div>
 
+                                {/* Crédito existente */}
                                 {isExistingCredit && (
-                                    <div className={SOFT_SECTION_CLASS}>
-                                        <div className="mb-4">
-                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Seguimiento</p>
-                                            <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">Estado del crédito ya existente</h3>
-                                        </div>
-
-                                        <div className="grid gap-4 md:grid-cols-2">
-                                            <div className="grid gap-2">
-                                                <FieldLabel label="Monto ya cobrado (ARS)" help="Se calcula automáticamente según la próxima cuota que indiques." />
-                                                <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-white/90 px-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100">
+                                    <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                        <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 12px" }}>Estado del crédito existente</p>
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                            <div>
+                                                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Monto ya cobrado (calculado)</label>
+                                                <div style={{ height: "44px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", display: "flex", alignItems: "center", padding: "0 14px", fontSize: "15px", fontWeight: 700, color: "var(--ios-label)" }}>
                                                     {computedReceivedAmountLabel}
                                                 </div>
                                             </div>
-                                            <div className="grid gap-2">
-                                                <FieldLabel label="Próxima cuota a cobrar" help="Indicá qué número de cuota corresponde cobrar en la próxima visita." />
-                                                <input
-                                                    name="nextInstallmentToCharge"
-                                                    type="number"
-                                                    min={1}
-                                                    step="1"
-                                                    value={existingCreditData.nextInstallmentToCharge}
-                                                    onChange={handleExistingCreditChange}
-                                                    placeholder="Ej: 3"
-                                                    className={FIELD_INPUT_CLASS} />
+                                            <div>
+                                                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Próxima cuota a cobrar</label>
+                                                <input name="nextInstallmentToCharge" type="number" min={1} step="1" value={existingCreditData.nextInstallmentToCharge} onChange={handleExistingCreditChange} placeholder="Ej: 3"
+                                                    style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                    onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                    onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
                                             </div>
                                         </div>
                                     </div>
                                 )}
-                            </div>
 
-                            <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
-                                <button
-                                    type="button"
-                                    onClick={handlePreviousStep}
-                                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-900">
-                                    Volver al cliente
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleNextStep}
-                                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                    Continuar con gastos
-                                </button>
+                                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", paddingTop: "4px" }}>
+                                    <button type="button" onClick={handlePreviousStep} style={{ padding: "11px 20px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", color: "var(--ios-label)", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>← Volver</button>
+                                    <button type="button" onClick={handleNextStep} style={{ padding: "12px 22px", borderRadius: "12px", border: "none", background: "var(--ios-blue)", color: "#fff", fontSize: "15px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,122,255,0.25)" }}>Continuar con gastos →</button>
+                                </div>
                             </div>
-                        </section>
+                        </div>
                     )}
 
+                    {/* ──────── STEP 3: GASTOS ──────── */}
                     {currentStep === 3 && (
-                        <section className="order-3 rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">3. Gastos asociados</h2>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Registrá fletes u otros gastos vinculados a este crédito.</p>
-                            </div>
+                        <div style={{ background: "#fff", borderRadius: "20px", border: "1.5px solid var(--ios-sep-opaque)", padding: "22px" }}>
+                            <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 4px" }}>Paso 3</p>
+                            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 4px" }}>Gastos asociados</h2>
+                            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>Registrá fletes u otros gastos vinculados a este crédito.</p>
 
-                            <div className="mt-4 space-y-5">
-                                <div className={`${SOFT_SECTION_CLASS} grid gap-4 md:grid-cols-3`}>
-                                    <div className="md:col-span-2 space-y-2">
-                                        <FieldLabel label="Gasto" help="Podés usar un gasto ya registrado o escribir uno nuevo para crearlo al agregarlo." />
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                value={expenseSearch}
-                                                onChange={handleExpenseSearchChange}
-                                                placeholder="Ej: Heladera, Flete, Tecnología"
-                                                className={FIELD_INPUT_CLASS} />
-                                            {selectedSpecialCredit && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleClearSelectedSpecialCredit}
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-transparent bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-900/60">
-                                                    Cambiar
-                                                </button>
-                                            )}
-                                        </div>
-                                        {selectedSpecialCredit && (
-                                            <p className="text-xs text-blue-600 dark:text-blue-300">Usando gasto guardado: {selectedSpecialCredit.name}</p>
-                                        )}
-
-                                        {shouldShowSpecialCreditResults && (
-                                            <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-950">
-                                                {isLoadingSpecialCredits ? (
-                                                    <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">Buscando gastos...</p>
-                                                ) : specialCreditsError ? (
-                                                    <p className="px-4 py-3 text-sm text-red-600 dark:text-red-300">{specialCreditsError}</p>
-                                                ) : specialCreditOptions.length ? (
-                                                    specialCreditOptions.map((item) => (
-                                                        <button
-                                                            key={item.id}
-                                                            type="button"
-                                                            onClick={() => handleSelectSpecialCredit(item)}
-                                                            className="flex w-full items-center justify-between border-b px-4 py-2 text-left text-sm transition last:border-b-0 dark:border-gray-800 hover:bg-blue-50/70 dark:text-gray-100 dark:hover:bg-blue-900/40">
-                                                            <span className="font-medium">{item.name}</span>
-                                                            {typeof item?._count?.expenses === "number" && (
-                                                                <span className="text-xs text-gray-500 dark:text-gray-400">{item._count.expenses} usos</span>
-                                                            )}
-                                                        </button>
-                                                    ))
-                                                ) : (
-                                                    <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">No encontramos gastos guardados. Crearemos "{normalizedExpenseSearch}" al agregarlo.</p>
+                            <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: "12px", alignItems: "end" }}>
+                                        <div>
+                                            <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Gasto</label>
+                                            <div style={{ position: "relative" }}>
+                                                <input type="text" value={expenseSearch} onChange={handleExpenseSearchChange} placeholder="Ej: Heladera, Flete, Tecnología"
+                                                    style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                    onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                    onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
+                                                {selectedSpecialCredit && (
+                                                    <button type="button" onClick={handleClearSelectedSpecialCredit}
+                                                        style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", padding: "4px 10px", borderRadius: "8px", border: "none", background: "#EBF3FF", color: "var(--ios-blue)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                                                        Cambiar
+                                                    </button>
                                                 )}
                                             </div>
-                                        )}
+                                            {selectedSpecialCredit && <p style={{ fontSize: "12px", color: "var(--ios-blue)", margin: "4px 0 0", fontWeight: 600 }}>Usando: {selectedSpecialCredit.name}</p>}
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--ios-label-sec)", textTransform: "uppercase", letterSpacing: "0.055em", display: "block", marginBottom: "6px" }}>Monto (ARS)</label>
+                                            <input type="number" min={0} step="100" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)}
+                                                style={{ height: "44px", padding: "0 14px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", fontSize: "15px", color: "var(--ios-label)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }}
+                                                onFocus={e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; }}
+                                                onBlur={e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; }} />
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <FieldLabel label="Monto del gasto (ARS)" help="Importe que querés asociar a este gasto para descontarlo del neto del crédito." />
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            step="100"
-                                            value={expenseAmount}
-                                            onChange={(event) => setExpenseAmount(event.target.value)}
-                                            className={FIELD_INPUT_CLASS} />
-                                    </div>
-                                </div>
+                                    {shouldShowSpecialCreditResults && (
+                                        <div style={{ borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "#fff", maxHeight: "180px", overflowY: "auto" }}>
+                                            {isLoadingSpecialCredits ? <p style={{ padding: "12px 14px", fontSize: "13px", color: "var(--ios-label-ter)" }}>Buscando gastos...</p>
+                                                : specialCreditsError ? <p style={{ padding: "12px 14px", fontSize: "13px", color: "#FF3B30" }}>{specialCreditsError}</p>
+                                                    : specialCreditOptions.length ? specialCreditOptions.map(item => (
+                                                        <button key={item.id} type="button" onClick={() => handleSelectSpecialCredit(item)}
+                                                            style={{ width: "100%", display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "14px", fontWeight: 600, color: "var(--ios-label)", cursor: "pointer", textAlign: "left" }}>
+                                                            <span>{item.name}</span>
+                                                            {typeof item?._count?.expenses === "number" && <span style={{ fontSize: "12px", color: "var(--ios-label-ter)" }}>{item._count.expenses} usos</span>}
+                                                        </button>
+                                                    )) : <p style={{ padding: "12px 14px", fontSize: "13px", color: "var(--ios-label-ter)" }}>No encontramos "{normalizedExpenseSearch}". Se creará al agregarlo.</p>
+                                            }
+                                        </div>
+                                    )}
 
-                                <div className="flex items-center justify-end">
-                                    <button
-                                        type="button"
-                                        onClick={handleAddExpense}
-                                        disabled={!canAddExpense || isSavingExpense}
-                                        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-60">
-                                        {isSavingExpense ? "Agregando..." : selectedSpecialCredit ? "Agregar gasto" : "Crear y agregar gasto"}
-                                    </button>
+                                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                        <button type="button" onClick={handleAddExpense} disabled={!canAddExpense || isSavingExpense}
+                                            style={{ padding: "11px 20px", borderRadius: "12px", border: "none", background: "#34C759", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(52,199,89,0.25)", opacity: (!canAddExpense || isSavingExpense) ? 0.5 : 1 }}>
+                                            {isSavingExpense ? "Agregando..." : selectedSpecialCredit ? "Agregar gasto" : "Crear y agregar gasto"}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {expenses.length ? (
-                                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                                        <table className="w-full text-left text-sm">
-                                            <thead className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                                <tr>
-                                                    <th className="px-4 py-2 font-medium">Gasto</th>
-                                                    <th className="px-4 py-2 font-medium">Monto</th>
-                                                    <th className="px-4 py-2 text-right font-medium">Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                                {expenses.map((expense) => (
-                                                    <tr key={expense.tempId} className="bg-white dark:bg-gray-900">
-                                                        <td className="px-4 py-2">
-                                                            <div className="font-medium text-gray-800 dark:text-gray-100">{expense.description}</div>
-                                                            {expense.specialCreditName && (
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400">Tipo registrado: {expense.specialCreditName}</div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
-                                                            {currencyFormatter.format(expense.amount)}
-                                                        </td>
-                                                        <td className="px-4 py-2 text-right">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleRemoveExpense(expense.tempId)}
-                                                                className="rounded-md bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/40 dark:text-red-200 dark:hover:bg-red-900/60">
-                                                                Quitar
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                    <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", overflow: "hidden" }}>
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", padding: "10px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
+                                            <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)" }}>Gasto</span>
+                                            <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", marginRight: "60px" }}>Monto</span>
+                                        </div>
+                                        {expenses.map(expense => (
+                                            <div key={expense.tempId} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", alignItems: "center", padding: "12px 14px", borderBottom: "1px solid var(--ios-sep-opaque)", background: "#fff" }}>
+                                                <div>
+                                                    <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-label)", margin: 0 }}>{expense.description}</p>
+                                                    {expense.specialCreditName && <p style={{ fontSize: "12px", color: "var(--ios-label-ter)", margin: "2px 0 0" }}>Tipo: {expense.specialCreditName}</p>}
+                                                </div>
+                                                <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--ios-label)", marginRight: "14px" }}>{currencyFormatter.format(expense.amount)}</span>
+                                                <button type="button" onClick={() => handleRemoveExpense(expense.tempId)}
+                                                    style={{ padding: "6px 12px", borderRadius: "8px", border: "none", background: "#FFF0EE", color: "#FF3B30", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <div style={{ padding: "10px 14px", background: "var(--ios-fill)", display: "flex", justifyContent: "space-between" }}>
+                                            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--ios-label-sec)" }}>Total gastos</span>
+                                            <span style={{ fontSize: "15px", fontWeight: 800, color: "var(--ios-label)" }}>{currencyFormatter.format(totalExpenses)}</span>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950/30 dark:text-slate-400">Agregá los gastos que se generan por este crédito. Si el tipo no existe, lo crearemos automáticamente.</div>
+                                    <div style={{ borderRadius: "14px", border: "1.5px dashed var(--ios-sep-opaque)", padding: "24px", textAlign: "center", color: "var(--ios-label-ter)", fontSize: "14px" }}>
+                                        No hay gastos cargados. Podés continuar sin gastos.
+                                    </div>
                                 )}
-                            </div>
 
-                            <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
-                                <button
-                                    type="button"
-                                    onClick={handlePreviousStep}
-                                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-900">
-                                    Volver a la configuración
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleNextStep}
-                                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                    Revisar resumen final
-                                </button>
+                                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
+                                    <button type="button" onClick={handlePreviousStep} style={{ padding: "11px 20px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", color: "var(--ios-label)", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>← Volver</button>
+                                    <button type="button" onClick={handleNextStep} style={{ padding: "12px 22px", borderRadius: "12px", border: "none", background: "var(--ios-blue)", color: "#fff", fontSize: "15px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,122,255,0.25)" }}>Revisar y confirmar →</button>
+                                </div>
                             </div>
-                        </section>
+                        </div>
                     )}
 
+                    {/* ──────── STEP 4: CONFIRMACIÓN ──────── */}
                     {currentStep === 4 && (
-                        <section className="order-4 rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">4. Confirmación final</h2>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Revisá toda la información antes de crear el crédito.</p>
-                                </div>
-                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
-                                    Listo para confirmar
-                                </span>
-                            </div>
+                        <div style={{ background: "#fff", borderRadius: "20px", border: "1.5px solid var(--ios-sep-opaque)", padding: "22px" }}>
+                            <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ios-label-ter)", margin: "0 0 4px" }}>Paso 4</p>
+                            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 4px" }}>Confirmación final</h2>
+                            <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: 0 }}>Revisá todo antes de crear el crédito.</p>
 
-                            <div className="mt-5 grid gap-4 md:grid-cols-2">
-                                <div className={SOFT_SECTION_CLASS}>
-                                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Datos principales</h3>
-                                    <dl className="mt-3 space-y-3 text-sm">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Cliente</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{selectedClient?.name || "—"}</dd>
+                            <div style={{ marginTop: "18px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                    <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 10px" }}>Datos principales</p>
+                                    {[
+                                        { l: "Cliente", v: selectedClient?.name || "—" },
+                                        { l: "Plan", v: selectedPlan.label },
+                                        { l: "Modalidad", v: creditMode === "NEW" ? "Crédito nuevo" : "Crédito existente" },
+                                        { l: primaryDateLabel, v: form.startDate ? new Date(`${form.startDate}T00:00:00`).toLocaleDateString("es-AR") : "—" },
+                                        ...(!isSinglePayment ? [{ l: "Primer pago", v: form.firstPaymentDate ? new Date(`${form.firstPaymentDate}T00:00:00`).toLocaleDateString("es-AR") : "—" }] : []),
+                                        { l: "Vencimiento estimado", v: estimatedDueDate ? new Date(`${estimatedDueDate}T00:00:00`).toLocaleDateString("es-AR") : "—" },
+                                    ].map(row => (
+                                        <div key={row.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
+                                            <span style={{ fontSize: "13px", color: "var(--ios-label-sec)" }}>{row.l}</span>
+                                            <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--ios-label)" }}>{row.v}</span>
                                         </div>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Plan</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{selectedPlan.label}</dd>
-                                        </div>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Modalidad</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{creditMode === "NEW" ? "Crédito nuevo" : "Crédito existente"}</dd>
-                                        </div>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">{primaryDateLabel}</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{form.startDate ? new Date(`${form.startDate}T00:00:00`).toLocaleDateString("es-AR") : "—"}</dd>
-                                        </div>
-                                        {!isSinglePayment && (
-                                            <div className="flex items-start justify-between gap-4">
-                                                <dt className="text-gray-500">Primer pago</dt>
-                                                <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{form.firstPaymentDate ? new Date(`${form.firstPaymentDate}T00:00:00`).toLocaleDateString("es-AR") : "—"}</dd>
-                                            </div>
-                                        )}
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Cobro final estimado</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{estimatedDueDate ? new Date(`${estimatedDueDate}T00:00:00`).toLocaleDateString("es-AR") : "—"}</dd>
-                                        </div>
-                                    </dl>
+                                    ))}
                                 </div>
 
-                                <div className={SOFT_SECTION_CLASS}>
-                                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Montos y seguimiento</h3>
-                                    <dl className="mt-3 space-y-3 text-sm">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Monto base</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{montoBase ? currencyFormatter.format(montoBase) : "—"}</dd>
+                                <div style={{ borderRadius: "14px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", padding: "16px" }}>
+                                    <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 10px" }}>Montos</p>
+                                    {[
+                                        { l: "Monto base", v: montoBase ? currencyFormatter.format(montoBase) : "—" },
+                                        { l: "Total del crédito", v: totalCredito ? currencyFormatter.format(totalCredito) : "—" },
+                                        { l: "Cuotas", v: cuotasNumber || "—" },
+                                        { l: "Cuota estimada", v: cuotaEstimada > 0 ? currencyFormatter.format(cuotaEstimada) : "—" },
+                                        { l: "Gastos asociados", v: expenses.length ? `${expenses.length} · ${currencyFormatter.format(totalExpenses)}` : "Sin gastos" },
+                                        ...(isExistingCredit ? [
+                                            { l: "Ya cobrado", v: computedReceivedAmountLabel },
+                                            { l: "Próxima cuota", v: existingCreditData.nextInstallmentToCharge !== "" ? `Cuota ${nextInstallmentNumber}` : "—" },
+                                        ] : []),
+                                    ].map(row => (
+                                        <div key={row.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--ios-sep-opaque)" }}>
+                                            <span style={{ fontSize: "13px", color: "var(--ios-label-sec)" }}>{row.l}</span>
+                                            <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--ios-label)" }}>{row.v}</span>
                                         </div>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Total del crédito</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{totalCredito ? currencyFormatter.format(totalCredito) : "—"}</dd>
-                                        </div>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Cuotas</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{cuotasNumber || "—"}</dd>
-                                        </div>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Cuota estimada</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{cuotaEstimada > 0 ? currencyFormatter.format(cuotaEstimada) : "—"}</dd>
-                                        </div>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <dt className="text-gray-500">Gastos asociados</dt>
-                                            <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{expenses.length ? `${expenses.length} · ${currencyFormatter.format(totalExpenses)}` : "Sin gastos"}</dd>
-                                        </div>
-                                        {isExistingCredit && (
-                                            <>
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <dt className="text-gray-500">Monto ya cobrado</dt>
-                                                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{computedReceivedAmountLabel}</dd>
-                                                </div>
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <dt className="text-gray-500">Próxima cuota</dt>
-                                                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{existingCreditData.nextInstallmentToCharge !== "" ? `Cuota ${nextInstallmentNumber}` : "—"}</dd>
-                                                </div>
-                                            </>
-                                        )}
-                                    </dl>
+                                    ))}
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
-                                <button
-                                    type="button"
-                                    onClick={handlePreviousStep}
-                                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-900">
-                                    Volver a gastos
-                                </button>
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                    <button
-                                        type="button"
-                                        onClick={generarContrato}
-                                        className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-300">
-                                        Generar contrato
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--ios-sep-opaque)", flexWrap: "wrap" }}>
+                                <button type="button" onClick={handlePreviousStep} style={{ padding: "11px 20px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", color: "var(--ios-label)", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>← Volver</button>
+                                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                                    <button type="button" onClick={generarContrato} style={{ padding: "12px 20px", borderRadius: "12px", border: "none", background: "#34C759", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(52,199,89,0.25)" }}>
+                                        Generar contrato PDF
                                     </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60">
-                                        {isSubmitting ? "Creando crédito" : "Confirmar y crear crédito"}
+                                    <button type="submit" disabled={isSubmitting} style={{ padding: "12px 22px", borderRadius: "12px", border: "none", background: "var(--ios-blue)", color: "#fff", fontSize: "15px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,122,255,0.25)", opacity: isSubmitting ? 0.6 : 1 }}>
+                                        {isSubmitting ? "Creando..." : "Confirmar y crear"}
                                     </button>
                                 </div>
                             </div>
-                        </section>
+                        </div>
                     )}
                 </div>
 
-                <aside className="space-y-6">
-                    <div className="rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/80">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Estado del flujo</h3>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
-                                {selectedPlan.label}
-                            </span>
+                {/* ════════ SIDEBAR ════════ */}
+                <aside className="flex flex-col gap-3 sticky top-5 mt-6 md:mt-0">
+                    {/* Progreso */}
+                    <div className="bg-white rounded-2xl border border-[var(--ios-sep-opaque)] p-4">
+                        <div className="flex justify-between items-center mb-3">
+                            <p className="text-sm font-bold text-[var(--ios-label)] m-0">Progreso</p>
+                            <span className="px-3 py-1 rounded-full bg-[#EBF3FF] border border-[#A8C8FF] text-xs font-bold text-[var(--ios-blue)]">{selectedPlan.label}</span>
                         </div>
-                        <div className="mt-4 space-y-2">
-                            {CREDIT_STEPS.map((step) => {
+                        <div className="flex flex-col gap-2">
+                            {CREDIT_STEPS.map(step => {
                                 const isCompleted = step.id < currentStep;
                                 const isActive = step.id === currentStep;
-
                                 return (
-                                    <div
-                                        key={step.id}
-                                        className={`rounded-xl border px-3 py-3 text-sm ${isActive
-                                            ? "border-blue-300 bg-blue-50/70 text-blue-900 dark:border-blue-500/50 dark:bg-blue-900/20 dark:text-blue-100"
-                                            : isCompleted
-                                                ? "border-emerald-200 bg-emerald-50/70 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-900/20 dark:text-emerald-200"
-                                                : "border-slate-200 bg-transparent text-slate-500 dark:border-slate-700 dark:text-slate-400"}`}>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div>
-                                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">{step.eyebrow}</p>
-                                                <p className="mt-1 font-medium">{step.title}</p>
-                                            </div>
-                                            <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${isActive
-                                                ? "bg-blue-600 text-white"
-                                                : isCompleted
-                                                    ? "bg-emerald-600 text-white"
-                                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
-                                                {isCompleted ? "✓" : step.id}
-                                            </span>
+                                    <div key={step.id} className={`rounded-xl p-3 flex justify-between items-center border ${isActive ? "border-[var(--ios-blue)] bg-[#EBF3FF]" : isCompleted ? "border-[#34C75950] bg-[#E8F8ED]" : "border-[var(--ios-sep-opaque)] bg-[var(--ios-fill)]"}`}>
+                                        <div>
+                                            <p className={`text-[10px] font-bold uppercase tracking-wide m-0 ${isActive ? "text-[var(--ios-blue)]" : isCompleted ? "text-[#1A6B36]" : "text-[var(--ios-label-ter)]"}`}>{step.eyebrow}</p>
+                                            <p className={`text-[13px] font-bold m-0 ${isActive ? "text-[var(--ios-blue)]" : isCompleted ? "text-[#1A6B36]" : "text-[var(--ios-label-sec)]"}`}>{step.title}</p>
                                         </div>
+                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold ${isActive ? "bg-[var(--ios-blue)] text-white" : isCompleted ? "bg-[#34C759] text-white" : "bg-[var(--ios-sep-opaque)] text-[var(--ios-label-ter)]"}`}>{isCompleted ? "✓" : step.id}</span>
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
-
-                    <div className="rounded-xl border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
-                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Detalle de montos</h3>
-                        <div className="mt-4 space-y-4 text-sm">
-                            <div className="space-y-1">
-                                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                                    <span>Total del crédito</span>
-                                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                        {totalCredito ? currencyFormatter.format(totalCredito) : "—"}
-                                    </span>
-                                </div>
-                                {totalCredito ? (
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Monto: {currencyFormatter.format(montoBase || 0)} • Ganancia: {currencyFormatter.format(gananciaCredito)}
-                                    </p>
-                                ) : null}
+                    {/* Detalle montos */}
+                    <div className="bg-white rounded-2xl border border-[var(--ios-sep-opaque)] p-4">
+                        <p className="text-sm font-bold text-[var(--ios-label)] mb-2">Detalle de montos</p>
+                        {[
+                            { l: "Total crédito", v: totalCredito ? currencyFormatter.format(totalCredito) : "—", bold: true },
+                            { l: "Ganancia", v: montoBase > 0 ? currencyFormatter.format(gananciaCredito) : "—" },
+                            { l: "Cuota estimada", v: cuotaEstimada > 0 ? currencyFormatter.format(cuotaEstimada) : "—" },
+                            { l: "Total neto", v: totalCredito > 0 ? currencyFormatter.format(totalNetoDespuesComision) : "—", green: true },
+                            { l: "Comisión vendedor", v: currencyFormatter.format(comisionLibre || 0), small: true },
+                        ].map(row => (
+                            <div key={row.l} className="flex justify-between items-center py-2 border-b border-[var(--ios-sep-opaque)] last:border-b-0">
+                                <span className={`${row.small ? "text-xs" : "text-[13px]"} ${row.small ? "text-[var(--ios-label-ter)]" : "text-[var(--ios-label-sec)]"}`}>{row.l}</span>
+                                <span className={`${row.bold ? "text-lg font-extrabold" : "text-[13px] font-bold"} ${row.green ? "text-[#1A6B36]" : "text-[var(--ios-label)]"}`}>{row.v}</span>
                             </div>
-                            <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                                <span>Comisión de ganancia</span>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                    {montoBase > 0 ? currencyFormatter.format(gananciaCredito) : "—"}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                                <span>Cuota estimada</span>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                    {cuotaEstimada > 0 ? currencyFormatter.format(cuotaEstimada) : "—"}
-                                </span>
-                            </div>
-                            <div className="space-y-1">
-                                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                                    <span>Total neto</span>
-                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                        {totalCredito > 0 ? currencyFormatter.format(totalNetoDespuesComision) : "—"}
-                                    </span>
-                                </div>
-                                {totalCredito > 0 ? (
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Comisión vendedor: {currencyFormatter.format(comisionLibre || 0)}
-                                    </p>
-                                ) : null}
-                            </div>
-                        </div>
+                        ))}
                     </div>
-
                     {currentStep < 4 && (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/80 p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-300">
-                            Terminá los pasos para ver el resumen final y confirmar el alta del crédito.
+                        <div className="rounded-xl border border-dashed border-[var(--ios-sep-opaque)] p-3 text-[13px] text-[var(--ios-label-ter)] text-center">
+                            Terminá los pasos para ver el resumen y confirmar.
                         </div>
                     )}
                 </aside>

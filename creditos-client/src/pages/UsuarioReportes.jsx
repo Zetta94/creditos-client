@@ -5,498 +5,279 @@ import { fetchClients } from "../services/clientsService";
 import { fetchCredits } from "../services/creditsService";
 import { fetchPayments } from "../services/paymentsService";
 import { fetchReportsByUser } from "../services/reportsService";
-import { HiOutlineArrowLeft } from "react-icons/hi2";
+import { HiArrowLeft, HiCash, HiUserGroup, HiClock } from "react-icons/hi";
 import ReportActivityCalendar from "../components/ReportActivityCalendar";
 
+const inputStyle = {
+  height: "40px", padding: "0 12px", borderRadius: "10px",
+  border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)",
+  fontSize: "14px", color: "var(--ios-label)", outline: "none",
+  fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
+  WebkitAppearance: "none", appearance: "none", width: "100%",
+};
+const onFocus = e => { e.target.style.borderColor = "var(--ios-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,122,255,0.12)"; e.target.style.background = "#fff"; };
+const onBlur = e => { e.target.style.borderColor = "var(--ios-sep-opaque)"; e.target.style.boxShadow = "none"; e.target.style.background = "var(--ios-fill)"; };
+
 export default function UsuarioReportes() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [usuario, setUsuario] = useState(null);
-    const [clientes, setClientes] = useState([]);
-    const [creditos, setCreditos] = useState([]);
-    const [pagos, setPagos] = useState([]);
-    const [reportes, setReportes] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [rateLimit, setRateLimit] = useState(false);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [usuario, setUsuario] = useState(null);
+  const [clientes, setClientes] = useState([]);
+  const [creditos, setCreditos] = useState([]);
+  const [pagos, setPagos] = useState([]);
+  const [reportes, setReportes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rateLimit, setRateLimit] = useState(false);
 
-    const [semana, setSemana] = useState(() => {
-        const today = new Date();
-        const monday = new Date(today.setDate(today.getDate() - today.getDay() + 1));
-        return monday.toISOString().slice(0, 10);
-    });
-    const [diaFiltro, setDiaFiltro] = useState("");
-    const [pagina, setPagina] = useState(1);
-    const porPagina = 5;
+  const [semana, setSemana] = useState(() => {
+    const today = new Date();
+    const monday = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+    return monday.toISOString().slice(0, 10);
+  });
+  const [diaFiltro, setDiaFiltro] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 10;
 
-    useEffect(() => {
-        let mounted = true;
-        const controller = new AbortController();
-        const load = async () => {
-            setLoading(true);
-            setRateLimit(false);
-            try {
-                const [u, cl, cr, pa, rep] = await Promise.all([
-                    fetchUser(id).then((r) => r.data),
-                    fetchClients({ page: 1, pageSize: 500 }).then((r) => r.data?.data ?? []),
-                    fetchCredits({ page: 1, pageSize: 2000 }).then((r) => r.data?.data ?? []),
-                    fetchPayments({ page: 1, pageSize: 500 }).then((r) => r.data?.data ?? []),
-                    fetchReportsByUser(id, { page: 1, pageSize: 1000 }).then((r) => r.data?.data ?? []).catch(() => [])
-                ]);
-                if (!mounted) return;
-                setUsuario(u);
-                setClientes(cl);
-                setCreditos(cr);
-                setPagos(pa);
-                setReportes(rep);
-            } catch (err) {
-                if (!mounted) return;
-                if (err?.response?.status === 429) {
-                    setRateLimit(true);
-                }
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        };
-        load();
-        return () => {
-            mounted = false;
-            controller.abort();
-        };
-    }, [id]);
-
-    const creditosAsignados = useMemo(
-        () => creditos.filter((cr) => cr.userId === id),
-        [creditos, id]
-    );
-
-    const pagosOrdenadosPorCredito = useMemo(() => {
-        const map = new Map();
-        pagos.forEach((p) => {
-            const list = map.get(p.creditId) || [];
-            list.push(p);
-            map.set(p.creditId, list);
-        });
-        map.forEach((list) => {
-            list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        });
-        return map;
-    }, [pagos]);
-
-    const totalPagadoPorCredito = useMemo(() => {
-        const map = new Map();
-        pagos.forEach((p) => {
-            const total = map.get(p.creditId) || 0;
-            map.set(p.creditId, total + (Number(p.amount) || 0));
-        });
-        return map;
-    }, [pagos]);
-
-    const calcularMontoPlan = (credito) => {
-        if (!credito) return 0;
-        if (credito.totalInstallments && credito.installmentAmount) {
-            return credito.totalInstallments * credito.installmentAmount;
-        }
-        return Number(credito.amount || 0);
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true); setRateLimit(false);
+      try {
+        const [u, cl, cr, pa, rep] = await Promise.all([
+          fetchUser(id).then(r => r.data),
+          fetchClients({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+          fetchCredits({ page: 1, pageSize: 2000 }).then(r => r.data?.data ?? []),
+          fetchPayments({ page: 1, pageSize: 500 }).then(r => r.data?.data ?? []),
+          fetchReportsByUser(id, { page: 1, pageSize: 1000 }).then(r => r.data?.data ?? []).catch(() => []),
+        ]);
+        if (!mounted) return;
+        setUsuario(u); setClientes(cl); setCreditos(cr); setPagos(pa); setReportes(rep);
+      } catch (err) {
+        if (!mounted) return;
+        if (err?.response?.status === 429) setRateLimit(true);
+      } finally { if (mounted) setLoading(false); }
     };
+    load();
+    return () => { mounted = false; };
+  }, [id]);
 
-    const calcularRestante = (credito) => {
-        if (!credito) return 0;
-        const totalPlan = calcularMontoPlan(credito);
-        const pagado = totalPagadoPorCredito.get(credito.id) || 0;
-        return Math.max(0, totalPlan - pagado);
-    };
+  const creditosAsignados = useMemo(() => creditos.filter(cr => cr.userId === id), [creditos, id]);
 
-    const pagosUsuario = useMemo(() => {
-        return pagos.filter((p) => {
-            if (p.employeeId !== id) return false;
-            const fecha = new Date(p.date);
-            return !Number.isNaN(fecha.getTime()) && fecha.getDay() !== 0;
-        });
-    }, [pagos, id]);
+  const pagosOrdenadosPorCredito = useMemo(() => {
+    const map = new Map();
+    pagos.forEach(p => { const list = map.get(p.creditId) || []; list.push(p); map.set(p.creditId, list); });
+    map.forEach(list => list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+    return map;
+  }, [pagos]);
 
-    const pagosSemana = useMemo(() => {
-        const inicioSemana = new Date(semana);
-        const finSemana = new Date(inicioSemana);
-        finSemana.setDate(inicioSemana.getDate() + 5);
+  const totalPagadoPorCredito = useMemo(() => {
+    const map = new Map();
+    pagos.forEach(p => map.set(p.creditId, (map.get(p.creditId) || 0) + (Number(p.amount) || 0)));
+    return map;
+  }, [pagos]);
 
-        return pagosUsuario.filter((p) => {
-            const fecha = new Date(p.date);
-            return fecha >= inicioSemana && fecha <= finSemana;
-        });
-    }, [semana, pagosUsuario]);
+  const calcularMontoPlan = c => c?.totalInstallments && c?.installmentAmount ? c.totalInstallments * c.installmentAmount : Number(c?.amount || 0);
+  const calcularRestante = c => Math.max(0, calcularMontoPlan(c) - (totalPagadoPorCredito.get(c?.id) || 0));
 
-    const pagosFiltrados = diaFiltro
-        ? pagosSemana.filter((p) => new Date(p.date).toISOString().slice(0, 10) === diaFiltro)
-        : pagosSemana;
+  const pagosUsuario = useMemo(() => pagos.filter(p => {
+    if (p.employeeId !== id) return false;
+    const fecha = new Date(p.date);
+    return !Number.isNaN(fecha.getTime()) && fecha.getDay() !== 0;
+  }), [pagos, id]);
 
-    const totalPaginas = Math.ceil(pagosFiltrados.length / porPagina);
-    const pagosPaginados = pagosFiltrados.slice(
-        (pagina - 1) * porPagina,
-        pagina * porPagina
-    );
+  const pagosSemana = useMemo(() => {
+    const inicioSemana = new Date(semana);
+    const finSemana = new Date(inicioSemana);
+    finSemana.setDate(inicioSemana.getDate() + 5);
+    return pagosUsuario.filter(p => { const f = new Date(p.date); return f >= inicioSemana && f <= finSemana; });
+  }, [semana, pagosUsuario]);
 
-    const resumenSemana = useMemo(() => {
-        const cobrado = pagosSemana.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-        const creditosSinPago = creditosAsignados.filter((cr) => {
-            const restante = calcularRestante(cr);
-            if (restante <= 0) return false;
-            return !pagosSemana.some((p) => p.creditId === cr.id);
-        });
-        return {
-            cobrado,
-            creditosSinPago: creditosSinPago.length,
-            pendiente: creditosAsignados.reduce((acc, cr) => acc + calcularRestante(cr), 0)
-        };
-    }, [pagosSemana, creditosAsignados, totalPagadoPorCredito]);
+  const pagosFiltrados = diaFiltro ? pagosSemana.filter(p => new Date(p.date).toISOString().slice(0, 10) === diaFiltro) : pagosSemana;
+  const totalPaginas = Math.ceil(pagosFiltrados.length / porPagina);
+  const pagosPaginados = pagosFiltrados.slice((pagina - 1) * porPagina, pagina * porPagina);
 
-    const mesReferencia = useMemo(() => {
-        const base = new Date(semana);
-        return {
-            inicio: new Date(base.getFullYear(), base.getMonth(), 1),
-            fin: new Date(base.getFullYear(), base.getMonth() + 1, 0)
-        };
-    }, [semana]);
+  const resumenSemana = useMemo(() => ({
+    cobrado: pagosSemana.reduce((acc, p) => acc + (Number(p.amount) || 0), 0),
+    creditosSinPago: creditosAsignados.filter(cr => calcularRestante(cr) > 0 && !pagosSemana.some(p => p.creditId === cr.id)).length,
+    pendiente: creditosAsignados.reduce((acc, cr) => acc + calcularRestante(cr), 0),
+  }), [pagosSemana, creditosAsignados, totalPagadoPorCredito]);
 
-    const pagosMes = useMemo(() => {
-        return pagosUsuario.filter((p) => {
-            const fecha = new Date(p.date);
-            return fecha >= mesReferencia.inicio && fecha <= mesReferencia.fin;
-        });
-    }, [pagosUsuario, mesReferencia]);
+  const diasConPagos = useMemo(() => { const set = new Set(); pagosSemana.forEach(p => set.add(new Date(p.date).toISOString().slice(0, 10))); return Array.from(set).sort(); }, [pagosSemana]);
 
-    const resumenMes = useMemo(() => {
-        const cobrado = pagosMes.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-        const creditosSinPago = creditosAsignados.filter((cr) => {
-            const restante = calcularRestante(cr);
-            if (restante <= 0) return false;
-            return !pagosMes.some((p) => p.creditId === cr.id);
-        });
-        return {
-            cobrado,
-            creditosSinPago: creditosSinPago.length,
-            pendiente: creditosAsignados.reduce((acc, cr) => acc + calcularRestante(cr), 0)
-        };
-    }, [pagosMes, creditosAsignados, totalPagadoPorCredito]);
+  const openReportDetail = reportId => {
+    const base = `${window.location.origin}${window.location.pathname}#/reportes/${reportId}`;
+    window.open(base, "_blank", "noopener,noreferrer");
+  };
 
-    const diasConPagos = useMemo(() => {
-        const set = new Set();
-        pagosSemana.forEach((p) => {
-            set.add(new Date(p.date).toISOString().slice(0, 10));
-        });
-        return Array.from(set).sort();
-    }, [pagosSemana]);
+  const currency = v => `$${Number(v || 0).toLocaleString("es-AR")}`;
 
-    const openReportDetail = (reportId) => {
-        const base = `${window.location.origin}${window.location.pathname}#/reportes/${reportId}`;
-        window.open(base, "_blank", "noopener,noreferrer");
-    };
+  if (loading) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {[1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: "80px", borderRadius: "16px" }} />)}
+    </div>
+  );
+  if (rateLimit) return <div style={{ padding: "32px", textAlign: "center", color: "#8B0000", fontSize: "14px", fontWeight: 600 }}>Demasiadas solicitudes. Esperá unos segundos y reintentá.</div>;
+  if (!usuario) return <div style={{ padding: "32px", textAlign: "center", color: "var(--ios-label-sec)" }}>Usuario no encontrado.</div>;
 
-    if (loading) {
-        return (
-            <div className="mx-auto max-w-6xl px-4 py-6">
-                <p className="text-center text-gray-500 dark:text-gray-400">Cargando reportes...</p>
-            </div>
-        );
-    }
-    if (rateLimit) {
-        return (
-            <div className="mx-auto max-w-6xl px-4 py-6">
-                <p className="text-center text-red-500 dark:text-red-400 font-semibold">Demasiadas solicitudes. Espera unos segundos y vuelve a intentar.</p>
-            </div>
-        );
-    }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }} className="animate-fade-in">
 
-    if (!usuario)
-        return (
-            <div className="text-center text-red-400 mt-10">Usuario no encontrado.</div>
-        );
-
-    const handleBack = () => navigate(-1);
-
-    return (
-        <div className="mx-auto max-w-6xl px-4 py-6 space-y-8">
-            {/* === HEADER === */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                    Reportes de {usuario.name}
-                </h1>
-                <button
-                    onClick={handleBack}
-                    className="flex items-center gap-2 rounded-md bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 w-full sm:w-auto justify-center"
-                >
-                    <HiOutlineArrowLeft className="h-4 w-4" />
-                    Volver
-                </button>
-            </div>
-
-            {/* === FILTROS === */}
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                    Filtros
-                </h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label className="text-sm text-gray-600 dark:text-gray-300">
-                            Semana seleccionada
-                        </label>
-                        <input
-                            type="date"
-                            value={semana}
-                            onChange={(e) => {
-                                setSemana(e.target.value);
-                                setPagina(1);
-                            }}
-                            className="w-full mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-sm text-gray-600 dark:text-gray-300">
-                            Filtrar por día
-                        </label>
-                        <select
-                            value={diaFiltro}
-                            onChange={(e) => {
-                                setDiaFiltro(e.target.value);
-                                setPagina(1);
-                            }}
-                            className="w-full mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        >
-                            <option value="">Todos los días</option>
-                            {diasConPagos.map((key) => (
-                                <option key={key} value={key}>
-                                    {new Date(key).toLocaleDateString("es-AR", {
-                                        weekday: "long",
-                                        day: "2-digit",
-                                        month: "short",
-                                    })}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* === RESÚMENES === */}
-            <div className="grid gap-4">
-                <ResumenPanel
-                    title="Resumen semanal (lun-sáb)"
-                    cobrado={resumenSemana.cobrado}
-                    creditosSinPago={resumenSemana.creditosSinPago}
-                    pendiente={resumenSemana.pendiente}
-                    periodo={`Semana del ${new Date(semana).toLocaleDateString("es-AR")}`}
-                />
-                <ResumenPanel
-                    title={`Resumen mensual (${mesReferencia.inicio.toLocaleDateString("es-AR", { month: "long", year: "numeric" })})`}
-                    cobrado={resumenMes.cobrado}
-                    creditosSinPago={resumenMes.creditosSinPago}
-                    pendiente={resumenMes.pendiente}
-                />
-            </div>
-
-            <ReportActivityCalendar
-                reports={reportes}
-                title={`Calendario de actividad de ${usuario.name}`}
-                onReportClick={(report) => openReportDetail(report.id)}
-            />
-
-            {/* === REPORTES DEL USUARIO (REGISTRADOS) === */}
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Reportes registrados</h2>
-
-                <div className="overflow-x-auto mt-4">
-                    <table className="min-w-full text-left text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                            <tr>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Fecha</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Clientes visitados</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Efectivo</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">MercadoPago</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Total</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-center">Detalle</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {reportes.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No hay reportes registrados.</td>
-                                </tr>
-                            ) : (
-                                reportes.map((r) => (
-                                    <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/70">
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3">{new Date(r.fechaDeReporte).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3">{r.clientsVisited}</td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-green-600">${(r.efectivo || 0).toLocaleString("es-AR")}</td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-blue-600">${(r.mercadopago || 0).toLocaleString("es-AR")}</td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 font-semibold">${(r.total || 0).toLocaleString("es-AR")}</td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-center">
-                                            <button
-                                                onClick={() => openReportDetail(r.id)}
-                                                className="inline-flex items-center justify-center rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500"
-                                            >
-                                                Ver detalle
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* === PAGOS DETALLADOS === */}
-            <div className="rounded-xl border border-gray-200 bg-white p-2 sm:p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                    <thead className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                        <tr>
-                            <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Fecha</th>
-                            <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Cliente</th>
-                            <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Monto</th>
-                            <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Método</th>
-                            <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Cuota</th>
-                            <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium">Saldo restante</th>
-                            <th className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-center">
-                                Acción
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {pagosPaginados.length > 0 ? (
-                            pagosPaginados.map((p) => {
-                                const credito = creditos.find((cr) => cr.id === p.creditId);
-                                const cliente = clientes.find(
-                                    (c) => c.id === credito?.clientId
-                                );
-                                const historial = pagosOrdenadosPorCredito.get(p.creditId) || [];
-                                const posicion = historial.findIndex((item) => item.id === p.id);
-                                const pagadoHasta = historial
-                                    .slice(0, posicion + 1)
-                                    .reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
-                                const totalPlan = calcularMontoPlan(credito);
-                                const restanteTrasPago = Math.max(0, totalPlan - pagadoHasta);
-                                const cuotaActual = credito?.totalInstallments
-                                    ? Math.min(posicion + 1, credito.totalInstallments)
-                                    : posicion + 1;
-
-                                return (
-                                    <tr
-                                        key={p.id}
-                                        className="hover:bg-gray-50 dark:hover:bg-gray-800/70"
-                                    >
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3">
-                                            {new Date(p.date).toLocaleDateString("es-AR", {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                            })}
-                                        </td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3">
-                                            {cliente?.name || "-"}
-                                        </td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 font-semibold text-gray-900 dark:text-gray-100">
-                                            ${Number(p.amount || 0).toLocaleString("es-AR")}
-                                        </td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-600 dark:text-gray-300">
-                                            {p.methodSummary || "-"}
-                                        </td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3">
-                                            {cuotaActual}
-                                            {credito?.totalInstallments ? ` / ${credito.totalInstallments}` : ""}
-                                        </td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-gray-600 dark:text-gray-300">
-                                            ${restanteTrasPago.toLocaleString("es-AR")}
-                                        </td>
-                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-center">
-                                            <button
-                                                onClick={() =>
-                                                    navigate(`/creditos/${credito?.id}`)
-                                                }
-                                                className="px-3 py-1 rounded-md bg-blue-600 text-white text-xs sm:text-sm hover:bg-blue-700 transition"
-                                            >
-                                                Ver crédito
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        ) : (
-                            <tr>
-                                <td
-                                    colSpan={7}
-                                    className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
-                                >
-                                    No hay pagos en esta semana.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-
-                {/* === Paginación === */}
-                {totalPaginas > 1 && (
-                    <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                        <button
-                            onClick={() => setPagina((p) => Math.max(1, p - 1))}
-                            disabled={pagina === 1}
-                            className="px-3 py-1 border rounded-md dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                        >
-                            Anterior
-                        </button>
-                        <span>
-                            Página {pagina} de {totalPaginas}
-                        </span>
-                        <button
-                            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-                            disabled={pagina === totalPaginas}
-                            className="px-3 py-1 border rounded-md dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                        >
-                            Siguiente
-                        </button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function Kpi({ label, value, color = "gray" }) {
-    const colors = {
-        blue: "text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700",
-        emerald:
-            "text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700",
-        indigo:
-            "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-700",
-        gray: "text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600",
-    };
-
-    return (
-        <div
-            className={`rounded-xl border bg-white p-3 sm:p-4 text-center dark:bg-gray-800 shadow-sm ${colors[color]}`}
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        <button onClick={() => navigate(-1)}
+          style={{ width: "40px", height: "40px", borderRadius: "12px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-bg-card)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+          onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+          onMouseLeave={e => e.currentTarget.style.background = "var(--ios-bg-card)"}
         >
-            <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-            <div className="text-base sm:text-lg font-semibold">{value}</div>
+          <HiArrowLeft style={{ width: "18px", height: "18px", color: "var(--ios-blue)" }} />
+        </button>
+        <div>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "var(--ios-label)", margin: 0, letterSpacing: "-0.025em" }}>Reportes del cobrador</h1>
+          <p style={{ fontSize: "13px", color: "var(--ios-label-ter)", margin: "2px 0 0" }}>{usuario.name}</p>
         </div>
-    );
-}
+      </div>
 
-function ResumenPanel({ title, cobrado, creditosSinPago, pendiente, periodo }) {
-    const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
-    return (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 space-y-4">
-            <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h3>
-                {periodo && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{periodo}</p>
-                )}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-                <Kpi label="Cobrado" value={currency.format(cobrado)} color="emerald" />
-                <Kpi label="Créditos sin pagar" value={creditosSinPago} color="indigo" />
-                <Kpi label="Pendiente total" value={currency.format(pendiente)} color="gray" />
-            </div>
+      {/* Filtros */}
+      <div className="ios-card" style={{ padding: "16px" }}>
+        <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: "0 0 12px" }}>Filtros</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", display: "block", marginBottom: "5px" }}>Semana seleccionada</label>
+            <input type="date" value={semana} onChange={e => { setSemana(e.target.value); setPagina(1); }} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--ios-label-sec)", display: "block", marginBottom: "5px" }}>Filtrar por día</label>
+            <select value={diaFiltro} onChange={e => { setDiaFiltro(e.target.value); setPagina(1); }} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+              <option value="">Todos los días</option>
+              {diasConPagos.map(key => (
+                <option key={key} value={key}>{new Date(key).toLocaleDateString("es-AR", { weekday: "long", day: "2-digit", month: "short" })}</option>
+              ))}
+            </select>
+          </div>
         </div>
-    );
-}
+      </div>
 
+      {/* KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "12px" }}>
+        {[
+          { label: "Cobrado semana", value: currency(resumenSemana.cobrado), icon: HiCash, color: "#1A6B36", bg: "#E8F8ED" },
+          { label: "Sin pago", value: resumenSemana.creditosSinPago, icon: HiUserGroup, color: "#7C4A00", bg: "#FFF3E0" },
+          { label: "Pendiente total", value: currency(resumenSemana.pendiente), icon: HiClock, color: "#5C2B8C", bg: "#F5EAFF" },
+        ].map(k => (
+          <div key={k.label} className="ios-card" style={{ padding: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-ter)", margin: 0 }}>{k.label}</p>
+              <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: k.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <k.icon style={{ width: "14px", height: "14px", color: k.color }} />
+              </div>
+            </div>
+            <p style={{ fontSize: "18px", fontWeight: 800, color: "var(--ios-label)", margin: 0 }}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendario */}
+      <ReportActivityCalendar reports={reportes} title={`Actividad de ${usuario.name}`} onReportClick={report => openReportDetail(report.id)} />
+
+      {/* Tabla reportes registrados */}
+      <div className="ios-card" style={{ padding: "20px" }}>
+        <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 14px" }}>Reportes registrados</h2>
+        <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--ios-sep-opaque)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["Fecha", "Clientes visitados", "Efectivo", "MercadoPago", "Total", ""].map((h, i) => (
+                  <th key={h || i} style={{ padding: "10px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: i >= 2 ? "right" : "left" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {reportes.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "var(--ios-label-ter)", fontSize: "14px" }}>No hay reportes registrados.</td></tr>
+              ) : reportes.map(r => (
+                <tr key={r.id} style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "var(--ios-label)" }}>{new Date(r.fechaDeReporte).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                  <td style={{ padding: "12px 14px", fontSize: "14px", color: "var(--ios-label-sec)" }}>{r.clientsVisited}</td>
+                  <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "#1A6B36", textAlign: "right" }}>{currency(r.efectivo)}</td>
+                  <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "#004299", textAlign: "right" }}>{currency(r.mercadopago)}</td>
+                  <td style={{ padding: "12px 14px", fontSize: "15px", fontWeight: 800, color: "var(--ios-label)", textAlign: "right" }}>{currency(r.total)}</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                    <button onClick={() => openReportDetail(r.id)} style={{ padding: "6px 14px", borderRadius: "8px", border: "none", background: "#EBF3FF", color: "#004299", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+                      Ver detalle
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Pagos detallados */}
+      <div className="ios-card" style={{ padding: "20px" }}>
+        <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--ios-label)", margin: "0 0 14px" }}>
+          Pagos de la semana — {pagosFiltrados.length} registros
+        </h2>
+        <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--ios-sep-opaque)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["Fecha", "Cliente", "Monto", "Método", "Cuota", "Saldo restante", ""].map((h, i) => (
+                  <th key={h || i} style={{ padding: "10px 14px", background: "var(--ios-fill)", borderBottom: "1px solid var(--ios-sep-opaque)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ios-label-sec)", textAlign: i >= 2 && i < 6 ? "right" : "left" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pagosPaginados.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "var(--ios-label-ter)", fontSize: "14px" }}>No hay pagos en esta semana.</td></tr>
+              ) : pagosPaginados.map(p => {
+                const credito = creditos.find(cr => cr.id === p.creditId);
+                const cliente = clientes.find(c => c.id === credito?.clientId);
+                const historial = pagosOrdenadosPorCredito.get(p.creditId) || [];
+                const posicion = historial.findIndex(item => item.id === p.id);
+                const pagadoHasta = historial.slice(0, posicion + 1).reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
+                const totalPlan = calcularMontoPlan(credito);
+                const restante = Math.max(0, totalPlan - pagadoHasta);
+                const cuota = credito?.totalInstallments ? Math.min(posicion + 1, credito.totalInstallments) : posicion + 1;
+                return (
+                  <tr key={p.id} style={{ borderBottom: "1px solid var(--ios-sep-opaque)", transition: "background 0.12s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "var(--ios-fill)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <td style={{ padding: "12px 14px", fontSize: "14px", color: "var(--ios-label-sec)" }}>{new Date(p.date).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                    <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 600, color: "var(--ios-label)" }}>{cliente?.name || "—"}</td>
+                    <td style={{ padding: "12px 14px", fontSize: "14px", fontWeight: 700, color: "#1A6B36", textAlign: "right" }}>{currency(p.amount)}</td>
+                    <td style={{ padding: "12px 14px", fontSize: "13px", color: "var(--ios-label-sec)", textAlign: "right" }}>{p.methodSummary || "—"}</td>
+                    <td style={{ padding: "12px 14px", fontSize: "13px", color: "var(--ios-label-sec)", textAlign: "right" }}>{cuota}{credito?.totalInstallments ? ` / ${credito.totalInstallments}` : ""}</td>
+                    <td style={{ padding: "12px 14px", fontSize: "13px", color: "var(--ios-label-sec)", textAlign: "right" }}>{currency(restante)}</td>
+                    <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                      <button onClick={() => navigate(`/creditos/${credito?.id}`)} style={{ padding: "6px 12px", borderRadius: "8px", border: "none", background: "#EBF3FF", color: "#004299", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>Ver crédito</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginación simple */}
+        {totalPaginas > 1 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginTop: "14px" }}>
+            <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1}
+              style={{ padding: "6px 14px", borderRadius: "8px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", color: pagina === 1 ? "var(--ios-label-ter)" : "var(--ios-label)", fontSize: "13px", fontWeight: 600, cursor: pagina === 1 ? "not-allowed" : "pointer" }}>
+              Anterior
+            </button>
+            <span style={{ fontSize: "13px", color: "var(--ios-label-sec)" }}>Pág {pagina} de {totalPaginas}</span>
+            <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina === totalPaginas}
+              style={{ padding: "6px 14px", borderRadius: "8px", border: "1.5px solid var(--ios-sep-opaque)", background: "var(--ios-fill)", color: pagina === totalPaginas ? "var(--ios-label-ter)" : "var(--ios-label)", fontSize: "13px", fontWeight: 600, cursor: pagina === totalPaginas ? "not-allowed" : "pointer" }}>
+              Siguiente
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

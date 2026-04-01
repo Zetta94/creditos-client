@@ -3,6 +3,7 @@ import { Provider, useDispatch, useSelector } from "react-redux";
 import { HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { store } from "./store";
 import { fetchCurrentUser } from "./store/authSlice";
+import { DialogProvider } from "./components/DialogProvider.jsx";
 
 // Layout principal con Sidebar y Topbar
 import Dashboard from "./pages/Dashboard.jsx";
@@ -60,7 +61,7 @@ function AppRouter() {
   const location = useLocation();
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    document.documentElement.classList.remove("dark");
   }, []);
 
   const publicPaths = ["/login", "/forgot-password", "/reset-password"];
@@ -207,7 +208,9 @@ export default function App() {
   return (
     <Provider store={store}>
       <HashRouter>
-        <AppRouter />
+        <DialogProvider>
+          <AppRouter />
+        </DialogProvider>
       </HashRouter>
     </Provider>
   );
