@@ -54,8 +54,15 @@ export default function RegistrarPago() {
     const initialSetDone = useRef(false);
 
     useEffect(() => {
+        initialSetDone.current = false;
+    }, [creditoId]);
+
+    useEffect(() => {
         if (!canSelectInstallments || initialSetDone.current) return;
         if (!credito || loadingCredit) return;
+        
+        // Safety check: ensure the credit loaded matches the one in the URL
+        if (String(credito.id) !== String(creditoId)) return;
 
         const pendingCount = Number(pendingOccurrences || 0);
         const preferredCount = pendingCount > 0 ? pendingCount : 1;
@@ -65,7 +72,7 @@ export default function RegistrarPago() {
         setPagos([{ metodo: "efectivo", monto: String(installmentAmount * normalizedCount), id: Date.now() }]);
         
         initialSetDone.current = true;
-    }, [canSelectInstallments, installmentAmount, maxInstallmentsToPay, pendingOccurrences, credito, loadingCredit]);
+    }, [canSelectInstallments, installmentAmount, maxInstallmentsToPay, pendingOccurrences, credito, loadingCredit, creditoId]);
 
     const handleModeChange = (newMode) => {
         setInstallmentMode(newMode);

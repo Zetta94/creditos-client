@@ -41,13 +41,25 @@ const slice = createSlice({
   extraReducers: builder => {
     builder
       .addCase(loadCredits.pending, s => { s.loading = true; s.error = null; })
+      .addCase(loadCredit.pending, s => { 
+        s.loading = true; 
+        s.error = null; 
+        s.current = null; // Clear stale data
+      })
       .addCase(loadCredits.fulfilled, (s, a) => {
         s.loading = false;
         s.list = a.payload?.data ?? [];
         s.meta = a.payload?.meta ?? emptyMeta;
       })
       .addCase(loadCredits.rejected, (s, a) => { s.loading = false; s.error = a.error.message; })
-      .addCase(loadCredit.fulfilled, (s, a) => { s.current = a.payload; })
+      .addCase(loadCredit.fulfilled, (s, a) => { 
+        s.loading = false;
+        s.current = a.payload; 
+      })
+      .addCase(loadCredit.rejected, (s, a) => { 
+        s.loading = false; 
+        s.error = a.error.message; 
+      })
       .addCase(addCredit.fulfilled, (s, a) => {
         s.list.unshift(a.payload);
         const totalItems = s.meta.totalItems + 1;
