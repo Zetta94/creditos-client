@@ -198,7 +198,9 @@ export default function CreditoDetalle() {
     const cuotasCompletadas = credito.totalInstallments && credito.paidInstallments >= credito.totalInstallments;
     const creditoFinalizado = credito.status === "PAID" || cuotasCompletadas;
 
-    const totalPagado = pagosCredito.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    const receivedAmount = Number(credito.receivedAmount) || 0;
+    const totalPagadoFromPayments = pagosCredito.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    const totalPagado = Math.max(totalPagadoFromPayments, receivedAmount);
     const baseAmount = Math.max(Number(credito.amount) || 0, 0);
     const installmentAmount = Number(credito.installmentAmount) || 0;
     const cuotasTotales = Number(credito.totalInstallments) || 0;
